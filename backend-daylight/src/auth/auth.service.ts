@@ -20,7 +20,12 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { email, password, firstName, lastName, phoneNumber, sessionId } = registerDto;
+    const { email, password, confirmPassword, firstName, lastName, phoneNumber, sessionId } = registerDto;
+
+    // Password match validation (sudah dihandle oleh DTO validator, tapi double check)
+    if (password !== confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
 
     // Check if personality test was completed
     const personalityResult = await this.personalityService.getResultBySession(sessionId);
@@ -29,7 +34,7 @@ export class AuthService {
       throw new BadRequestException('Please complete the personality test first');
     }
 
-    // Create user
+    // Create user (not verified yet)
     const user = await this.usersService.createUser({
       email,
       password,
@@ -37,31 +42,103 @@ export class AuthService {
       lastName,
       phoneNumber,
       provider: AuthProvider.LOCAL,
+      isEmailVerified: false, // Explicitly set to false
     });
 
     // Link personality result to user
     await this.personalityService.linkResultToUser(sessionId, user.id);
 
-    // Send welcome email
-    await this.emailService.sendWelcomeEmail(
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 3600000); // 24 hours
+
+    await this.usersService.updateEmailVerificationToken(user.id, verificationToken, expires);
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(
       user.email,
-      user.firstName || firstName, 
-      personalityResult.archetype.name,
+      verificationToken,
+      user.firstName || 'User',
     );
 
-    // Generate tokens
-    const tokens = this.generateTokens(user.id, user.email);
-
     return {
+      message: 'Registration successful! Please check your email to verify your account.',
       user: {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        personalityType: personalityResult.archetype.type,
+        isEmailVerified: false,
+      },
+    };
+  }
+
+  async verifyEmail(token: string) {
+    const user = await this.usersService.findByVerificationToken(token);
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    // Verify email
+    await this.usersService.verifyEmail(user.id);
+
+    // Get personality result for welcome email
+    const personalityResult = await this.personalityService.getResultByUserId(user.id);
+
+    // Send welcome email
+    await this.emailService.sendWelcomeEmail(
+      user.email,
+      user.firstName || 'User',
+      personalityResult.archetype.name,
+    );
+
+    // Generate tokens for auto-login
+    const tokens = this.generateTokens(user.id, user.email);
+
+    return {
+      message: 'Email verified successfully! You can now login.',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isEmailVerified: true,
       },
       ...tokens,
     };
+  }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user) {
+      // Don't reveal if user exists
+      return { message: 'If an account exists, a verification email has been sent' };
+    }
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    if (user.provider !== AuthProvider.LOCAL) {
+      throw new BadRequestException(`This account uses ${user.provider} login`);
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 3600000); // 24 hours
+
+    await this.usersService.updateEmailVerificationToken(user.id, verificationToken, expires);
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      verificationToken,
+      user.firstName || 'User',
+    );
+
+    return { message: 'If an account exists, a verification email has been sent' };
   }
 
   async login(loginDto: LoginDto) {
@@ -79,6 +156,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException(
+        'Please verify your email address before logging in. Check your inbox for the verification link.'
+      );
+    }
+
+    // Check if account is active
+    if (!user.isActive) {
+      throw new UnauthorizedException('Your account has been deactivated');
+    }
+
     const tokens = this.generateTokens(user.id, user.email);
 
     return {
@@ -87,6 +176,7 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        isEmailVerified: user.isEmailVerified,
       },
       ...tokens,
     };
@@ -104,7 +194,6 @@ export class AuthService {
       }
 
       // User doesn't exist, need to register
-      // In real flow, this would redirect to complete personality test
       throw new BadRequestException('Please complete personality test before registration');
     }
 
@@ -129,14 +218,14 @@ export class AuthService {
       throw new BadRequestException('Please complete the personality test first');
     }
 
-    // Create user with Google
+    // Create user with Google (already verified)
     const user = await this.usersService.createUser({
       email: profile.emails[0].value,
       firstName: profile.name.givenName,
       lastName: profile.name.familyName,
       provider: AuthProvider.GOOGLE,
       googleId: profile.id,
-      isEmailVerified: true,
+      isEmailVerified: true, // Google accounts are pre-verified
     });
 
     // Link personality result to user
@@ -145,7 +234,7 @@ export class AuthService {
     // Send welcome email
     await this.emailService.sendWelcomeEmail(
       user.email,
-      user.firstName || profile.name.givenName,
+      user.firstName || 'User',
       personalityResult.archetype.name,
     );
 
@@ -185,7 +274,7 @@ export class AuthService {
     await this.emailService.sendResetPasswordEmail(
       user.email, 
       resetToken, 
-      user.firstName || 'User' 
+      user.firstName || 'User'
     );
 
     return { message: 'If an account exists, a reset link has been sent' };

@@ -1,4 +1,5 @@
 import { IsEmail, IsString, MinLength, IsOptional, Matches } from 'class-validator';
+import { Match } from '../../common/decorators/match.decorator';
 
 export class RegisterDto {
   @IsEmail()
@@ -10,6 +11,11 @@ export class RegisterDto {
     message: 'Password must contain uppercase, lowercase, number and special character',
   })
   password: string;
+
+  @IsString()
+  @MinLength(8)
+  @Match('password', { message: 'Passwords do not match' })
+  confirmPassword: string;
 
   @IsString()
   @MinLength(2)

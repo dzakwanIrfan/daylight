@@ -50,6 +50,11 @@ model User {
   isEmailVerified   Boolean           @default(false)
   isActive          Boolean           @default(true)
   
+  // Email verification
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime?
+  
+  // Password reset
   resetPasswordToken       String?
   resetPasswordExpires     DateTime?
   
@@ -60,6 +65,7 @@ model User {
   
   @@index([email])
   @@index([googleId])
+  @@index([emailVerificationToken])
 }
 
 model PersonalityResult {

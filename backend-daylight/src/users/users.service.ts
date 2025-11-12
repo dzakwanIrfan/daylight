@@ -80,6 +80,7 @@ export class UsersService {
         profilePicture: true,
         provider: true,
         isEmailVerified: true,
+        isActive: true,
         createdAt: true,
         personalityResult: true,
       },
@@ -138,5 +139,37 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  async updateEmailVerificationToken(userId: string, token: string, expires: Date) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerificationToken: token,
+        emailVerificationExpires: expires,
+      },
+    });
+  }
+
+  async findByVerificationToken(token: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        emailVerificationToken: token,
+        emailVerificationExpires: {
+          gte: new Date(),
+        },
+      },
+    });
+  }
+
+  async verifyEmail(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    });
   }
 }

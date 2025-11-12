@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle2, XCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -42,13 +42,18 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
+  // Only check sessionId on initial mount, NOT after registration success
   useEffect(() => {
+    // Don't redirect if registration is already successful
+    if (registrationSuccess) return;
+    
     if (!sessionId) {
       toast.error('Please complete the personality test first');
       router.push('/personality-test');
     }
-  }, [sessionId, router]);
+  }, []); // Empty dependency array - only run once on mount
 
   const {
     register,
@@ -73,21 +78,33 @@ export function RegisterForm() {
   const registerMutation = useMutation({
     mutationFn: authService.register,
     onSuccess: (data) => {
-      setRegistrationSuccess(true);
-      resetPersonalityTest();
-      toast.success('Registration successful!', {
-        description: 'Please check your email to verify your account.',
-        duration: 6000,
-      });
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      if (data.success) {
+        setUserEmail(data.user.email);
+        setRegistrationSuccess(true);
+        resetPersonalityTest(); // Clear personality test data
+        toast.success('Registration successful!', {
+          description: 'Please check your email to verify your account.',
+          duration: 6000,
+        });
+      }
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Registration failed';
       toast.error('Registration failed', {
         description: message,
       });
+    },
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: authService.resendVerification,
+    onSuccess: () => {
+      toast.success('Verification email sent!', {
+        description: 'Please check your inbox.',
+      });
+    },
+    onError: () => {
+      toast.error('Failed to resend email');
     },
   });
 
@@ -118,30 +135,68 @@ export function RegisterForm() {
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?sessionId=${sessionId}`;
   };
 
+  const handleResendVerification = () => {
+    if (userEmail) {
+      resendMutation.mutate({ email: userEmail });
+    }
+  };
+
+  // Success Screen
   if (registrationSuccess) {
     return (
       <div className="w-full max-w-md space-y-8 text-center">
         <div className="flex justify-center">
-          <CheckCircle2 className="h-20 w-20 text-green-500" />
+          <div className="rounded-full bg-green-100 p-4">
+            <Mail className="h-16 w-16 text-green-600" />
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Registration Successful!</h2>
-          <p className="text-muted-foreground">
-            We've sent a verification email to your inbox.
-            <br />
-            Please check your email to activate your account.
+        
+        <div className="space-y-4">
+          <h2 className="text-3xl font-bold text-gray-900">Check Your Email</h2>
+          <div className="space-y-2">
+            <p className="text-gray-600">
+              We've sent a verification link to:
+            </p>
+            <p className="font-semibold text-gray-900">{userEmail}</p>
+          </div>
+          <p className="text-sm text-gray-500">
+            Click the link in the email to verify your account and start using DayLight.
           </p>
         </div>
-        <Button
-          onClick={() => router.push('/login')}
-          className="w-full bg-brand hover:bg-brand-orange-dark"
-        >
-          Go to Login
-        </Button>
+
+        <div className="space-y-3">
+          <Button
+            onClick={handleResendVerification}
+            variant="outline"
+            className="w-full border border-r-4 border-b-4 border-black rounded-full font-bold"
+            disabled={resendMutation.isPending}
+          >
+            {resendMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              'Resend Verification Email'
+            )}
+          </Button>
+
+          <Button
+            onClick={() => router.push('/login')}
+            className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
+          >
+            Go to Login
+          </Button>
+        </div>
+
+        <p className="text-xs text-gray-500">
+          Didn't receive the email? Check your spam folder or click resend.
+        </p>
       </div>
     );
   }
 
+  // Registration Form
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">

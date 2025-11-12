@@ -65,6 +65,7 @@ export class AuthService {
       return {
         success: true,
         message: 'Registration successful! Please check your email to verify your account.',
+        requiresVerification: true, 
         user: {
           id: user.id,
           email: user.email,
@@ -108,7 +109,7 @@ export class AuthService {
 
     return {
       success: true,
-      message: 'Email verified successfully! You can now login.',
+      message: 'Email verified successfully!',
       user: {
         id: user.id,
         email: user.email,

@@ -16,7 +16,6 @@ export default function AuthCallbackPage() {
     const refreshToken = searchParams.get('refreshToken');
 
     if (accessToken && refreshToken) {
-      // Decode user info from JWT (simple base64 decode)
       try {
         const payload = JSON.parse(atob(accessToken.split('.')[1]));
         const user = {
@@ -26,9 +25,15 @@ export default function AuthCallbackPage() {
           lastName: payload.lastName || null,
         };
         
+        // Set auth akan otomatis set cookie juga
         setAuth(user, accessToken, refreshToken);
+        
         toast.success('Login successful!');
-        router.push('/dashboard');
+        
+        // Force hard navigation untuk trigger middleware
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       } catch (error) {
         toast.error('Authentication failed');
         router.push('/login');
@@ -40,7 +45,7 @@ export default function AuthCallbackPage() {
   }, [searchParams, setAuth, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-orange-50 to-white">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-white">
       <div className="text-center space-y-4">
         <Loader2 className="h-16 w-16 animate-spin mx-auto text-brand" />
         <p className="text-xl font-semibold">Authenticating...</p>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Home, 
   Calendar, 
@@ -24,14 +24,15 @@ interface DashboardLayoutProps {
 }
 
 const navigation = [
-  { name: 'Home', href: '/dashboard', icon: Home },
-  { name: 'Events', href: '/dashboard/events', icon: Calendar },
-  { name: 'Connections', href: '/dashboard/connections', icon: Users },
-  { name: 'Profile', href: '/dashboard/profile', icon: User },
+  { name: 'Home', href: '/', icon: Home },
+  { name: 'Events', href: '/events', icon: Calendar },
+  { name: 'Connections', href: '/connections', icon: Users },
+  { name: 'Profile', href: '/profile', icon: User },
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,25 +54,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-8">
-              <h1 className="text-2xl logo-text font-bold text-brand">
-                DayLight
-              </h1>
+              <Link href="/">
+                <h1 className="text-2xl logo-text font-bold text-brand cursor-pointer hover:opacity-80 transition">
+                  DayLight
+                </h1>
+              </Link>
               
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center gap-1">
-                {navigation.map((item) => (
-                  <Button
-                    key={item.name}
-                    variant="ghost"
-                    asChild
-                    className="gap-2"
-                  >
-                    <Link href={item.href}>
-                      <item.icon className="w-4 h-4" />
-                      {item.name}
-                    </Link>
-                  </Button>
-                ))}
+                {navigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Button
+                      key={item.name}
+                      variant={isActive ? "default" : "ghost"}
+                      asChild
+                      className={`gap-2 ${isActive ? 'bg-brand text-white hover:bg-brand/90' : ''}`}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="w-4 h-4" />
+                        {item.name}
+                      </Link>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
 
@@ -89,6 +95,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 size="icon"
                 onClick={handleLogout}
                 className="hidden md:flex"
+                title="Logout"
               >
                 <LogOut className="w-5 h-5" />
               </Button>
@@ -114,20 +121,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t">
             <div className="px-4 py-3 space-y-1">
-              {navigation.map((item) => (
-                <Button
-                  key={item.name}
-                  variant="ghost"
-                  asChild
-                  className="w-full justify-start gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Link href={item.href}>
-                    <item.icon className="w-4 h-4" />
-                    {item.name}
-                  </Link>
-                </Button>
-              ))}
+              {navigation.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Button
+                    key={item.name}
+                    variant={isActive ? "default" : "ghost"}
+                    asChild
+                    className={`w-full justify-start gap-2 ${isActive ? 'bg-brand text-white' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="w-4 h-4" />
+                      {item.name}
+                    </Link>
+                  </Button>
+                );
+              })}
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-2 text-destructive"

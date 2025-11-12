@@ -23,7 +23,7 @@ export default function VerifyEmailPage() {
         setAuth(data.user, data.accessToken, data.refreshToken);
         toast.success('Email verified successfully!');
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/');
         }, 2000);
       }
     },
@@ -63,7 +63,7 @@ export default function VerifyEmailPage() {
             <div>
               <p className="text-xl font-semibold">Email Verified!</p>
               <p className="text-muted-foreground mt-2">
-                Redirecting to dashboard...
+                Redirecting to login page...
               </p>
             </div>
           </>

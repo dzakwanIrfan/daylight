@@ -40,11 +40,18 @@ export function LoginForm() {
     mutationFn: authService.login,
     onSuccess: (data) => {
       if (data.success && data.user && data.accessToken && data.refreshToken) {
+        // Set auth state dan cookies
         setAuth(data.user, data.accessToken, data.refreshToken);
+        
         toast.success('Welcome back!', {
           description: `Hello ${data.user.firstName}!`,
         });
-        router.push('/dashboard');
+        
+        // Delay untuk memastikan cookie sudah tersimpan
+        setTimeout(() => {
+          // Force hard navigation untuk trigger middleware dengan cookie baru
+          window.location.href = '/';
+        }, 500);
       } else {
         toast.error('Login failed', {
           description: 'Invalid response from server',

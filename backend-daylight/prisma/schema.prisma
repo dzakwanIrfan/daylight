@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum RelationshipStatus {
+  SINGLE
+  MARRIED
+  PREFER_NOT_SAY
+}
+
+enum GenderMixComfort {
+  TOTALLY_FINE
+  PREFER_SAME_GENDER
+  DEPENDS
+}
+
+enum PersonalityArchetype {
+  BRIGHT_MORNING
+  CALM_DAWN
+  BOLD_NOON
+  GOLDEN_HOUR
+  QUIET_DUSK
+  CLOUDY_DAY
+  SERENE_DRIZZLE
+  BLAZING_NOON
+  STARRY_NIGHT
+  PERFECT_DAY
+}
+
+model User {
+  id                String            @id @default(uuid())
+  email             String            @unique
+  password          String?
+  firstName         String?
+  lastName          String?
+  phoneNumber       String?
+  profilePicture    String?
+  provider          AuthProvider      @default(LOCAL)
+  googleId          String?           @unique
+  isEmailVerified   Boolean           @default(false)
+  isActive          Boolean           @default(true)
+  
+  resetPasswordToken       String?
+  resetPasswordExpires     DateTime?
+  
+  personalityResult        PersonalityResult?
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  @@index([email])
+  @@index([googleId])
+}
+
+model PersonalityResult {
+  id                    String                @id @default(uuid())
+  userId                String?               @unique
+  user                  User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Session ID for anonymous users (before registration)
+  sessionId             String?               @unique
+  
+  // Raw trait scores (-10 to +10)
+  energyRaw             Float                 // E: Extrovert(+) ↔ Introvert(-)
+  opennessRaw           Float                 // O: Abstract/curious(+) ↔ Practical(-)
+  structureRaw          Float                 // S: Flexible/Playful(+) ↔ Structured(-)
+  affectRaw             Float                 // A: Feeling(+) ↔ Thinking(-)
+  comfortRaw            Float                 // C: Comfort with strangers
+  lifestyleRaw          Float                 // L: 1=budget, 2=mid, 3=premium
+  
+  // Normalized scores (0-100)
+  energyScore           Float
+  opennessScore         Float
+  structureScore        Float
+  affectScore           Float
+  comfortScore          Float
+  lifestyleScore        Float
+  
+  // Overall profile score (0-100)
+  profileScore          Float
+  
+  // Assigned archetype
+  archetype             PersonalityArchetype
+  
+  // Context data (not scored)
+  relationshipStatus    RelationshipStatus?
+  intentOnDaylight      String[]              // Array of intents
+  genderMixComfort      GenderMixComfort?
+  
+  // Survey answers (stored as JSON for flexibility)
+  answers               Json
+  
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model Question {
+  id                    String                @id @default(uuid())
+  questionNumber        Int                   @unique
+  section               String
+  prompt                String
+  type                  String                // 'single', 'multiple'
+  isActive              Boolean               @default(true)
+  order                 Int
+  
+  options               QuestionOption[]
+  
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  @@index([questionNumber])
+  @@index([order])
+}
+
+model QuestionOption {
+  id                    String                @id @default(uuid())
+  questionId            String
+  question              Question              @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  optionKey             String                // 'A', 'B', 'C', 'D'
+  text                  String
+  
+  // Trait impacts (stored as JSON for flexibility)
+  // Format: { "E": 10, "O": -5, "A": 3 }
+  traitImpacts          Json
+  
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  @@unique([questionId, optionKey])
+}

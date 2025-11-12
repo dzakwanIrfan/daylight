@@ -8,6 +8,7 @@ export interface LoginDto {
 export interface RegisterDto {
   email: string;
   password: string;
+  confirmPassword: string;
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -23,6 +24,10 @@ export interface ResetPasswordDto {
   newPassword: string;
 }
 
+export interface ResendVerificationDto {
+  email: string;
+}
+
 export const authService = {
   login: async (data: LoginDto) => {
     const response = await apiClient.post('/auth/login', data);
@@ -31,6 +36,16 @@ export const authService = {
 
   register: async (data: RegisterDto) => {
     const response = await apiClient.post('/auth/register', data);
+    return response.data;
+  },
+
+  verifyEmail: async (token: string) => {
+    const response = await apiClient.post('/auth/verify-email', { token });
+    return response.data;
+  },
+
+  resendVerification: async (data: ResendVerificationDto) => {
+    const response = await apiClient.post('/auth/resend-verification', data);
     return response.data;
   },
 

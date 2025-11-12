@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth-store';
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -10,7 +11,7 @@ const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = useAuthStore.getState().accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,27 +25,13 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Handle 401 errors
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        // Implement refresh token logic here if needed
-        
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        // Clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+  (error) => {
+    if (error.response?.status === 401) {
+      useAuthStore.getState().clearAuth();
+      if (typeof window !== 'undefined') {
         window.location.href = '/login';
-        return Promise.reject(refreshError);
       }
     }
-
     return Promise.reject(error);
   }
 );

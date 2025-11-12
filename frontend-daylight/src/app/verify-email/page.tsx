@@ -1,130 +1,92 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Suspense } from 'react';
-
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { emailService } from '@/services/email.service';
+import { authService } from '@/services/auth.service';
+import { useAuthStore } from '@/store/auth-store';
 
-function VerifyEmailContent() {
+export default function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error'>('pending');
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
 
   const verifyMutation = useMutation({
-    mutationFn: (token: string) => emailService.verifyEmail(token),
-    onSuccess: () => {
-      setVerificationStatus('success');
-      toast.success('Email verified!', {
-        description: 'Your email has been successfully verified.',
-      });
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 3000);
+    mutationFn: authService.verifyEmail,
+    onSuccess: (data) => {
+      setStatus('success');
+      if (data.success && data.user && data.accessToken && data.refreshToken) {
+        setAuth(data.user, data.accessToken, data.refreshToken);
+        toast.success('Email verified successfully!');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+      }
     },
     onError: (error: any) => {
-      setVerificationStatus('error');
+      setStatus('error');
       toast.error('Verification failed', {
-        description:
-          error.response?.data?.message || 'Invalid or expired token',
+        description: error.response?.data?.message || 'Invalid or expired token',
       });
     },
   });
 
   useEffect(() => {
+    const token = searchParams.get('token');
     if (token) {
       verifyMutation.mutate(token);
     } else {
-      setVerificationStatus('error');
+      setStatus('error');
+      toast.error('No verification token provided');
     }
-  }, [token]);
-
-  const handleResend = () => {
-    router.push('/dashboard/profile');
-  };
+  }, [searchParams]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4">
-      <Card className="w-full max-w-md">
-        <CardContent className="pt-6">
-          <div className="text-center space-y-4">
-            {verificationStatus === 'pending' && (
-              <>
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand/10">
-                  <Loader2 className="w-8 h-8 text-brand animate-spin" />
-                </div>
-                <h2 className="text-2xl font-heading font-bold">
-                  Verifying Your Email
-                </h2>
-                <p className="text-muted-foreground">
-                  Please wait while we verify your email address...
-                </p>
-              </>
-            )}
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-orange-50 to-white p-4">
+      <div className="w-full max-w-md text-center space-y-6">
+        <h1 className="text-4xl font-bold text-brand logo-text">DayLight</h1>
+        
+        {status === 'verifying' && (
+          <>
+            <Loader2 className="h-16 w-16 animate-spin mx-auto text-brand" />
+            <p className="text-xl font-semibold">Verifying your email...</p>
+          </>
+        )}
 
-            {verificationStatus === 'success' && (
-              <>
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30">
-                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-                <h2 className="text-2xl font-heading font-bold">
-                  Email Verified!
-                </h2>
-                <p className="text-muted-foreground">
-                  Your email has been successfully verified. Redirecting to
-                  dashboard...
-                </p>
-              </>
-            )}
+        {status === 'success' && (
+          <>
+            <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
+            <div>
+              <p className="text-xl font-semibold">Email Verified!</p>
+              <p className="text-muted-foreground mt-2">
+                Redirecting to dashboard...
+              </p>
+            </div>
+          </>
+        )}
 
-            {verificationStatus === 'error' && (
-              <>
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10">
-                  <XCircle className="w-8 h-8 text-destructive" />
-                </div>
-                <h2 className="text-2xl font-heading font-bold">
-                  Verification Failed
-                </h2>
-                <p className="text-muted-foreground">
-                  The verification link is invalid or has expired. Please
-                  request a new verification email.
-                </p>
-                <div className="flex flex-col gap-3 pt-4">
-                  <Button
-                    onClick={handleResend}
-                    className="bg-brand hover:bg-brand-orange-dark"
-                  >
-                    Go to Profile
-                  </Button>
-                  <Button variant="outline" onClick={() => router.push('/')}>
-                    Go Home
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {status === 'error' && (
+          <>
+            <XCircle className="h-16 w-16 mx-auto text-destructive" />
+            <div>
+              <p className="text-xl font-semibold">Verification Failed</p>
+              <p className="text-muted-foreground mt-2">
+                The verification link may be invalid or expired.
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push('/login')}
+              className="w-full bg-brand hover:bg-brand/90"
+            >
+              Go to Login
+            </Button>
+          </>
+        )}
+      </div>
     </div>
-  );
-}
-
-export default function VerifyEmailPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="w-8 h-8 animate-spin text-brand" />
-        </div>
-      }
-    >
-      <VerifyEmailContent />
-    </Suspense>
   );
 }

@@ -1,20 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authService } from '@/services/auth.service';
-import { useAuthStore } from '@/store/auth-store';
 import { usePersonalityTestStore } from '@/store/personality-test-store';
 
 const registerSchema = z.object({
@@ -26,7 +25,7 @@ const registerSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
       'Password must contain uppercase, lowercase, number and special character'
     ),
-  confirmPassword: z.string(),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   phoneNumber: z.string().optional(),
@@ -39,8 +38,10 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const router = useRouter();
-  const setAuth = useAuthStore((state) => state.setAuth);
   const { sessionId, reset: resetPersonalityTest } = usePersonalityTestStore();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -52,43 +53,94 @@ export function RegisterForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    mode: 'onChange',
   });
+
+  const password = watch('password');
+
+  const passwordRequirements = [
+    { label: 'At least 8 characters', test: (pwd: string) => pwd?.length >= 8 },
+    { label: 'One uppercase letter', test: (pwd: string) => /[A-Z]/.test(pwd) },
+    { label: 'One lowercase letter', test: (pwd: string) => /[a-z]/.test(pwd) },
+    { label: 'One number', test: (pwd: string) => /\d/.test(pwd) },
+    { label: 'One special character', test: (pwd: string) => /[@$!%*?&]/.test(pwd) },
+  ];
 
   const registerMutation = useMutation({
     mutationFn: authService.register,
     onSuccess: (data) => {
-      setAuth(data.user, data.accessToken, data.refreshToken);
+      setRegistrationSuccess(true);
       resetPersonalityTest();
-      toast.success('Account created!', {
-        description: 'Welcome to DayLight!',
+      toast.success('Registration successful!', {
+        description: 'Please check your email to verify your account.',
+        duration: 6000,
       });
-      router.push('/dashboard');
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
     },
     onError: (error: any) => {
+      const message = error.response?.data?.message || 'Registration failed';
       toast.error('Registration failed', {
-        description: error.response?.data?.message || 'Please try again',
+        description: message,
       });
     },
   });
 
   const onSubmit = (data: RegisterFormData) => {
+    if (!sessionId) {
+      toast.error('Session expired. Please take the personality test again.');
+      router.push('/personality-test');
+      return;
+    }
+
     registerMutation.mutate({
       email: data.email,
       password: data.password,
+      confirmPassword: data.confirmPassword,
       firstName: data.firstName,
       lastName: data.lastName,
-      phoneNumber: data.phoneNumber,
+      phoneNumber: data.phoneNumber || undefined,
       sessionId,
     });
   };
 
   const handleGoogleRegister = () => {
-    // Redirect to Google OAuth with sessionId
+    if (!sessionId) {
+      toast.error('Please complete the personality test first');
+      router.push('/personality-test');
+      return;
+    }
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?sessionId=${sessionId}`;
   };
+
+  if (registrationSuccess) {
+    return (
+      <div className="w-full max-w-md space-y-8 text-center">
+        <div className="flex justify-center">
+          <CheckCircle2 className="h-20 w-20 text-green-500" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Registration Successful!</h2>
+          <p className="text-muted-foreground">
+            We've sent a verification email to your inbox.
+            <br />
+            Please check your email to activate your account.
+          </p>
+        </div>
+        <Button
+          onClick={() => router.push('/login')}
+          className="w-full bg-brand hover:bg-brand-orange-dark"
+        >
+          Go to Login
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -105,12 +157,13 @@ export function RegisterForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="firstName">First Name *</Label>
             <Input
               id="firstName"
               placeholder="John"
               {...register('firstName')}
               className={errors.firstName ? 'border-destructive' : ''}
+              disabled={registerMutation.isPending}
             />
             {errors.firstName && (
               <p className="text-sm text-destructive">
@@ -120,12 +173,13 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="lastName">Last Name *</Label>
             <Input
               id="lastName"
               placeholder="Doe"
               {...register('lastName')}
               className={errors.lastName ? 'border-destructive' : ''}
+              disabled={registerMutation.isPending}
             />
             {errors.lastName && (
               <p className="text-sm text-destructive">
@@ -136,13 +190,14 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Email *</Label>
           <Input
             id="email"
             type="email"
             placeholder="your@email.com"
             {...register('email')}
             className={errors.email ? 'border-destructive' : ''}
+            disabled={registerMutation.isPending}
           />
           {errors.email && (
             <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -156,34 +211,69 @@ export function RegisterForm() {
             type="tel"
             placeholder="+62 812 3456 7890"
             {...register('phoneNumber')}
+            disabled={registerMutation.isPending}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            {...register('password')}
-            className={errors.password ? 'border-destructive' : ''}
-          />
-          {errors.password && (
-            <p className="text-sm text-destructive">
-              {errors.password.message}
-            </p>
+          <Label htmlFor="password">Password *</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              {...register('password')}
+              className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
+              disabled={registerMutation.isPending}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {password && (
+            <div className="mt-2 space-y-1">
+              {passwordRequirements.map((req, idx) => {
+                const isValid = req.test(password);
+                return (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    {isValid ? (
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    ) : (
+                      <XCircle className="h-3 w-3 text-muted-foreground" />
+                    )}
+                    <span className={isValid ? 'text-green-600' : 'text-muted-foreground'}>
+                      {req.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            {...register('confirmPassword')}
-            className={errors.confirmPassword ? 'border-destructive' : ''}
-          />
+          <Label htmlFor="confirmPassword">Confirm Password *</Label>
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              {...register('confirmPassword')}
+              className={errors.confirmPassword ? 'border-destructive pr-10' : 'pr-10'}
+              disabled={registerMutation.isPending}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           {errors.confirmPassword && (
             <p className="text-sm text-destructive">
               {errors.confirmPassword.message}
@@ -193,7 +283,7 @@ export function RegisterForm() {
 
         <Button
           type="submit"
-          className="w-full bg-brand hover:bg-brand-orange-dark border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
+          className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
           disabled={registerMutation.isPending}
         >
           {registerMutation.isPending ? (
@@ -223,6 +313,7 @@ export function RegisterForm() {
         variant="outline"
         className="w-full border border-r-4 border-b-4 border-black rounded-full font-bold"
         onClick={handleGoogleRegister}
+        disabled={registerMutation.isPending}
       >
         <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
           <path

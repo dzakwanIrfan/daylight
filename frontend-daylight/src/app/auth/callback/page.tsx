@@ -16,28 +16,23 @@ export default function AuthCallbackPage() {
     const refreshToken = searchParams.get('refreshToken');
 
     if (accessToken && refreshToken) {
-      // Store tokens
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-
-      // Fetch user data
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/profile`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((user) => {
-          setAuth(user, accessToken, refreshToken);
-          toast.success('Welcome back!', {
-            description: 'You have successfully logged in.',
-          });
-          router.push('/dashboard');
-        })
-        .catch(() => {
-          toast.error('Authentication failed');
-          router.push('/login');
-        });
+      // Decode user info from JWT (simple base64 decode)
+      try {
+        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+        const user = {
+          id: payload.sub,
+          email: payload.email,
+          firstName: payload.firstName || null,
+          lastName: payload.lastName || null,
+        };
+        
+        setAuth(user, accessToken, refreshToken);
+        toast.success('Login successful!');
+        router.push('/dashboard');
+      } catch (error) {
+        toast.error('Authentication failed');
+        router.push('/login');
+      }
     } else {
       toast.error('Authentication failed');
       router.push('/login');
@@ -45,10 +40,10 @@ export default function AuthCallbackPage() {
   }, [searchParams, setAuth, router]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-orange-50 to-white">
       <div className="text-center space-y-4">
-        <Loader2 className="w-12 h-12 animate-spin text-brand mx-auto" />
-        <p className="text-muted-foreground">Completing authentication...</p>
+        <Loader2 className="h-16 w-16 animate-spin mx-auto text-brand" />
+        <p className="text-xl font-semibold">Authenticating...</p>
       </div>
     </div>
   );

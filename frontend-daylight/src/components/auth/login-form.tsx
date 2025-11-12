@@ -1,12 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function LoginForm() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -37,15 +39,22 @@ export function LoginForm() {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (data) => {
-      setAuth(data.user, data.accessToken, data.refreshToken);
-      toast.success('Welcome back!', {
-        description: 'You have successfully logged in.',
-      });
-      router.push('/dashboard');
+      if (data.success && data.user && data.accessToken && data.refreshToken) {
+        setAuth(data.user, data.accessToken, data.refreshToken);
+        toast.success('Welcome back!', {
+          description: `Hello ${data.user.firstName}!`,
+        });
+        router.push('/dashboard');
+      } else {
+        toast.error('Login failed', {
+          description: 'Invalid response from server',
+        });
+      }
     },
     onError: (error: any) => {
+      const message = error.response?.data?.message || 'Invalid credentials';
       toast.error('Login failed', {
-        description: error.response?.data?.message || 'Invalid credentials',
+        description: message,
       });
     },
   });
@@ -79,6 +88,7 @@ export function LoginForm() {
             placeholder="your@email.com"
             {...register('email')}
             className={errors.email ? 'border-destructive' : ''}
+            disabled={loginMutation.isPending}
           />
           {errors.email && (
             <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -95,13 +105,23 @@ export function LoginForm() {
               Forgot password?
             </Link>
           </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            {...register('password')}
-            className={errors.password ? 'border-destructive' : ''}
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              {...register('password')}
+              className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
+              disabled={loginMutation.isPending}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-sm text-destructive">
               {errors.password.message}
@@ -111,7 +131,7 @@ export function LoginForm() {
 
         <Button
           type="submit"
-          className="w-full bg-brand hover:bg-brand-orange-dark"
+          className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
           disabled={loginMutation.isPending}
         >
           {loginMutation.isPending ? (
@@ -139,8 +159,9 @@ export function LoginForm() {
       <Button
         type="button"
         variant="outline"
-        className="w-full"
+        className="w-full border border-r-4 border-b-4 border-black rounded-full font-bold"
         onClick={handleGoogleLogin}
+        disabled={loginMutation.isPending}
       >
         <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
           <path

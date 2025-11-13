@@ -3,16 +3,30 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   const configService = app.get(ConfigService);
   
-  // Enable CORS
+  // Security headers
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }));
+  
+  // Cookie parser
+  app.use(cookieParser());
+  
+  // Enable CORS with strict configuration
+  const frontendUrl = configService.get('FRONTEND_URL');
   app.enableCors({
-    origin: configService.get('FRONTEND_URL'),
+    origin: frontendUrl,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie'],
   });
 
   // Global prefix
@@ -21,12 +35,15 @@ async function bootstrap() {
   // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Validation pipe
+  // Validation pipe with sanitization
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
@@ -34,5 +51,7 @@ async function bootstrap() {
   await app.listen(port);
   
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
+  console.log(`🔒 Security headers enabled with Helmet`);
+  console.log(`🍪 Cookie-based auth enabled`);
 }
 bootstrap();

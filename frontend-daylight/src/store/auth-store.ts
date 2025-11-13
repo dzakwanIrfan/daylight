@@ -16,26 +16,10 @@ interface User {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  refreshToken: string | null;
-  setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+  setAuth: (user: User, accessToken: string) => void;
+  setAccessToken: (accessToken: string) => void;
   clearAuth: () => void;
   isAuthenticated: () => boolean;
-}
-
-// Helper function to set cookie
-function setCookie(name: string, value: string, days: number = 7) {
-  if (typeof window === 'undefined') return;
-  
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
-}
-
-// Helper function to delete cookie
-function deleteCookie(name: string) {
-  if (typeof window === 'undefined') return;
-  
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -43,31 +27,19 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
-      setAuth: (user, accessToken, refreshToken) => {
-        // Set state
-        set({ user, accessToken, refreshToken });
-        
-        // Set localStorage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        
-        // Set cookie untuk middleware
-        setCookie('accessToken', accessToken, 7);
-        setCookie('refreshToken', refreshToken, 7);
+      
+      setAuth: (user, accessToken) => {
+        set({ user, accessToken });
       },
+      
+      setAccessToken: (accessToken) => {
+        set({ accessToken });
+      },
+      
       clearAuth: () => {
-        // Clear state
-        set({ user: null, accessToken: null, refreshToken: null });
-        
-        // Clear localStorage
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        
-        // Clear cookies
-        deleteCookie('accessToken');
-        deleteCookie('refreshToken');
+        set({ user: null, accessToken: null });
       },
+      
       isAuthenticated: () => {
         const state = get();
         return !!state.accessToken && !!state.user;
@@ -75,6 +47,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      // Only persist user data, NOT tokens
+      partialize: (state) => ({ user: state.user }),
     }
   )
 );

@@ -19,7 +19,6 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async createUser(data: CreateUserData) {
-    // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -28,13 +27,11 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Hash password if provided
     let hashedPassword: string | undefined;
     if (data.password) {
-      hashedPassword = await bcrypt.hash(data.password, 10);
+      hashedPassword = await bcrypt.hash(data.password, 12); // Increased to 12 rounds
     }
 
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
@@ -55,6 +52,7 @@ export class UsersService {
         profilePicture: true,
         provider: true,
         isEmailVerified: true,
+        refreshTokenVersion: true,
         createdAt: true,
       },
     });
@@ -81,6 +79,7 @@ export class UsersService {
         provider: true,
         isEmailVerified: true,
         isActive: true,
+        refreshTokenVersion: true,
         createdAt: true,
         personalityResult: true,
       },
@@ -97,20 +96,20 @@ export class UsersService {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  async updateResetToken(userId: string, token: string, expires: Date) {
+  async updateResetToken(userId: string, tokenHash: string, expires: Date) {
     return this.prisma.user.update({
       where: { id: userId },
       data: {
-        resetPasswordToken: token,
+        resetPasswordTokenHash: tokenHash,
         resetPasswordExpires: expires,
       },
     });
   }
 
-  async findByResetToken(token: string) {
+  async findByResetToken(tokenHash: string) {
     return this.prisma.user.findFirst({
       where: {
-        resetPasswordToken: token,
+        resetPasswordTokenHash: tokenHash,
         resetPasswordExpires: {
           gte: new Date(),
         },
@@ -119,13 +118,13 @@ export class UsersService {
   }
 
   async updatePassword(userId: string, newPassword: string) {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     return this.prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
-        resetPasswordToken: null,
+        resetPasswordTokenHash: null,
         resetPasswordExpires: null,
       },
     });
@@ -133,7 +132,7 @@ export class UsersService {
 
   async getUserProfile(userId: string) {
     const user = await this.findById(userId);
-    
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -141,20 +140,20 @@ export class UsersService {
     return user;
   }
 
-  async updateEmailVerificationToken(userId: string, token: string, expires: Date) {
+  async updateEmailVerificationToken(userId: string, tokenHash: string, expires: Date) {
     return this.prisma.user.update({
       where: { id: userId },
       data: {
-        emailVerificationToken: token,
+        emailVerificationTokenHash: tokenHash,
         emailVerificationExpires: expires,
       },
     });
   }
 
-  async findByVerificationToken(token: string) {
+  async findByVerificationToken(tokenHash: string) {
     return this.prisma.user.findFirst({
       where: {
-        emailVerificationToken: token,
+        emailVerificationTokenHash: tokenHash,
         emailVerificationExpires: {
           gte: new Date(),
         },
@@ -167,8 +166,19 @@ export class UsersService {
       where: { id: userId },
       data: {
         isEmailVerified: true,
-        emailVerificationToken: null,
+        emailVerificationTokenHash: null,
         emailVerificationExpires: null,
+      },
+    });
+  }
+
+  async incrementTokenVersion(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        refreshTokenVersion: {
+          increment: 1,
+        },
       },
     });
   }

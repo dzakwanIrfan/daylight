@@ -64,6 +64,11 @@ export const authService = {
     return response.data;
   },
 
+  logoutAll: async () => {
+    const response = await apiClient.post('/auth/logout-all');
+    return response.data;
+  },
+
   googleLogin: () => {
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   },

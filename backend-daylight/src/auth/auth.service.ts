@@ -1,13 +1,26 @@
-import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
+import { 
+  Injectable, 
+  UnauthorizedException, 
+  BadRequestException, 
+  ConflictException 
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PersonalityService } from '../personality/personality.service';
 import { EmailService } from '../email/email.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthProvider } from '@prisma/client';
 import * as crypto from 'crypto';
+
+export interface TokenPayload {
+  sub: string;
+  email: string;
+  tokenVersion: number;
+  type: 'access' | 'refresh';
+}
 
 @Injectable()
 export class AuthService {
@@ -17,25 +30,28 @@ export class AuthService {
     private configService: ConfigService,
     private personalityService: PersonalityService,
     private emailService: EmailService,
+    private prisma: PrismaService,
   ) {}
+
+  // Helper: Hash token dengan SHA256
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
 
   async register(registerDto: RegisterDto) {
     const { email, password, confirmPassword, firstName, lastName, phoneNumber, sessionId } = registerDto;
 
     try {
-      // Check if user already exists
       const existingUser = await this.usersService.findByEmail(email);
       if (existingUser) {
         throw new ConflictException('Email already registered');
       }
 
-      // Check if personality test was completed
       const personalityResult = await this.personalityService.getResultBySession(sessionId);
       if (!personalityResult) {
         throw new BadRequestException('Please complete the personality test first');
       }
 
-      // Create user (not verified yet)
       const user = await this.usersService.createUser({
         email,
         password,
@@ -46,26 +62,26 @@ export class AuthService {
         isEmailVerified: false,
       });
 
-      // Link personality result to user
       await this.personalityService.linkResultToUser(sessionId, user.id);
 
-      // Generate verification token
+      // Generate verification token (plain)
       const verificationToken = crypto.randomBytes(32).toString('hex');
-      const expires = new Date(Date.now() + 24 * 3600000); // 24 hours
+      const tokenHash = this.hashToken(verificationToken);
+      const expires = new Date(Date.now() + 24 * 3600000);
 
-      await this.usersService.updateEmailVerificationToken(user.id, verificationToken, expires);
+      await this.usersService.updateEmailVerificationToken(user.id, tokenHash, expires);
 
-      // Send verification email
+      // Send email with PLAIN token
       await this.emailService.sendVerificationEmail(
         user.email,
-        verificationToken,
+        verificationToken, // Plain token in email
         user.firstName || 'User',
       );
 
       return {
         success: true,
         message: 'Registration successful! Please check your email to verify your account.',
-        requiresVerification: true, 
+        requiresVerification: true,
         user: {
           id: user.id,
           email: user.email,
@@ -83,29 +99,27 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
-    const user = await this.usersService.findByVerificationToken(token);
+    const tokenHash = this.hashToken(token);
+    const user = await this.usersService.findByVerificationToken(tokenHash);
 
     if (!user) {
       throw new BadRequestException('Invalid or expired verification token');
     }
 
-    // Verify email
     await this.usersService.verifyEmail(user.id);
 
-    // Get personality result for welcome email
     const personalityResult = await this.personalityService.getResultByUserId(user.id);
 
-    // Send welcome email
     if (personalityResult) {
       await this.emailService.sendWelcomeEmail(
         user.email,
         user.firstName || 'User',
-        personalityResult.archetype.name,
+        personalityResult.archetype.toString(),
       );
     }
 
     // Generate tokens for auto-login
-    const tokens = this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
     return {
       success: true,
@@ -125,9 +139,9 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      return { 
+      return {
         success: true,
-        message: 'If an account exists, a verification email has been sent' 
+        message: 'If an account exists, a verification email has been sent',
       };
     }
 
@@ -139,22 +153,21 @@ export class AuthService {
       throw new BadRequestException(`This account uses ${user.provider} login`);
     }
 
-    // Generate new verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(verificationToken);
     const expires = new Date(Date.now() + 24 * 3600000);
 
-    await this.usersService.updateEmailVerificationToken(user.id, verificationToken, expires);
+    await this.usersService.updateEmailVerificationToken(user.id, tokenHash, expires);
 
-    // Send verification email
     await this.emailService.sendVerificationEmail(
       user.email,
       verificationToken,
       user.firstName || 'User',
     );
 
-    return { 
+    return {
       success: true,
-      message: 'Verification email sent successfully' 
+      message: 'Verification email sent successfully',
     };
   }
 
@@ -175,7 +188,7 @@ export class AuthService {
 
     if (!user.isEmailVerified) {
       throw new UnauthorizedException(
-        'Please verify your email address before logging in. Check your inbox for the verification link.'
+        'Please verify your email address before logging in. Check your inbox for the verification link.',
       );
     }
 
@@ -183,7 +196,7 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been deactivated');
     }
 
-    const tokens = this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
     return {
       success: true,
@@ -205,13 +218,15 @@ export class AuthService {
       user = await this.usersService.findByEmail(profile.email);
 
       if (user && user.provider === AuthProvider.LOCAL) {
-        throw new ConflictException('An account with this email already exists. Please login with your password.');
+        throw new ConflictException(
+          'An account with this email already exists. Please login with your password.',
+        );
       }
 
       throw new BadRequestException('Please complete personality test before registration');
     }
 
-    const tokens = this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
     return {
       success: true,
@@ -246,10 +261,10 @@ export class AuthService {
     await this.emailService.sendWelcomeEmail(
       user.email,
       user.firstName || 'User',
-      personalityResult.archetype.name,
+      personalityResult.archetype.toString(),
     );
 
-    const tokens = this.generateTokens(user.id, user.email);
+    const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
     return {
       success: true,
@@ -258,7 +273,7 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        personalityType: personalityResult.archetype.type,
+        personalityType: personalityResult.archetype,
       },
       ...tokens,
     };
@@ -268,35 +283,39 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      return { 
+      return {
         success: true,
-        message: 'If an account exists, a reset link has been sent' 
+        message: 'If an account exists, a reset link has been sent',
       };
     }
 
     if (user.provider !== AuthProvider.LOCAL) {
-      throw new BadRequestException(`This account uses ${user.provider} login. Please login with ${user.provider}.`);
+      throw new BadRequestException(
+        `This account uses ${user.provider} login. Please login with ${user.provider}.`,
+      );
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(resetToken);
     const expires = new Date(Date.now() + 3600000);
 
-    await this.usersService.updateResetToken(user.id, resetToken, expires);
+    await this.usersService.updateResetToken(user.id, tokenHash, expires);
 
     await this.emailService.sendResetPasswordEmail(
-      user.email, 
-      resetToken, 
-      user.firstName || 'User'
+      user.email,
+      resetToken,
+      user.firstName || 'User',
     );
 
-    return { 
+    return {
       success: true,
-      message: 'Password reset link sent successfully' 
+      message: 'Password reset link sent successfully',
     };
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const user = await this.usersService.findByResetToken(token);
+    const tokenHash = this.hashToken(token);
+    const user = await this.usersService.findByResetToken(tokenHash);
 
     if (!user) {
       throw new BadRequestException('Invalid or expired reset token');
@@ -304,30 +323,151 @@ export class AuthService {
 
     await this.usersService.updatePassword(user.id, newPassword);
 
-    return { 
+    return {
       success: true,
-      message: 'Password has been reset successfully' 
+      message: 'Password has been reset successfully',
     };
   }
 
-  private generateTokens(userId: string, email: string) {
-    const payload = { sub: userId, email };
+  // REFRESH TOKEN MECHANISM
+  async refreshTokens(userId: string, refreshToken: string) {
+    const user = await this.usersService.findById(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const tokenHash = this.hashToken(refreshToken);
+
+    // Check if refresh token exists and not revoked
+    const storedToken = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!storedToken || storedToken.isRevoked) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // Revoke old refresh token
+    await this.prisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: { isRevoked: true },
+    });
+
+    // Generate new tokens
+    const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
     return {
-      accessToken: this.jwtService.sign(payload, {
-        secret: this.configService.get('JWT_SECRET'),
-        expiresIn: this.configService.get('JWT_EXPIRES_IN'),
-      }),
-      refreshToken: this.jwtService.sign(payload, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'),
-      }),
+      success: true,
+      ...tokens,
+    };
+  }
+
+  async validateRefreshToken(userId: string, refreshToken: string, tokenVersion: number): Promise<boolean> {
+    const user = await this.usersService.findById(userId);
+
+    if (!user || user.refreshTokenVersion !== tokenVersion) {
+      return false;
+    }
+
+    const tokenHash = this.hashToken(refreshToken);
+    const storedToken = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!storedToken || storedToken.isRevoked || storedToken.expiresAt < new Date()) {
+      return false;
+    }
+
+    return true;
+  }
+
+  async logout(userId: string, refreshToken?: string) {
+    if (refreshToken) {
+      const tokenHash = this.hashToken(refreshToken);
+      
+      // Revoke specific refresh token
+      await this.prisma.refreshToken.updateMany({
+        where: { 
+          userId,
+          tokenHash,
+        },
+        data: { isRevoked: true },
+      });
+    }
+
+    return { 
+      success: true,
+      message: 'Logged out successfully' 
+    };
+  }
+
+  async logoutAll(userId: string) {
+    // Revoke all refresh tokens
+    await this.prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { isRevoked: true },
+    });
+
+    // Increment token version to invalidate all access tokens
+    await this.usersService.incrementTokenVersion(userId);
+
+    return {
+      success: true,
+      message: 'Logged out from all devices successfully',
+    };
+  }
+
+  private async generateTokens(userId: string, email: string, tokenVersion: number) {
+    const accessPayload: TokenPayload = {
+      sub: userId,
+      email,
+      tokenVersion,
+      type: 'access',
+    };
+
+    const refreshPayload: TokenPayload = {
+      sub: userId,
+      email,
+      tokenVersion,
+      type: 'refresh',
+    };
+
+    const accessToken = this.jwtService.sign(accessPayload, {
+      secret: this.configService.get('JWT_SECRET'),
+      expiresIn: this.configService.get('JWT_EXPIRES_IN'), // 15 minutes
+    });
+
+    const refreshToken = this.jwtService.sign(refreshPayload, {
+      secret: this.configService.get('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'), // 7 days
+    });
+
+    // Store refresh token hash in database
+    const refreshTokenHash = this.hashToken(refreshToken);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 3600000); // 7 days
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        tokenHash: refreshTokenHash,
+        expiresAt,
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
     };
   }
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    
+
     if (user && user.password) {
       const isValid = await this.usersService.validatePassword(password, user.password);
       if (isValid) {

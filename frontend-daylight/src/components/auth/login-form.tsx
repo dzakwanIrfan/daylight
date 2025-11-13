@@ -39,19 +39,19 @@ export function LoginForm() {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (data) => {
-      if (data.success && data.user && data.accessToken && data.refreshToken) {
-        // Set auth state dan cookies
-        setAuth(data.user, data.accessToken, data.refreshToken);
-        
+      if (data.success && data.user && data.accessToken) {
+        // Only store user and access token in memory
+        // Refresh token is in httpOnly cookie
+        setAuth(data.user, data.accessToken);
+
         toast.success('Welcome back!', {
           description: `Hello ${data.user.firstName}!`,
         });
-        
-        // Delay untuk memastikan cookie sudah tersimpan
+
+        // Redirect
         setTimeout(() => {
-          // Force hard navigation untuk trigger middleware dengan cookie baru
           window.location.href = '/';
-        }, 500);
+        }, 300);
       } else {
         toast.error('Login failed', {
           description: 'Invalid response from server',
@@ -77,13 +77,9 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-brand mb-2 logo-text">
-          DayLight
-        </h1>
+        <h1 className="text-4xl font-bold text-brand mb-2 logo-text">DayLight</h1>
         <h2 className="text-2xl font-semibold mb-2">Welcome Back</h2>
-        <p className="text-muted-foreground">
-          Sign in to continue your journey
-        </p>
+        <p className="text-muted-foreground">Sign in to continue your journey</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -105,10 +101,7 @@ export function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link
-              href="/forgot-password"
-              className="text-sm text-brand hover:underline"
-            >
+            <Link href="/forgot-password" className="text-sm text-brand hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -130,9 +123,7 @@ export function LoginForm() {
             </button>
           </div>
           {errors.password && (
-            <p className="text-sm text-destructive">
-              {errors.password.message}
-            </p>
+            <p className="text-sm text-destructive">{errors.password.message}</p>
           )}
         </div>
 
@@ -157,9 +148,7 @@ export function LoginForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-muted-foreground">
-            Or continue with
-          </span>
+          <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
         </div>
       </div>
 

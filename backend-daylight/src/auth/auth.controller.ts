@@ -1,14 +1,14 @@
-import { 
-  Controller, 
-  Post, 
-  Body, 
-  Get, 
-  UseGuards, 
-  Req, 
-  Res, 
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Req,
+  Res,
   Query,
   HttpCode,
-  HttpStatus 
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -19,7 +19,9 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { Public } from '../common/decorators/public.decorator';
-import type { Response } from 'express';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
@@ -31,6 +33,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 requests per hour
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
@@ -38,13 +41,22 @@ export class AuthController {
   @Public()
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    return this.authService.verifyEmail(verifyEmailDto.token);
+  async verifyEmail(
+    @Body() verifyEmailDto: VerifyEmailDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyEmail(verifyEmailDto.token);
+
+    // Set httpOnly cookies
+    this.setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    return result;
   }
 
   @Public()
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour
   async resendVerification(@Body() resendVerificationDto: ResendVerificationDto) {
     return this.authService.resendVerificationEmail(resendVerificationDto.email);
   }
@@ -52,8 +64,36 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  @Throttle({ default: { limit: 10, ttl: 900000 } }) // 10 requests per 15 minutes
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(loginDto);
+
+    // Set httpOnly cookies
+    this.setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    return result;
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard('jwt-refresh'))
+  async refreshTokens(
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.refreshTokens(
+      user.userId,
+      user.refreshToken,
+    );
+
+    // Set new httpOnly cookies
+    this.setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    return result;
   }
 
   @Public()
@@ -66,22 +106,26 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() res: Response, @Query('sessionId') sessionId?: string) {
+  async googleAuthRedirect(
+    @Req() req,
+    @Res() res: Response,
+    @Query('sessionId') sessionId?: string,
+  ) {
     try {
       let result;
 
       if (sessionId) {
-        // User is registering with Google after personality test
         result = await this.authService.registerWithGoogle(sessionId, req.user);
       } else {
-        // User is logging in with Google
         result = await this.authService.googleLogin(req.user);
       }
 
-      // Redirect to frontend with tokens
+      // Set httpOnly cookies
+      this.setAuthCookies(res, result.accessToken, result.refreshToken);
+
       const frontendUrl = this.configService.get('FRONTEND_URL');
-      const redirectUrl = `${frontendUrl}/auth/callback?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`;
-      
+      const redirectUrl = `${frontendUrl}/auth/callback?success=true`;
+
       res.redirect(redirectUrl);
     } catch (error) {
       const frontendUrl = this.configService.get('FRONTEND_URL');
@@ -92,6 +136,7 @@ export class AuthController {
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
@@ -108,9 +153,61 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout() {
-    // In a stateless JWT system, logout is handled client-side
-    // If you want to implement token blacklisting, add it here
-    return { message: 'Logged out successfully' };
+  async logout(
+    @CurrentUser() user: any,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.refreshToken;
+
+    await this.authService.logout(user.userId, refreshToken);
+
+    // Clear cookies
+    this.clearAuthCookies(res);
+
+    return { success: true, message: 'Logged out successfully' };
+  }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  async logoutAll(
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logoutAll(user.userId);
+
+    // Clear cookies
+    this.clearAuthCookies(res);
+
+    return { success: true, message: 'Logged out from all devices' };
+  }
+
+  // Helper: Set auth cookies
+  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+
+    // Access token - 15 minutes
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      path: '/',
+    });
+
+    // Refresh token - 7 days
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+  }
+
+  // Helper: Clear auth cookies
+  private clearAuthCookies(res: Response) {
+    res.clearCookie('accessToken', { path: '/' });
+    res.clearCookie('refreshToken', { path: '/' });
   }
 }

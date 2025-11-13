@@ -44,16 +44,14 @@ export function RegisterForm() {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
-  // Only check sessionId on initial mount, NOT after registration success
   useEffect(() => {
-    // Don't redirect if registration is already successful
     if (registrationSuccess) return;
     
     if (!sessionId) {
       toast.error('Please complete the personality test first');
       router.push('/personality-test');
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
   const {
     register,
@@ -81,7 +79,7 @@ export function RegisterForm() {
       if (data.success) {
         setUserEmail(data.user.email);
         setRegistrationSuccess(true);
-        resetPersonalityTest(); // Clear personality test data
+        resetPersonalityTest();
         toast.success('Registration successful!', {
           description: 'Please check your email to verify your account.',
           duration: 6000,
@@ -141,7 +139,6 @@ export function RegisterForm() {
     }
   };
 
-  // Success Screen
   if (registrationSuccess) {
     return (
       <div className="w-full max-w-md space-y-8 text-center">
@@ -196,7 +193,6 @@ export function RegisterForm() {
     );
   }
 
-  // Registration Form
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">

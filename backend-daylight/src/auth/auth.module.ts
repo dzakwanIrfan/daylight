@@ -7,7 +7,9 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { PersonalityModule } from '../personality/personality.module';
 import { EmailModule } from '../email/email.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 
@@ -16,6 +18,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     UsersModule,
     PersonalityModule,
     EmailModule,
+    PrismaModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -28,7 +31,13 @@ import { GoogleStrategy } from './strategies/google.strategy';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy],
+  providers: [
+    AuthService, 
+    JwtStrategy, 
+    RefreshTokenStrategy,
+    LocalStrategy, 
+    GoogleStrategy
+  ],
   controllers: [AuthController],
   exports: [AuthService],
 })

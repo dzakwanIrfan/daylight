@@ -41,23 +41,32 @@ export function LoginForm() {
     mutationFn: authService.login,
     onSuccess: (data) => {
       if (data.success && data.user && data.accessToken) {
+        // Update auth store
         setAuth(data.user, data.accessToken);
 
         toast.success('Welcome back!', {
           description: `Hello ${data.user.firstName}!`,
+          duration: 3000,
         });
 
         const redirectTo = searchParams?.get('redirect') || '/';
         
+        // ✅ FIXED: Use Next.js router.push instead of window.location.href
+        // This provides smoother navigation without full page reload
         setTimeout(() => {
-          window.location.href = redirectTo;
-        }, 300);
+          router.push(redirectTo);
+          // Force refresh the page to ensure auth state is fully synced
+          // Only if needed for your app architecture
+          router.refresh();
+        }, 500);
       }
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Invalid credentials';
+      // ✅ FIXED: Show error with longer duration, no page refresh
       toast.error('Login failed', {
-        description: message,
+        description: Array.isArray(message) ? message.join(', ') : message,
+        duration: 6000, // Give user time to read the error
       });
     },
   });
@@ -67,6 +76,7 @@ export function LoginForm() {
   };
 
   const handleGoogleLogin = () => {
+    // ✅ Google OAuth requires full page redirect (this is correct)
     authService.googleLogin();
   };
 
@@ -85,6 +95,7 @@ export function LoginForm() {
             id="email"
             type="email"
             placeholder="your@email.com"
+            autoComplete="email"
             {...register('email')}
             className={errors.email ? 'border-destructive' : ''}
             disabled={loginMutation.isPending}
@@ -106,6 +117,7 @@ export function LoginForm() {
               id="password"
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
+              autoComplete="current-password"
               {...register('password')}
               className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
               disabled={loginMutation.isPending}
@@ -114,6 +126,7 @@ export function LoginForm() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              disabled={loginMutation.isPending}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>

@@ -44,14 +44,18 @@ export function RegisterForm() {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
+  // ✅ FIXED: Check sessionId on mount, but don't auto-redirect
+  // Let user see the error message first
   useEffect(() => {
     if (registrationSuccess) return;
     
     if (!sessionId) {
-      toast.error('Please complete the personality test first');
-      router.push('/personality-test');
+      toast.error('Please complete the personality test first', {
+        description: 'You need to take the personality test before registering.',
+        duration: 5000,
+      });
     }
-  }, []);
+  }, [sessionId, registrationSuccess]);
 
   const {
     register,
@@ -88,8 +92,10 @@ export function RegisterForm() {
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Registration failed';
+      // ✅ FIXED: Show error with longer duration, no auto-redirect
       toast.error('Registration failed', {
-        description: message,
+        description: Array.isArray(message) ? message.join(', ') : message,
+        duration: 6000, // Give user time to read
       });
     },
   });
@@ -99,17 +105,29 @@ export function RegisterForm() {
     onSuccess: () => {
       toast.success('Verification email sent!', {
         description: 'Please check your inbox.',
+        duration: 5000,
       });
     },
-    onError: () => {
-      toast.error('Failed to resend email');
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to resend email';
+      toast.error('Failed to resend email', {
+        description: message,
+        duration: 5000,
+      });
     },
   });
 
   const onSubmit = (data: RegisterFormData) => {
+    // ✅ FIXED: Validate sessionId before submitting, don't auto-redirect
     if (!sessionId) {
-      toast.error('Session expired. Please take the personality test again.');
-      router.push('/personality-test');
+      toast.error('Session expired', {
+        description: 'Please take the personality test again before registering.',
+        duration: 6000,
+        action: {
+          label: 'Take Test',
+          onClick: () => router.push('/personality-test'),
+        },
+      });
       return;
     }
 
@@ -126,10 +144,17 @@ export function RegisterForm() {
 
   const handleGoogleRegister = () => {
     if (!sessionId) {
-      toast.error('Please complete the personality test first');
-      router.push('/personality-test');
+      toast.error('Please complete the personality test first', {
+        description: 'You need to take the personality test before registering.',
+        duration: 6000,
+        action: {
+          label: 'Take Test',
+          onClick: () => router.push('/personality-test'),
+        },
+      });
       return;
     }
+    // ✅ Google OAuth requires full page redirect
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?sessionId=${sessionId}`;
   };
 
@@ -139,6 +164,7 @@ export function RegisterForm() {
     }
   };
 
+  // Success screen after registration
   if (registrationSuccess) {
     return (
       <div className="w-full max-w-md space-y-8 text-center">
@@ -193,6 +219,7 @@ export function RegisterForm() {
     );
   }
 
+  // Main registration form
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">
@@ -281,6 +308,7 @@ export function RegisterForm() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              disabled={registerMutation.isPending}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -321,6 +349,7 @@ export function RegisterForm() {
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              disabled={registerMutation.isPending}
             >
               {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>

@@ -64,6 +64,7 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
+        // Queue requests while refreshing
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -80,6 +81,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        // ✅ IMPROVED: Try to refresh token
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
@@ -87,13 +89,17 @@ apiClient.interceptors.response.use(
         );
 
         if (response.data.accessToken) {
+          // Update store with new token
           useAuthStore.getState().setAccessToken(response.data.accessToken);
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
           }
 
+          // Process queued requests
           processQueue(null, response.data.accessToken);
+          
+          // Retry the original request
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
@@ -101,7 +107,12 @@ apiClient.interceptors.response.use(
         useAuthStore.getState().clearAuth();
         
         if (typeof window !== 'undefined') {
-          window.location.href = '/login?session=expired';
+          const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/personality-test'];
+          const currentPath = window.location.pathname;
+          
+          if (!publicPaths.some(path => currentPath.startsWith(path))) {
+            window.location.href = '/login?session=expired';
+          }
         }
         return Promise.reject(refreshError);
       } finally {
@@ -109,6 +120,7 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // ✅ IMPROVED: For non-401 errors, just reject without refresh
     return Promise.reject(error);
   }
 );

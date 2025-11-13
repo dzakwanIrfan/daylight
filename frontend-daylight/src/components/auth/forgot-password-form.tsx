@@ -34,12 +34,15 @@ export function ForgotPasswordForm() {
     onSuccess: () => {
       toast.success('Email sent!', {
         description: 'If an account exists, a reset link has been sent to your email.',
+        duration: 6000,
       });
       reset();
     },
     onError: (error: any) => {
+      const message = error.response?.data?.message || 'Something went wrong';
       toast.error('Request failed', {
-        description: error.response?.data?.message || 'Something went wrong',
+        description: Array.isArray(message) ? message.join(', ') : message,
+        duration: 6000,
       });
     },
   });
@@ -69,8 +72,10 @@ export function ForgotPasswordForm() {
             id="email"
             type="email"
             placeholder="your@email.com"
+            autoComplete="email"
             {...register('email')}
             className={errors.email ? 'border-destructive' : ''}
+            disabled={forgotPasswordMutation.isPending}
           />
           {errors.email && (
             <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -79,7 +84,7 @@ export function ForgotPasswordForm() {
 
         <Button
           type="submit"
-          className="w-full bg-brand hover:bg-brand-orange-dark"
+          className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
           disabled={forgotPasswordMutation.isPending}
         >
           {forgotPasswordMutation.isPending ? (
@@ -96,7 +101,7 @@ export function ForgotPasswordForm() {
       <div className="text-center">
         <Link
           href="/login"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to login

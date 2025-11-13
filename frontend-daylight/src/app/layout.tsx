@@ -4,8 +4,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "DayLight - Connect Through Shared Experiences",
-  description: "Meet new people over dinner based on personality compatibility",
+  title: "DayLight - Find New Friends Today",
+  description: "Daylight is a lifestyle platform connecting people through real life experiences, from dinners, coffee, billiard, book club, yoga and many more.",
 };
 
 export default function RootLayout({

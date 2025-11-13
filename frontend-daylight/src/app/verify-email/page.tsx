@@ -19,11 +19,13 @@ export default function VerifyEmailPage() {
     mutationFn: authService.verifyEmail,
     onSuccess: (data) => {
       setStatus('success');
-      if (data.success && data.user && data.accessToken && data.refreshToken) {
-        setAuth(data.user, data.accessToken, data.refreshToken);
-        toast.success('Email verified successfully!');
+      if (data.success && data.user && data.accessToken) {
+        setAuth(data.user, data.accessToken);
+        toast.success('Email verified successfully!', {
+          description: 'Welcome to DayLight!',
+        });
         setTimeout(() => {
-          router.push('/');
+          window.location.href = '/';
         }, 2000);
       }
     },
@@ -52,18 +54,30 @@ export default function VerifyEmailPage() {
         
         {status === 'verifying' && (
           <>
-            <Loader2 className="h-16 w-16 animate-spin mx-auto text-brand" />
+            <div className="flex justify-center">
+              <Loader2 className="h-16 w-16 animate-spin text-brand" />
+            </div>
             <p className="text-xl font-semibold">Verifying your email...</p>
+            <p className="text-sm text-muted-foreground">
+              This will only take a moment
+            </p>
           </>
         )}
 
         {status === 'success' && (
           <>
-            <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
+            <div className="flex justify-center">
+              <div className="rounded-full bg-green-100 p-4">
+                <CheckCircle2 className="h-16 w-16 text-green-500" />
+              </div>
+            </div>
             <div>
-              <p className="text-xl font-semibold">Email Verified!</p>
+              <p className="text-2xl font-semibold">Email Verified! 🎉</p>
               <p className="text-muted-foreground mt-2">
-                Redirecting to login page...
+                Your account has been successfully verified.
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Redirecting to your dashboard...
               </p>
             </div>
           </>
@@ -71,19 +85,28 @@ export default function VerifyEmailPage() {
 
         {status === 'error' && (
           <>
-            <XCircle className="h-16 w-16 mx-auto text-destructive" />
+            <div className="flex justify-center">
+              <div className="rounded-full bg-red-100 p-4">
+                <XCircle className="h-16 w-16 text-red-500" />
+              </div>
+            </div>
             <div>
               <p className="text-xl font-semibold">Verification Failed</p>
               <p className="text-muted-foreground mt-2">
                 The verification link may be invalid or expired.
               </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Please request a new verification email or contact support.
+              </p>
             </div>
-            <Button
-              onClick={() => router.push('/login')}
-              className="w-full bg-brand hover:bg-brand/90"
-            >
-              Go to Login
-            </Button>
+            <div className="space-y-3 mt-6">
+              <Button
+                onClick={() => router.push('/login')}
+                className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
+              >
+                Go to Login
+              </Button>
+            </div>
           </>
         )}
       </div>

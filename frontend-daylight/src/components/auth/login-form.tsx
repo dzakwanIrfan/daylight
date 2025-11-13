@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -40,22 +41,17 @@ export function LoginForm() {
     mutationFn: authService.login,
     onSuccess: (data) => {
       if (data.success && data.user && data.accessToken) {
-        // Only store user and access token in memory
-        // Refresh token is in httpOnly cookie
         setAuth(data.user, data.accessToken);
 
         toast.success('Welcome back!', {
           description: `Hello ${data.user.firstName}!`,
         });
 
-        // Redirect
+        const redirectTo = searchParams?.get('redirect') || '/';
+        
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = redirectTo;
         }, 300);
-      } else {
-        toast.error('Login failed', {
-          description: 'Invalid response from server',
-        });
       }
     },
     onError: (error: any) => {

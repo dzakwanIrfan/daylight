@@ -17,6 +17,7 @@ const authRoutes = ['/login', '/register'];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Skip middleware for static files and API routes
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
@@ -32,10 +33,12 @@ export function middleware(request: NextRequest) {
 
   const isAuthRoute = authRoutes.includes(pathname);
 
-  // Read token from httpOnly cookie
-  const token = request.cookies.get('accessToken')?.value;
+  // Read accessToken properly from cookies
+  const accessToken = request.cookies.get('accessToken')?.value;
+  const hasAuth = !!accessToken;
 
-  if (!isPublicRoute && !token) {
+  // If trying to access protected route without auth
+  if (!isPublicRoute && !hasAuth) {
     const loginUrl = new URL('/login', request.url);
     if (pathname !== '/') {
       loginUrl.searchParams.set('redirect', pathname);
@@ -43,10 +46,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (token && isAuthRoute) {
+  // If authenticated and trying to access auth pages
+  if (hasAuth && isAuthRoute) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
+  // Allow all other routes when authenticated
   return NextResponse.next();
 }
 

@@ -6,7 +6,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -20,17 +20,35 @@ const processQueue = (error: any, token: string | null = null) => {
       prom.resolve(token);
     }
   });
-
   failedQueue = [];
 };
+
+// Helper to get token from cookie
+function getTokenFromCookie(): string | null {
+  if (typeof window === 'undefined') return null;
+  const match = document.cookie.match(/accessToken=([^;]+)/);
+  return match ? match[1] : null;
+}
 
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken;
+    // Try store first, then cookie
+    let token = useAuthStore.getState().accessToken;
+    
+    if (!token) {
+      token = getTokenFromCookie();
+      
+      // Sync to store if found in cookie
+      if (token) {
+        useAuthStore.getState().setAccessToken(token);
+      }
+    }
+    
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
@@ -38,16 +56,14 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor with token refresh
+// Response interceptor
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest: any = error.config;
 
-    // If 401 and not already retrying
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Wait for refresh to complete
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -57,42 +73,33 @@ apiClient.interceptors.response.use(
             }
             return apiClient(originalRequest);
           })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Try to refresh token
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
 
         if (response.data.accessToken) {
-          // Update access token in store
           useAuthStore.getState().setAccessToken(response.data.accessToken);
 
-          // Update Authorization header
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
           }
 
           processQueue(null, response.data.accessToken);
-
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
         processQueue(refreshError, null);
-
-        // Clear auth and redirect to login
         useAuthStore.getState().clearAuth();
+        
         if (typeof window !== 'undefined') {
           window.location.href = '/login?session=expired';
         }

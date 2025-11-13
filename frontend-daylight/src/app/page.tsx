@@ -1,23 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import LoginPage from './login/page';
+import { Calendar, Users, Sparkles, Loader2 } from 'lucide-react';
 
-// Dashboard Component
-function Dashboard() {
+export default function HomePage() {
   const { user } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Welcome Section */}
         <div className="space-y-2">
           <h1 className="text-3xl md:text-4xl font-heading font-bold">
             Welcome back, {user?.firstName}! 👋
@@ -27,7 +36,6 @@ function Dashboard() {
           </p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid md:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -77,24 +85,22 @@ function Dashboard() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button className="bg-brand hover:bg-brand-orange-dark">
+              <Button className="bg-brand hover:bg-brand/90 text-white border border-r-4 border-b-4 border-black rounded-full font-bold">
                 Find Events Near Me
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" className="border border-r-4 border-b-4 border-black rounded-full font-bold">
                 View My Profile
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Placeholder for future features */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
@@ -110,22 +116,4 @@ function Dashboard() {
       </div>
     </DashboardLayout>
   );
-}
-
-// Main Page Component
-export default function HomePage() {
-  const { isAuthenticated } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return null;
-  }
-
-  // Show dashboard if authenticated, otherwise show landing page
-  return isAuthenticated() ? <Dashboard /> : <LoginPage />;
 }

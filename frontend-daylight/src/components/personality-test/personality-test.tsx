@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,7 +37,11 @@ export function PersonalityTest() {
     queryFn: personalityService.getQuestions,
   });
 
-  const currentQuestionData = questions?.find(
+  // ENHANCED: Filter only core questions (not context questions)
+  const coreQuestions = questions?.filter((q: any) => q.questionNumber <= 12) || [];
+  const totalQuestions = coreQuestions.length;
+
+  const currentQuestionData = coreQuestions.find(
     (q: any) => q.questionNumber === currentQuestion
   );
 
@@ -51,14 +55,18 @@ export function PersonalityTest() {
 
   const handleNext = () => {
     if (!selectedAnswer) {
-      toast.error('Please select an answer');
+      toast.error('Please select an answer', {
+        description: 'Choose the option that best describes you',
+      });
       return;
     }
 
-    if (currentQuestion < (questions?.length || 15)) {
+    if (currentQuestion < totalQuestions) {
       setCurrentQuestion(currentQuestion + 1);
+      // Smooth scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Move to context questions
+      // All core questions answered, move to context questions
       router.push('/personality-test/context');
     }
   };
@@ -66,24 +74,36 @@ export function PersonalityTest() {
   const handlePrevious = () => {
     if (currentQuestion > 1) {
       setCurrentQuestion(currentQuestion - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-brand" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-brand mx-auto" />
+          <p className="text-muted-foreground font-medium">Loading questions...</p>
+        </div>
       </div>
     );
   }
 
   if (!currentQuestionData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Question not found</p>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-4">
+          <p className="text-muted-foreground">Question not found</p>
+          <Button onClick={() => router.push('/')}>Go Home</Button>
+        </div>
       </div>
     );
   }
+
+  const progress = {
+    current: currentQuestion,
+    total: totalQuestions,
+  };
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -96,14 +116,19 @@ export function PersonalityTest() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/')}
+            onClick={() => {
+              if (confirm('Are you sure you want to exit? Your progress will be saved.')) {
+                router.push('/');
+              }
+            }}
+            className="font-bold"
           >
             Exit
           </Button>
         </div>
 
         {/* Progress */}
-        <ProgressBar current={currentQuestion} total={questions?.length || 15} />
+        <ProgressBar current={progress.current} total={progress.total} />
 
         {/* Question */}
         <QuestionCard
@@ -118,18 +143,22 @@ export function PersonalityTest() {
             variant="outline"
             onClick={handlePrevious}
             disabled={currentQuestion === 1}
-            className='border border-r-4 border-b-4 border-black rounded-full font-bold'
+            className="border border-r-4 border-b-4 border-black rounded-full font-bold"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Previous
           </Button>
 
+          <div className="text-sm text-muted-foreground font-medium">
+            {currentQuestion === totalQuestions ? 'Last question!' : `${totalQuestions - currentQuestion} questions left`}
+          </div>
+
           <Button
             onClick={handleNext}
             disabled={!selectedAnswer}
-            className="bg-brand hover:bg-brand-orange-dark text-white border border-r-4 border-b-4 border-black rounded-full font-bold"
+            className="bg-brand hover:bg-brand-orange-dark text-white border border-r-4 border-b-4 border-black rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {currentQuestion === questions?.length ? 'Continue' : 'Next'}
+            {currentQuestion === totalQuestions ? 'Continue' : 'Next'}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

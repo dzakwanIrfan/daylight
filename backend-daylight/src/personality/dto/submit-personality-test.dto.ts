@@ -1,8 +1,10 @@
-import { IsArray, IsString, IsOptional, IsEnum, ValidateNested, ArrayMinSize, IsNumber } from 'class-validator';
+import { IsArray, IsString, IsOptional, IsEnum, ValidateNested, ArrayMinSize, ArrayMaxSize, IsNumber, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AnswerDto {
   @IsNumber()
+  @Min(1)
+  @Max(12)
   questionNumber: number;
 
   @IsString()
@@ -16,7 +18,8 @@ export class SubmitPersonalityTestDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AnswerDto)
-  @ArrayMinSize(15)
+  @ArrayMinSize(12) 
+  @ArrayMaxSize(12)
   answers: AnswerDto[];
 
   @IsOptional()
@@ -26,6 +29,7 @@ export class SubmitPersonalityTestDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @ArrayMinSize(1, { message: 'Please select at least one intent' })
   intentOnDaylight?: string[];
 
   @IsOptional()

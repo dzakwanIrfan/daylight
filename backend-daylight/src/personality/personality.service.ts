@@ -14,7 +14,7 @@ export class PersonalityService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Calculate personality result from answers
+   * ENHANCED: Calculate personality result with improved accuracy
    */
   async calculatePersonality(answers: AnswerInput[]): Promise<PersonalityCalculationResult> {
     // Fetch all questions with their options
@@ -25,12 +25,12 @@ export class PersonalityService {
 
     // Initialize trait scores
     const traitScores: TraitScores = {
-      E: 0,
-      O: 0,
-      S: 0,
-      A: 0,
-      C: 0,
-      L: 0,
+      E: 0,  // Energy: Extrovert(+) ↔ Introvert(-)
+      O: 0,  // Openness: Abstract/curious(+) ↔ Practical/light(-)
+      S: 0,  // Structure: Flexible/Playful(+) ↔ Structured(-)
+      A: 0,  // Affect: Feeling(+) ↔ Thinking(-)
+      C: 0,  // Comfort with strangers (0-20 scale)
+      L: 0,  // Lifestyle tier (1-3 scale)
     };
 
     // Process each answer
@@ -49,7 +49,7 @@ export class PersonalityService {
         );
       }
 
-      // Apply trait impacts - Prisma Json type is unknown, so we need to validate it
+      // Apply trait impacts
       const impacts = option.traitImpacts as Prisma.JsonObject;
       
       for (const [trait, value] of Object.entries(impacts)) {
@@ -59,13 +59,20 @@ export class PersonalityService {
       }
     }
 
-    // Clamp raw scores to -10...+10 (except C and L)
+    // ENHANCED: Clamp raw scores according to documentation
+    // E, O, S, A: -10 to +10
     traitScores.E = this.clamp(traitScores.E, -10, 10);
     traitScores.O = this.clamp(traitScores.O, -10, 10);
     traitScores.S = this.clamp(traitScores.S, -10, 10);
     traitScores.A = this.clamp(traitScores.A, -10, 10);
+    
+    // C: 0 to 20 (no negative, comfort accumulates)
+    traitScores.C = this.clamp(traitScores.C, 0, 20);
+    
+    // L: 1 to 3 (lifestyle tier, no accumulation - should be set directly)
+    traitScores.L = this.clamp(traitScores.L, 1, 3);
 
-    // Normalize to 0-100
+    // ENHANCED: Normalize to 0-100 according to formula
     const normalizedScores = {
       energyScore: ((traitScores.E + 10) / 20) * 100,
       opennessScore: ((traitScores.O + 10) / 20) * 100,
@@ -75,16 +82,17 @@ export class PersonalityService {
       lifestyleScore: ((traitScores.L - 1) / 2) * 100,
     };
 
-    // Calculate profile score (weighted)
+    // ENHANCED: Calculate profile score with correct weights
     const profileScore =
       0.25 * normalizedScores.energyScore +
       0.20 * normalizedScores.opennessScore +
       0.15 * normalizedScores.structureScore +
       0.15 * normalizedScores.affectScore +
       0.10 * normalizedScores.lifestyleScore +
-      0.10 * normalizedScores.comfortScore;
+      0.10 * normalizedScores.comfortScore +
+      0.05 * 50; // +5% base serendipity factor (neutral at 50)
 
-    // Determine archetype
+    // ENHANCED: Determine archetype with improved logic
     const archetype = this.determineArchetype(traitScores);
 
     return {
@@ -96,49 +104,74 @@ export class PersonalityService {
   }
 
   /**
-   * Determine personality archetype based on trait scores
+   * ENHANCED: Determine personality archetype based on trait scores
+   * Following exact algorithm from documentation
    */
   private determineArchetype(scores: TraitScores): PersonalityArchetype {
     const { E, O, S, A } = scores;
 
-    // Define flags
+    // Define flags according to documentation
     const E_hi = E >= 5;
     const E_lo = E <= -5;
     const O_hi = O >= 5;
     const O_lo = O <= -5;
-    const S_flex = S >= 5;
-    const S_struct = S <= -5;
-    const A_feel = A >= 5;
-    const A_think = A <= -5;
+    const S_flex = S >= 5;      // Positive S = Flexible
+    const S_struct = S <= -5;   // Negative S = Structured
+    const A_feel = A >= 5;      // Positive A = Feeling
+    const A_think = A <= -5;    // Negative A = Thinking
+    
+    // Balanced checks
+    const E_balanced = Math.abs(E) < 5;
+    const A_balanced = Math.abs(A) < 5;
 
-    // Archetype rules (first match wins)
+    // ENHANCED: Archetype rules (first match wins) - following MD documentation order
+    
+    // 1. Bright Morning: Optimistic extrovert
     if (E_hi && A_feel && (O_hi || S_flex)) {
       return PersonalityArchetype.BRIGHT_MORNING;
     }
+    
+    // 2. Calm Dawn: Gentle introvert
     if (E_lo && A_feel && (S_struct || O_hi)) {
       return PersonalityArchetype.CALM_DAWN;
     }
+    
+    // 3. Bold Noon: Driven, focused leader
     if (E_hi && A_think && S_struct) {
       return PersonalityArchetype.BOLD_NOON;
     }
+    
+    // 4. Golden Hour: Charismatic, expressive
     if (E_hi && A_feel && O_hi && S_flex) {
       return PersonalityArchetype.GOLDEN_HOUR;
     }
+    
+    // 5. Quiet Dusk: Deep, reflective thinker
     if (E_lo && A_think && (O_hi || S_struct)) {
       return PersonalityArchetype.QUIET_DUSK;
     }
+    
+    // 6. Cloudy Day: Creative, empathetic, dreamy
     if (E_lo && A_feel && O_hi && S_flex) {
       return PersonalityArchetype.CLOUDY_DAY;
     }
-    if (A_feel && S_struct && (E_lo || Math.abs(E) < 5)) {
+    
+    // 7. Serene Drizzle: Steady, supportive
+    if (A_feel && S_struct && (E_lo || E_balanced)) {
       return PersonalityArchetype.SERENE_DRIZZLE;
     }
+    
+    // 8. Blazing Noon: Decisive, bold
     if (E_hi && A_think && (O_lo || S_struct)) {
       return PersonalityArchetype.BLAZING_NOON;
     }
-    if (E_lo && O_hi && (A_think || Math.abs(A) < 5)) {
+    
+    // 9. Starry Night: Visionary, independent
+    if (E_lo && O_hi && (A_think || A_balanced)) {
       return PersonalityArchetype.STARRY_NIGHT;
     }
+    
+    // 10. Perfect Day: Balanced (default)
     return PersonalityArchetype.PERFECT_DAY;
   }
 
@@ -162,7 +195,7 @@ export class PersonalityService {
       selectedOption: a.selectedOption,
     }));
 
-    // Parse context data dengan proper type checking
+    // Parse context data with proper type checking
     const relationshipStatus = this.parseRelationshipStatus(contextData?.relationshipStatus);
     const genderMixComfort = this.parseGenderMixComfort(contextData?.genderMixComfort);
 
@@ -193,14 +226,12 @@ export class PersonalityService {
     };
 
     if (existing) {
-      // Update existing
       return this.prisma.personalityResult.update({
         where: { sessionId },
         data: dataToSave,
       });
     }
 
-    // Create new
     return this.prisma.personalityResult.create({
       data: {
         ...dataToSave,
@@ -280,7 +311,7 @@ export class PersonalityService {
   }
 
   /**
-   * Format personality result for response
+   * ENHANCED: Format personality result for response
    */
   private formatResult(result: any) {
     const archetypeDetails = this.getArchetypeDetails(result.archetype);
@@ -300,6 +331,14 @@ export class PersonalityService {
         comfort: result.comfortScore,
         lifestyle: result.lifestyleScore,
       },
+      rawScores: {
+        energy: result.energyRaw,
+        openness: result.opennessRaw,
+        structure: result.structureRaw,
+        affect: result.affectRaw,
+        comfort: result.comfortRaw,
+        lifestyle: result.lifestyleRaw,
+      },
       context: {
         relationshipStatus: result.relationshipStatus,
         intentOnDaylight: result.intentOnDaylight,
@@ -310,7 +349,7 @@ export class PersonalityService {
   }
 
   /**
-   * Get archetype details (symbol, traits, description)
+   * ENHANCED: Get archetype details with updated descriptions
    */
   private getArchetypeDetails(archetype: PersonalityArchetype) {
     const details = {
@@ -319,60 +358,70 @@ export class PersonalityService {
         name: 'Bright Morning',
         traits: ['Optimistic', 'Energetic', 'Outgoing'],
         description: 'You bring fresh energy wherever you go. The kind of person who starts the conversation — and the laughter.',
+        imageKey: 'bright-morning', // untuk image custom
       },
       [PersonalityArchetype.CALM_DAWN]: {
         symbol: '🌅',
         name: 'Calm Dawn',
         traits: ['Gentle', 'Thoughtful', 'Warm'],
         description: 'You move at your own rhythm. People feel comfortable around you — grounded, kind, quietly confident.',
+        imageKey: 'calm-dawn',
       },
       [PersonalityArchetype.BOLD_NOON]: {
         symbol: '☀️',
         name: 'Bold Noon',
         traits: ['Driven', 'Focused', 'Inspiring'],
         description: 'The go-getter of every table. You lead naturally, keep things on track, and turn ideas into plans.',
+        imageKey: 'bold-noon',
       },
       [PersonalityArchetype.GOLDEN_HOUR]: {
         symbol: '🌇',
         name: 'Golden Hour',
         traits: ['Charismatic', 'Expressive', 'Radiant'],
         description: 'You light up rooms with your stories and laughter. Effortlessly social, you make everyone feel seen.',
+        imageKey: 'golden-hour',
       },
       [PersonalityArchetype.QUIET_DUSK]: {
         symbol: '🌙',
         name: 'Quiet Dusk',
         traits: ['Deep', 'Analytical', 'Reflective'],
-        description: 'You\'re the thinker who listens before you speak — insightful, calm, and full of perspective.',
+        description: "You're the thinker who listens before you speak — insightful, calm, and full of perspective.",
+        imageKey: 'quiet-dusk',
       },
       [PersonalityArchetype.CLOUDY_DAY]: {
         symbol: '☁️',
         name: 'Cloudy Day',
         traits: ['Creative', 'Empathetic', 'Dreamy'],
         description: 'You see beauty in small moments. Often reserved, but when you open up, your words hit deep.',
+        imageKey: 'cloudy-day',
       },
       [PersonalityArchetype.SERENE_DRIZZLE]: {
         symbol: '🌧️',
         name: 'Serene Drizzle',
         traits: ['Loyal', 'Calm', 'Supportive'],
-        description: 'You don\'t chase attention — you create peace. You\'re the steady soul who listens and understands.',
+        description: "You don't chase attention — you create peace. You're the steady soul who listens and understands.",
+        imageKey: 'serene-drizzle',
       },
       [PersonalityArchetype.BLAZING_NOON]: {
         symbol: '🔥',
         name: 'Blazing Noon',
         traits: ['Passionate', 'Decisive', 'Fearless'],
         description: 'You bring heat and direction. When others hesitate, you move — pure action and confidence.',
+        imageKey: 'blazing-noon',
       },
       [PersonalityArchetype.STARRY_NIGHT]: {
         symbol: '⭐',
         name: 'Starry Night',
         traits: ['Visionary', 'Independent', 'Intuitive'],
         description: 'You live in ideas and imagination. You connect through stories, purpose, and shared curiosity.',
+        imageKey: 'starry-night',
       },
       [PersonalityArchetype.PERFECT_DAY]: {
         symbol: '🌈',
         name: 'Perfect Day',
         traits: ['Balanced', 'Adaptable', 'Easygoing'],
-        description: 'You flow between energies with grace — social when needed, quiet when it counts. You\'re harmony itself.',
+        description: "You flow between energies with grace — social when needed, quiet when it counts. You're harmony itself.",
+        imageKey: 'perfect-day',
       },
     };
 

@@ -5,11 +5,18 @@ import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   const configService = app.get(ConfigService);
+  
+  // Serve static files (uploads)
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/api/uploads/',
+  });
   
   // Security headers
   app.use(helmet({
@@ -53,5 +60,6 @@ async function bootstrap() {
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
   console.log(`🔒 Security headers enabled with Helmet`);
   console.log(`🍪 Cookie-based auth enabled`);
+  console.log(`📁 Static files served from /uploads`);
 }
 bootstrap();

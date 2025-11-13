@@ -37,13 +37,45 @@ export function UserMenu() {
     }
   };
 
+  const getInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    return user?.email?.[0].toUpperCase() || 'U';
+  };
+
   return (
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
-        <div className="text-right hidden sm:block">
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full overflow-hidden bg-linear-to-br from-brand/20 to-brand/5 flex items-center justify-center border border-brand/20">
+          {user?.profilePicture ? (
+            <img
+              key={user.profilePicture} // Force re-render on URL change
+              src={user.profilePicture}
+              alt="Profile"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                console.error('Avatar load error');
+                e.currentTarget.style.display = 'none';
+                const initialsElement = e.currentTarget.nextElementSibling as HTMLElement;
+                if (initialsElement) {
+                  initialsElement.classList.remove('hidden');
+                }
+              }}
+            />
+          ) : null}
+          <span 
+            className={`text-xs font-bold text-brand ${user?.profilePicture ? 'hidden' : ''}`}
+          >
+            {getInitials()}
+          </span>
+        </div>
+
+        <div className="text-left hidden sm:block">
           <p className="font-medium text-sm">
             {user?.firstName} {user?.lastName}
           </p>
@@ -59,10 +91,36 @@ export function UserMenu() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
           <div className="px-4 py-3 border-b border-gray-100 sm:hidden">
-            <p className="font-medium text-sm">
-              {user?.firstName} {user?.lastName}
-            </p>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-brand/20 to-brand/5 flex items-center justify-center border border-brand/20">
+                {user?.profilePicture ? (
+                  <img
+                    key={user.profilePicture}
+                    src={user.profilePicture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const initialsElement = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (initialsElement) {
+                        initialsElement.classList.remove('hidden');
+                      }
+                    }}
+                  />
+                ) : null}
+                <span 
+                  className={`text-sm font-bold text-brand ${user?.profilePicture ? 'hidden' : ''}`}
+                >
+                  {getInitials()}
+                </span>
+              </div>
+              <div>
+                <p className="font-medium text-sm">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </div>
+            </div>
           </div>
 
           <button

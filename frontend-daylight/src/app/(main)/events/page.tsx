@@ -3,11 +3,9 @@
 import { DashboardLayout } from '@/components/main/dashboard-layout';
 import { useAuthStore } from '@/store/auth-store';
 import { useEffect, useState } from 'react';
-import { Calendar, Loader2, Sparkles, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Calendar, Loader2, Sparkles, Users, TrendingUp, Heart } from 'lucide-react';
 
-export default function EventsPage() {
+export default function HomePage() {
   const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
@@ -26,8 +24,9 @@ export default function EventsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="space-y-0">
-          <h1 className="text-2xl md:text-3xl font-extrabold">
+        {/* Welcome Header */}
+        <div className="space-y-2">
+          <h1 className="text-2xl md:text-3xl font-bold">
             Welcome back, {user?.firstName}! 👋
           </h1>
           <p className="text-muted-foreground">
@@ -35,83 +34,132 @@ export default function EventsPage() {
           </p>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          {/* Upcoming Events */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-brand/30 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground">
                 Upcoming Events
-              </CardTitle>
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
+              </h3>
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-brand" />
+              </div>
+            </div>
+            <div className="space-y-1">
               <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 No events scheduled yet
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          {/* Connections */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-brand/30 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground">
                 Connections
-              </CardTitle>
-              <Users className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
+              </h3>
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-brand" />
+              </div>
+            </div>
+            <div className="space-y-1">
               <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 Start meeting people
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+          {/* Personality Type */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-brand/30 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground">
                 Personality Type
-              </CardTitle>
-              <Sparkles className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold">
-                {user?.personalityType || 'Unknown'}
+              </h3>
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-brand" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+            </div>
+            <div className="space-y-1">
+              <div className="text-xl font-bold">
+                {user?.personalityType || 'Not Set'}
+              </div>
+              <p className="text-xs text-muted-foreground">
                 Your archetype
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button className="bg-brand hover:bg-brand/90 text-white border border-r-4 border-b-4 border-black rounded-full font-bold">
-                Find Events Near Me
-              </Button>
-              <Button variant="outline" className="border border-r-4 border-b-4 border-black rounded-full font-bold">
-                View My Profile
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5 text-brand" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium">Find Events</h4>
+                <p className="text-sm text-muted-foreground">
+                  Discover gatherings near you
+                </p>
+              </div>
+            </button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                No activity yet. Start connecting with people!
-              </p>
+            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-brand" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium">Meet People</h4>
+                <p className="text-sm text-muted-foreground">
+                  Connect with your community
+                </p>
+              </div>
+            </button>
+
+            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-brand" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium">View Personality</h4>
+                <p className="text-sm text-muted-foreground">
+                  See your archetype details
+                </p>
+              </div>
+            </button>
+
+            <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-5 h-5 text-brand" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium">Explore Activities</h4>
+                <p className="text-sm text-muted-foreground">
+                  Browse popular activities
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-linear-to-br from-brand/5 via-white to-brand/10 rounded-lg border border-brand/20 p-6">
+          <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
+              <Heart className="w-8 h-8 text-brand" />
             </div>
-          </CardContent>
-        </Card>
+            <h3 className="text-xl md:text-2xl font-bold mb-2">No Activity Yet</h3>
+            <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
+              Start connecting with people and attending events to see your activity here!
+            </p>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

@@ -42,7 +42,6 @@ export const useAuthStore = create<AuthState>()(
       
       isAuthenticated: () => {
         const state = get();
-        // ✅ Check both store token AND cookie
         if (typeof window !== 'undefined') {
           const hasCookie = document.cookie.includes('accessToken=');
           return (!!state.accessToken || hasCookie) && !!state.user;
@@ -52,7 +51,6 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      // ✅ Persist both user AND accessToken
       partialize: (state) => ({ 
         user: state.user,
         accessToken: state.accessToken 

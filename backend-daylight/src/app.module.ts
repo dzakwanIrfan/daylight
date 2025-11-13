@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PersonalityModule } from './personality/personality.module';
 import { EmailModule } from './email/email.module';
+import { UploadModule } from './upload/upload.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
@@ -27,6 +28,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     UsersModule,
     PersonalityModule,
     EmailModule,
+    UploadModule,
   ],
   providers: [
     {

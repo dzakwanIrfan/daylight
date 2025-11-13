@@ -13,6 +13,7 @@ const publicRoutes = [
 ];
 
 const authRoutes = ['/auth/login', '/auth/register'];
+const adminRoutes = ['/admin'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -32,6 +33,7 @@ export function middleware(request: NextRequest) {
   );
 
   const isAuthRoute = authRoutes.includes(pathname);
+  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
 
   // Read accessToken properly from cookies
   const accessToken = request.cookies.get('accessToken')?.value;
@@ -50,6 +52,9 @@ export function middleware(request: NextRequest) {
   if (hasAuth && isAuthRoute) {
     return NextResponse.redirect(new URL('/', request.url));
   }
+
+  // Admin route protection handled by AdminLayout component
+  // (need to check role from user profile)
 
   // Allow all other routes when authenticated
   return NextResponse.next();

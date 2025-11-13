@@ -12,6 +12,11 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 enum RelationshipStatus {
   SINGLE
   MARRIED
@@ -45,6 +50,7 @@ model User {
   lastName          String?
   phoneNumber       String?
   profilePicture    String?
+  role              UserRole          @default(USER)
   provider          AuthProvider      @default(LOCAL)
   googleId          String?           @unique
   isEmailVerified   Boolean           @default(false)
@@ -69,6 +75,8 @@ model User {
   
   @@index([email])
   @@index([googleId])
+  @@index([role])
+  @@index([isActive])
   @@index([emailVerificationTokenHash])
   @@index([resetPasswordTokenHash])
 }

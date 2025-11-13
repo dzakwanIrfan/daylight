@@ -7,6 +7,7 @@ import { UsersService } from '../../users/users.service';
 export interface JwtPayload {
   sub: string;
   email: string;
+  role: string;
   tokenVersion?: number;
   type: 'access' | 'refresh';
 }
@@ -54,6 +55,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return { 
       userId: payload.sub, 
       email: payload.email,
+      role: payload.role,
       tokenVersion: user.refreshTokenVersion,
     };
   }

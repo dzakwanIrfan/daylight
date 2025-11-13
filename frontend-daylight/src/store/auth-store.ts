@@ -11,6 +11,7 @@ interface User {
   provider?: string;
   isEmailVerified?: boolean;
   personalityType?: string;
+  role?: 'USER' | 'ADMIN';
 }
 
 interface AuthState {

@@ -205,7 +205,7 @@ export function RegisterForm() {
           </Button>
 
           <Button
-            onClick={() => router.push('/login')}
+            onClick={() => router.push('/auth/login')}
             className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
           >
             Go to Login
@@ -221,7 +221,7 @@ export function RegisterForm() {
 
   // Main registration form
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="w-full max-w-md space-y-8 py-12">
       <div className="text-center">
         <h1 className="text-4xl logo-text font-bold text-brand mb-2">
           DayLight

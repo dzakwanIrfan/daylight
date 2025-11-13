@@ -18,7 +18,7 @@ export function LogoutButton() {
       clearAuth();
       toast.success('Logged out successfully');
       setTimeout(() => {
-        window.location.href = '/login';
+        window.location.href = '/auth/login';
       }, 300);
     },
     onError: () => {

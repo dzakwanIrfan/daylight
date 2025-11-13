@@ -116,7 +116,7 @@ export function TestResult() {
   }, [sessionId, router]);
 
   const handleContinueToRegister = () => {
-    router.push('/register');
+    router.push('/auth/register');
   };
 
   const handleShare = async () => {

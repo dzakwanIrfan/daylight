@@ -25,7 +25,7 @@ export default function AuthErrorPage() {
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button asChild>
-            <Link href="/login">Try Again</Link>
+            <Link href="/auth/login">Try Again</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href="/">Go Home</Link>

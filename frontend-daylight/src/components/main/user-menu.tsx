@@ -31,7 +31,7 @@ export function UserMenu() {
       await authService.logout();
       clearAuth();
       toast.success('Logged out successfully');
-      router.push('/login');
+      router.push('/auth/login');
     } catch (error) {
       toast.error('Logout failed');
     }

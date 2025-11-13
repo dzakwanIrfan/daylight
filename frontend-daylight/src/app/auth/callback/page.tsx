@@ -24,7 +24,7 @@ export default function AuthCallbackPage() {
       }, 500);
     } else {
       toast.error('Authentication failed');
-      router.push('/login');
+      router.push('/auth/login');
     }
   }, [searchParams, router]);
 

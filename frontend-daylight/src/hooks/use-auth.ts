@@ -15,7 +15,7 @@ export function useAuth(requireAuth: boolean = true) {
       const authenticated = isAuthenticated();
       
       if (requireAuth && !authenticated) {
-        router.replace('/login');
+        router.replace('/auth/login');
       }
       
       setIsChecking(false);

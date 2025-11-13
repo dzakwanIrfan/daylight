@@ -68,11 +68,11 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         duration: 6000,
         action: {
           label: 'Go to Login',
-          onClick: () => router.push('/login'),
+          onClick: () => router.push('/auth/login'),
         },
       });
       setTimeout(() => {
-        router.push('/login');
+        router.push('/auth/login');
       }, 2500);
     },
     onError: (error: any) => {

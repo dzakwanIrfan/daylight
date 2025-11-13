@@ -107,11 +107,11 @@ apiClient.interceptors.response.use(
         useAuthStore.getState().clearAuth();
         
         if (typeof window !== 'undefined') {
-          const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/personality-test'];
+          const publicPaths = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/personality-test'];
           const currentPath = window.location.pathname;
           
           if (!publicPaths.some(path => currentPath.startsWith(path))) {
-            window.location.href = '/login?session=expired';
+            window.location.href = '/auth/login?session=expired';
           }
         }
         return Promise.reject(refreshError);

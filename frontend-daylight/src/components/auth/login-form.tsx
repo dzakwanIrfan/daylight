@@ -51,12 +51,8 @@ export function LoginForm() {
 
         const redirectTo = searchParams?.get('redirect') || '/';
         
-        // ✅ FIXED: Use Next.js router.push instead of window.location.href
-        // This provides smoother navigation without full page reload
         setTimeout(() => {
           router.push(redirectTo);
-          // Force refresh the page to ensure auth state is fully synced
-          // Only if needed for your app architecture
           router.refresh();
         }, 500);
       }
@@ -76,7 +72,6 @@ export function LoginForm() {
   };
 
   const handleGoogleLogin = () => {
-    // ✅ Google OAuth requires full page redirect (this is correct)
     authService.googleLogin();
   };
 
@@ -108,7 +103,7 @@ export function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link href="/forgot-password" className="text-sm text-brand hover:underline">
+            <Link href="/auth/forgot-password" className="text-sm text-brand hover:underline">
               Forgot password?
             </Link>
           </div>

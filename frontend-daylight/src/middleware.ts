@@ -2,17 +2,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const publicRoutes = [
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/verify-email',
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/verify-email',
   '/personality-test',
   '/auth/callback',
   '/auth/error',
 ];
 
-const authRoutes = ['/login', '/register'];
+const authRoutes = ['/auth/login', '/auth/register'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -39,7 +39,7 @@ export function middleware(request: NextRequest) {
 
   // If trying to access protected route without auth
   if (!isPublicRoute && !hasAuth) {
-    const loginUrl = new URL('/login', request.url);
+    const loginUrl = new URL('/auth/login', request.url);
     if (pathname !== '/') {
       loginUrl.searchParams.set('redirect', pathname);
     }

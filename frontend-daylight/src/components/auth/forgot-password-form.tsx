@@ -100,7 +100,7 @@ export function ForgotPasswordForm() {
 
       <div className="text-center">
         <Link
-          href="/login"
+          href="/auth/login"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

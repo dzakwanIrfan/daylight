@@ -21,6 +21,7 @@ interface AuthState {
   setAccessToken: (accessToken: string) => void;
   clearAuth: () => void;
   isAuthenticated: () => boolean;
+  role?: 'USER' | 'ADMIN';
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -54,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({ 
         user: state.user,
-        accessToken: state.accessToken 
+        accessToken: state.accessToken,
       }),
     }
   )

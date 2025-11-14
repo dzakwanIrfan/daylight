@@ -2,42 +2,53 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { UsersService } from '../../users/users.service';
-
-export interface JwtPayload {
-  sub: string;
-  email: string;
-  role: string;
-  tokenVersion?: number;
-  type: 'access' | 'refresh';
-}
+import { PrismaService } from '../../prisma/prisma.service';
+import { Request } from 'express';
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private configService: ConfigService,
-    private usersService: UsersService,
+    private config: ConfigService,
+    private prisma: PrismaService,
   ) {
-    const secret = configService.get<string>('JWT_SECRET');
+    const secret = config.get<string>('JWT_SECRET');
     
     if (!secret) {
       throw new Error('JWT_SECRET is not defined in environment variables');
     }
-
+    
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        JwtStrategy.extractJWTFromCookie,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
-      secretOrKey: secret, 
+      secretOrKey: secret,
     });
   }
 
-  async validate(payload: JwtPayload) {
-    // Only allow access tokens
-    if (payload.type !== 'access') {
-      throw new UnauthorizedException('Invalid token type');
+  private static extractJWTFromCookie(req: Request): string | null {
+    if (req.cookies && 'accessToken' in req.cookies) {
+      return req.cookies.accessToken;
     }
+    return null;
+  }
 
-    const user = await this.usersService.findById(payload.sub);
+  async validate(payload: any) {
+
+    // Fetch user dari database untuk memastikan data terbaru
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        isEmailVerified: true,
+      },
+    });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -47,16 +58,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Account is deactivated');
     }
 
-    // Validate token version (for refresh token revocation)
-    if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.refreshTokenVersion) {
-      throw new UnauthorizedException('Token has been revoked');
-    }
-
-    return { 
-      userId: payload.sub, 
-      email: payload.email,
-      role: payload.role,
-      tokenVersion: user.refreshTokenVersion,
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role, 
+      isEmailVerified: user.isEmailVerified,
     };
   }
 }

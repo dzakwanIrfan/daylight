@@ -83,6 +83,7 @@ export class UsersService {
         refreshTokenVersion: true,
         createdAt: true,
         personalityResult: true,
+        role: true,
       },
     });
   }

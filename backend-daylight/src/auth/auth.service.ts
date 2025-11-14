@@ -206,6 +206,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         isEmailVerified: user.isEmailVerified,
+        role: user.role,
       },
       ...tokens,
     };

@@ -166,3 +166,72 @@ model QuestionOption {
   
   @@unique([questionId, optionKey])
 }
+
+enum EventCategory {
+  DAYBREAK
+  DAYTRIP
+  DAYCARE
+  DAYDREAM
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+model Event {
+  id              String        @id @default(uuid())
+  title           String
+  slug            String        @unique
+  category        EventCategory
+  description     String        @db.Text
+  shortDescription String?      @db.Text
+  
+  // Date & Time
+  eventDate       DateTime
+  startTime       DateTime
+  endTime         DateTime
+  
+  // Location
+  venue           String
+  address         String        @db.Text
+  city            String
+  googleMapsUrl   String?       @db.Text
+  latitude        Float?
+  longitude       Float?
+  
+  // Media
+  bannerImage     String?
+  images          String[]      @default([])
+  
+  // Pricing & Capacity
+  price           Float
+  currency        String        @default("IDR")
+  maxParticipants Int
+  currentParticipants Int      @default(0)
+  
+  // Status
+  status          EventStatus   @default(DRAFT)
+  isActive        Boolean       @default(true)
+  isFeatured      Boolean       @default(false)
+  
+  // Metadata
+  tags            String[]      @default([])
+  requirements    String[]      @default([])
+  highlights      String[]      @default([])
+  
+  // Organizer (optional - bisa ditambah relasi ke User jika perlu)
+  organizerName   String?
+  organizerContact String?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([category])
+  @@index([status])
+  @@index([eventDate])
+  @@index([slug])
+  @@index([isActive])
+}

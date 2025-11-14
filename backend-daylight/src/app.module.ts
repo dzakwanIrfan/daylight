@@ -10,6 +10,7 @@ import { EmailModule } from './email/email.module';
 import { UploadModule } from './upload/upload.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AdminModule } from './admin/admin.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AdminModule } from './admin/admin.module';
     EmailModule,
     UploadModule,
     AdminModule,
+    EventsModule,
   ],
   providers: [
     {

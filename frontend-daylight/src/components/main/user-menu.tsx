@@ -1,8 +1,9 @@
+// src/components/main/user-menu.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, LogOut, ChevronDown } from 'lucide-react';
+import { User, LogOut, ChevronDown, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ export function UserMenu() {
     return user?.email?.[0].toUpperCase() || 'U';
   };
 
+  const isAdmin = user?.role === 'ADMIN';
+
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -54,7 +57,7 @@ export function UserMenu() {
         <div className="w-8 h-8 rounded-full overflow-hidden bg-linear-to-br from-brand/20 to-brand/5 flex items-center justify-center border border-brand/20">
           {user?.profilePicture ? (
             <img
-              key={user.profilePicture} // Force re-render on URL change
+              key={user.profilePicture}
               src={user.profilePicture}
               alt="Profile"
               className="w-full h-full object-cover"
@@ -122,6 +125,23 @@ export function UserMenu() {
               </div>
             </div>
           </div>
+
+          {/* Admin Dashboard Link - Only for Admins */}
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push('/admin');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+              >
+                <Shield className="w-4 h-4 text-brand" />
+                <span className="text-sm font-medium">Admin Dashboard</span>
+              </button>
+              <div className="my-2 border-t border-gray-100" />
+            </>
+          )}
 
           <button
             onClick={() => {

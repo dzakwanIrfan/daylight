@@ -53,8 +53,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // Admin route protection handled by AdminLayout component
-  // (need to check role from user profile)
+  // Note: Admin role check is handled in AdminLayout component
+  // because we need to check user.role from the auth store
 
   // Allow all other routes when authenticated
   return NextResponse.next();

@@ -1,0 +1,123 @@
+'use client';
+
+import { usePathname, useRouter } from 'next/navigation';
+import { X, LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface AdminSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const menuItems = [
+  {
+    title: 'Dashboard',
+    href: '/admin',
+    icon: LayoutDashboard,
+  },
+  {
+    title: 'Users',
+    href: '/admin/users',
+    icon: Users,
+  },
+  {
+    title: 'Events',
+    href: '/admin/events',
+    icon: Calendar,
+  },
+  {
+    title: 'Messages',
+    href: '/admin/messages',
+    icon: MessageSquare,
+  },
+  {
+    title: 'Analytics',
+    href: '/admin/analytics',
+    icon: BarChart3,
+  },
+  {
+    title: 'Reports',
+    href: '/admin/reports',
+    icon: FileText,
+  },
+  {
+    title: 'Settings',
+    href: '/admin/settings',
+    icon: Settings,
+  },
+];
+
+export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleNavigation = (href: string) => {
+    router.push(href);
+    onClose();
+  };
+
+  return (
+    <>
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          'fixed top-0 left-0 z-50 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out',
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+      >
+        {/* Logo & Close Button */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-brand to-brand/80 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">D</span>
+            </div>
+            <div>
+              <h1 className="font-headline text-lg font-bold text-gray-900">DayLight</h1>
+              <p className="text-xs text-gray-500">Admin Panel</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+
+            return (
+              <button
+                key={item.href}
+                onClick={() => handleNavigation(item.href)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
+                  isActive
+                    ? 'bg-brand text-white shadow-sm'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{item.title}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200">
+          <div className="px-4 py-3 bg-brand/5 rounded-lg">
+            <p className="text-xs font-medium text-gray-900">Admin Access</p>
+            <p className="text-xs text-gray-600 mt-1">
+              You have full system privileges
+            </p>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}

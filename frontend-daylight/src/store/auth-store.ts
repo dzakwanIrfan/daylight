@@ -58,12 +58,6 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           const hasCookie = document.cookie.includes('accessToken=');
           const result = (!!state.accessToken || hasCookie) && !!state.user;
-          console.log('🔐 Auth check:', { 
-            hasToken: !!state.accessToken, 
-            hasCookie, 
-            hasUser: !!state.user,
-            result 
-          });
           return result;
         }
         

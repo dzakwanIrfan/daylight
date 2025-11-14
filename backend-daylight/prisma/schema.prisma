@@ -204,7 +204,6 @@ model Event {
   
   // Media
   bannerImage     String?
-  images          String[]      @default([])
   
   // Pricing & Capacity
   price           Float
@@ -222,7 +221,7 @@ model Event {
   requirements    String[]      @default([])
   highlights      String[]      @default([])
   
-  // Organizer (optional - bisa ditambah relasi ke User jika perlu)
+  // Organizer
   organizerName   String?
   organizerContact String?
   

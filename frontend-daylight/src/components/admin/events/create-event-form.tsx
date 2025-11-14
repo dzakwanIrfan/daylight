@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 export function CreateEventForm() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export function CreateEventForm() {
   const [requirementInput, setRequirementInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>([]);
   const [highlightInput, setHighlightInput] = useState('');
+  const [bannerImage, setBannerImage] = useState<string>('');
 
   const {
     register,
@@ -36,6 +38,7 @@ export function CreateEventForm() {
     formState: { errors },
     control,
     watch,
+    setValue,
   } = useForm<CreateEventInput>({
     defaultValues: {
       category: EventCategory.DAYBREAK,
@@ -57,6 +60,7 @@ export function CreateEventForm() {
   const onSubmit = (data: CreateEventInput) => {
     createEvent.mutate({
       ...data,
+      bannerImage,
       tags,
       requirements,
       highlights,
@@ -351,20 +355,22 @@ export function CreateEventForm() {
 
       {/* Media */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Media</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Banner Image</h3>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="bannerImage">Banner Image URL</Label>
-            <Input
-              id="bannerImage"
-              type="url"
-              placeholder="https://example.com/banner.jpg"
-              {...register('bannerImage')}
-            />
-            <p className="text-xs text-gray-500">Recommended size: 1200x630px</p>
-          </div>
-        </div>
+        <ImageUpload
+          value={bannerImage}
+          onChange={(url) => {
+            setBannerImage(url);
+            setValue('bannerImage', url);
+          }}
+          onRemove={() => {
+            setBannerImage('');
+            setValue('bannerImage', '');
+          }}
+          disabled={createEvent.isPending}
+          endpoint={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/events/upload/banner`}
+          maxSize={5}
+        />
       </div>
 
       {/* Tags */}

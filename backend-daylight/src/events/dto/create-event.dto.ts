@@ -68,11 +68,6 @@ export class CreateEventDto {
   @IsString()
   bannerImage?: string;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  images?: string[];
-
   @IsNumber()
   @Min(0)
   price: number;

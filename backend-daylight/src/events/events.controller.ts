@@ -10,7 +10,11 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -20,12 +24,33 @@ import { QueryEventsDto } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { BulkActionEventDto } from './dto/bulk-action-event.dto';
+import { UploadService } from '../upload/upload.service';
 
 @Controller('events')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class EventsController {
-  constructor(private eventsService: EventsService) {}
+  constructor(
+    private eventsService: EventsService,
+    private uploadService: UploadService,
+  ) {}
+
+  /**
+   * Upload event banner
+   */
+  @Post('upload/banner')
+  @UseInterceptors(FileInterceptor('banner'))
+  async uploadBanner(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return this.uploadService.uploadFile(file, {
+      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
+      maxSize: 5 * 1024 * 1024, // 5MB
+      folder: 'events',
+    });
+  }
 
   /**
    * Get dashboard statistics

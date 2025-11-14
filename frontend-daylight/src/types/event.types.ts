@@ -29,7 +29,6 @@ export interface Event {
   latitude?: number;
   longitude?: number;
   bannerImage?: string;
-  images: string[];
   price: number;
   currency: string;
   maxParticipants: number;
@@ -61,7 +60,6 @@ export interface CreateEventInput {
   latitude?: number;
   longitude?: number;
   bannerImage?: string;
-  images?: string[];
   price: number;
   currency?: string;
   maxParticipants: number;

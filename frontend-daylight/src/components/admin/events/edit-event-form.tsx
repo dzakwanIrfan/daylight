@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface EditEventFormProps {
   event: Event;
@@ -34,6 +35,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
   const [requirementInput, setRequirementInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>(event.highlights || []);
   const [highlightInput, setHighlightInput] = useState('');
+  const [bannerImage, setBannerImage] = useState<string>(event.bannerImage || '');
 
   const {
     register,
@@ -41,6 +43,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
     formState: { errors },
     control,
     reset,
+    setValue,
   } = useForm<UpdateEventInput>({
     defaultValues: {
       title: event.title,
@@ -79,6 +82,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
       id: event.id,
       data: {
         ...data,
+        bannerImage,
         tags,
         requirements,
         highlights,
@@ -380,30 +384,22 @@ export function EditEventForm({ event }: EditEventFormProps) {
 
       {/* Media */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Media</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Banner Image</h3>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="bannerImage">Banner Image URL</Label>
-            <Input
-              id="bannerImage"
-              type="url"
-              placeholder="https://example.com/banner.jpg"
-              {...register('bannerImage')}
-            />
-            <p className="text-xs text-gray-500">Recommended size: 1200x630px</p>
-          </div>
-
-          {event.bannerImage && (
-            <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-              <img 
-                src={event.bannerImage} 
-                alt="Current banner"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-        </div>
+        <ImageUpload
+          value={bannerImage}
+          onChange={(url) => {
+            setBannerImage(url);
+            setValue('bannerImage', url);
+          }}
+          onRemove={() => {
+            setBannerImage('');
+            setValue('bannerImage', '');
+          }}
+          disabled={updateEvent.isPending}
+          endpoint={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/events/upload/banner`}
+          maxSize={5}
+        />
       </div>
 
       {/* Tags */}

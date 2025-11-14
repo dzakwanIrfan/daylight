@@ -1,17 +1,5 @@
 import apiClient from '@/lib/axios';
-
-export interface UpdateProfileDto {
-  firstName?: string;
-  lastName?: string;
-  phoneNumber?: string;
-  profilePicture?: string;
-}
-
-export interface ChangePasswordDto {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
+import { ChangePasswordDto, UpdateProfileDto } from '@/types/user.types';
 
 export const userService = {
   getProfile: async () => {

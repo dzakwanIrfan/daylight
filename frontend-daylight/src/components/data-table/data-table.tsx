@@ -35,7 +35,7 @@ interface DataTableProps<TData, TValue> {
   searchableColumns?: DataTableSearchableColumn<TData>[];
   filterableColumns?: DataTableFilterableColumn<TData>[];
   newRowAction?: React.ReactNode;
-  deleteRowsAction?: React.ReactNode;
+  deleteRowsAction?: (selectedRows: TData[]) => React.ReactNode;
   showToolbar?: boolean;
   showPagination?: boolean;
   defaultPerPage?: number;
@@ -87,6 +87,9 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  // Get selected rows
+  const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
+
   return (
     <div className="w-full space-y-3 overflow-auto">
       {showToolbar && (
@@ -95,7 +98,7 @@ export function DataTable<TData, TValue>({
           filterableColumns={filterableColumns}
           searchableColumns={searchableColumns}
           newRowAction={newRowAction}
-          deleteRowsAction={deleteRowsAction}
+          deleteRowsAction={deleteRowsAction ? deleteRowsAction(selectedRows) : undefined}
         />
       )}
       <div className="rounded-md border">

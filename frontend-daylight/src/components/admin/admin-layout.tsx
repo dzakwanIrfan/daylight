@@ -1,7 +1,8 @@
+// src/components/admin/admin-layout.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { AdminSidebar } from './admin-sidebar';
 import { AdminHeader } from './admin-header';
@@ -13,36 +14,52 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isHydrated } = useAuthStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const checkAdminAccess = () => {
-      if (!isAuthenticated()) {
+    // Wait for store to hydrate
+    if (!isHydrated) {
+      return;
+    }
+
+    const checkAccess = () => {
+      const authenticated = isAuthenticated();
+      
+      // Not authenticated at all
+      if (!authenticated || !user) {
         router.replace('/auth/login');
         return;
       }
 
-      if (user?.role !== 'ADMIN') {
+      // Not admin
+      if (user.role !== 'ADMIN') {
         router.replace('/');
         return;
       }
 
-      setIsLoading(false);
+      // All good
+      setIsChecking(false);
     };
 
-    checkAdminAccess();
-  }, [user, isAuthenticated, router]);
+    // Small delay to ensure everything is ready
+    const timer = setTimeout(checkAccess, 50);
+    return () => clearTimeout(timer);
+  }, [isHydrated, user?.id, user?.role, isAuthenticated, router]);
 
-  if (isLoading) {
+  // Show loader while checking
+  if (!isHydrated || isChecking) {
+    return <PageLoader />;
+  }
+
+  // Double check before rendering
+  if (!user || user.role !== 'ADMIN') {
     return <PageLoader />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -50,18 +67,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         />
       )}
 
-      {/* Sidebar */}
       <AdminSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      {/* Main Content */}
       <div className="lg:pl-64">
-        {/* Header */}
         <AdminHeader onMenuClick={() => setIsSidebarOpen(true)} />
-
-        {/* Page Content */}
         <main className="p-4 md:p-6 lg:p-8">
           {children}
         </main>

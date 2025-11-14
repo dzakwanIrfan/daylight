@@ -32,10 +32,10 @@ export default function Error({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={reset} className="bg-brand hover:bg-brand-orange-dark">
+          <Button onClick={reset} className="bg-brand hover:bg-brand-orange-dark border-2 border-black shadow-brutal-md hover:shadow text-white font-bold rounded-full">
             Try Again
           </Button>
-          <Button variant="outline" onClick={() => window.location.href = '/'}>
+          <Button variant="outline" onClick={() => window.location.href = '/'} className='border-2 border-black shadow-brutal-md hover:shadow font-bold rounded-full'>
             Go Home
           </Button>
         </div>

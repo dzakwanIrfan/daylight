@@ -1,4 +1,3 @@
-// src/components/main/user-menu.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -6,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { User, LogOut, ChevronDown, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth-store';
 import { authService } from '@/services/auth.service';
 

@@ -1,3 +1,4 @@
+// src/components/admin/admin-sidebar.tsx
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -25,26 +26,6 @@ const menuItems = [
     href: '/admin/events',
     icon: Calendar,
   },
-  {
-    title: 'Messages',
-    href: '/admin/messages',
-    icon: MessageSquare,
-  },
-  {
-    title: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Reports',
-    href: '/admin/reports',
-    icon: FileText,
-  },
-  {
-    title: 'Settings',
-    href: '/admin/settings',
-    icon: Settings,
-  },
 ];
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
@@ -54,6 +35,16 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const handleNavigation = (href: string) => {
     router.push(href);
     onClose();
+  };
+
+  const isActive = (href: string) => {
+    // Exact match for dashboard
+    if (href === '/admin') {
+      return pathname === '/admin';
+    }
+    
+    // For other routes, check if pathname starts with the href
+    return pathname === href || pathname.startsWith(href + '/');
   };
 
   return (
@@ -88,7 +79,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const itemIsActive = isActive(item.href);
 
             return (
               <button
@@ -96,7 +87,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                 onClick={() => handleNavigation(item.href)}
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
-                  isActive
+                  itemIsActive
                     ? 'bg-brand text-white shadow-sm'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                 )}

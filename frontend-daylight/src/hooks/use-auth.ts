@@ -1,42 +1,51 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { userService } from '@/services/user.service';
 
 export function useAuth(requireAuth: boolean = true) {
   const router = useRouter();
-  const { isAuthenticated, user, setAuth, accessToken } = useAuthStore();
+  const pathname = usePathname();
+  const { isAuthenticated, user, setAuth, accessToken, isHydrated } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasSynced, setHasSynced] = useState(false);
 
   useEffect(() => {
-    const syncUserProfile = async () => {
+    // Wait for hydration
+    if (!isHydrated) {
+      return;
+    }
+
+    const checkAuth = async () => {
       setIsLoading(true);
       
       try {
         const authenticated = isAuthenticated();
         
+        // Redirect if auth required but not authenticated
         if (requireAuth && !authenticated) {
-          router.replace('/auth/login');
+          if (!pathname.startsWith('/auth')) {
+            router.replace('/auth/login');
+          }
           return;
         }
 
-        // Sync user profile from backend if authenticated
-        if (authenticated && accessToken) {
+        // Sync profile once if authenticated and haven't synced yet
+        if (authenticated && accessToken && user && !hasSynced) {
           try {
             const profile = await userService.getProfile();
-            if (profile && user) {
-              // Update store with latest profile data
+            if (profile && JSON.stringify(profile) !== JSON.stringify(user)) {
               setAuth(profile, accessToken);
             }
-          } catch (error) {
+            setHasSynced(true);
+          } catch (error: any) {
             console.error('Failed to sync profile:', error);
-            // If token is invalid, clear auth
-            if ((error as any)?.response?.status === 401) {
+            if (error?.response?.status === 401) {
               useAuthStore.getState().clearAuth();
-              if (requireAuth) {
+              if (requireAuth && !pathname.startsWith('/auth')) {
                 router.replace('/auth/login');
               }
             }
@@ -50,8 +59,8 @@ export function useAuth(requireAuth: boolean = true) {
       }
     };
 
-    syncUserProfile();
-  }, [requireAuth, isAuthenticated, router, accessToken, user?.id]);
+    checkAuth();
+  }, [isHydrated]); // Only run when hydrated changes
 
   return { 
     isAuthenticated: isAuthenticated(), 

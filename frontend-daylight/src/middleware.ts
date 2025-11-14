@@ -13,7 +13,6 @@ const publicRoutes = [
 ];
 
 const authRoutes = ['/auth/login', '/auth/register'];
-const adminRoutes = ['/admin'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -33,9 +32,8 @@ export function middleware(request: NextRequest) {
   );
 
   const isAuthRoute = authRoutes.includes(pathname);
-  const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
 
-  // Read accessToken properly from cookies
+  // Get token from cookie
   const accessToken = request.cookies.get('accessToken')?.value;
   const hasAuth = !!accessToken;
 
@@ -53,10 +51,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // Note: Admin role check is handled in AdminLayout component
-  // because we need to check user.role from the auth store
-
-  // Allow all other routes when authenticated
+  // Allow all other routes
   return NextResponse.next();
 }
 

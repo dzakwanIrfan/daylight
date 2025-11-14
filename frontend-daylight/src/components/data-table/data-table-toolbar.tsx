@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { DataTableViewOptions } from './data-table-view-options';
 import { DataTableFacetedFilter } from './data-table-faceted-filter';
 import { DataTableFilterableColumn, DataTableSearchableColumn } from '@/types/data-table.types';
-import { Cross } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -26,7 +26,6 @@ export function DataTableToolbar<TData>({
   deleteRowsAction,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
-  const [isPending, startTransition] = React.useTransition();
 
   return (
     <div className="flex w-full items-center justify-between space-x-2 overflow-auto p-1">
@@ -68,7 +67,7 @@ export function DataTableToolbar<TData>({
             onClick={() => table.resetColumnFilters()}
           >
             Reset
-            <Cross className="ml-2 size-4" aria-hidden="true" />
+            <X className="ml-2 size-4" aria-hidden="true" />
           </Button>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface User {
   id: string;
@@ -17,11 +17,12 @@ interface User {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  isHydrated: boolean;
   setAuth: (user: User, accessToken: string) => void;
   setAccessToken: (accessToken: string) => void;
   clearAuth: () => void;
   isAuthenticated: () => boolean;
-  role?: 'USER' | 'ADMIN';
+  setHydrated: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -29,8 +30,10 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       accessToken: null,
+      isHydrated: false,
       
       setAuth: (user, accessToken) => {
+        console.log('📝 Setting auth:', { user: user.email, role: user.role });
         set({ user, accessToken });
       },
       
@@ -39,24 +42,49 @@ export const useAuthStore = create<AuthState>()(
       },
       
       clearAuth: () => {
+        console.log('🗑️ Clearing auth');
         set({ user: null, accessToken: null });
       },
       
       isAuthenticated: () => {
         const state = get();
+        
+        // Check if hydrated first
+        if (!state.isHydrated && typeof window !== 'undefined') {
+          console.log('⚠️ Store not hydrated yet');
+          return false;
+        }
+
         if (typeof window !== 'undefined') {
           const hasCookie = document.cookie.includes('accessToken=');
-          return (!!state.accessToken || hasCookie) && !!state.user;
+          const result = (!!state.accessToken || hasCookie) && !!state.user;
+          console.log('🔐 Auth check:', { 
+            hasToken: !!state.accessToken, 
+            hasCookie, 
+            hasUser: !!state.user,
+            result 
+          });
+          return result;
         }
+        
         return !!state.accessToken && !!state.user;
+      },
+
+      setHydrated: () => {
+        set({ isHydrated: true });
       },
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         user: state.user,
         accessToken: state.accessToken,
       }),
+      onRehydrateStorage: () => (state) => {
+        console.log('💧 Rehydration complete:', state?.user?.email);
+        state?.setHydrated();
+      },
     }
   )
 );

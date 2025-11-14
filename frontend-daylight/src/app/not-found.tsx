@@ -13,7 +13,7 @@ export default function NotFound() {
             The page you're looking for doesn't exist or has been moved.
           </p>
         </div>
-        <Button asChild className="bg-brand hover:bg-brand-orange-dark">
+        <Button asChild className="bg-brand hover:bg-brand-dark border border-black text-white font-bold">
           <Link href="/">
             <Home className="mr-2 h-4 w-4" />
             Back to Home

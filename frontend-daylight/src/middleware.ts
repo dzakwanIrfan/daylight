@@ -33,9 +33,10 @@ export function middleware(request: NextRequest) {
 
   const isAuthRoute = authRoutes.includes(pathname);
 
-  // Get token from cookie
+  // Get tokens from cookies
   const accessToken = request.cookies.get('accessToken')?.value;
-  const hasAuth = !!accessToken;
+  const refreshToken = request.cookies.get('refreshToken')?.value;
+  const hasAuth = !!(accessToken || refreshToken);
 
   // If trying to access protected route without auth
   if (!isPublicRoute && !hasAuth) {
@@ -51,7 +52,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // Allow all other routes
   return NextResponse.next();
 }
 

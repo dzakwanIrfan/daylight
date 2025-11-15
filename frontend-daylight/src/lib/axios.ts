@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/auth-store';
-import { parseApiError, ApiError } from './api-error';
+import { parseApiError } from './api-error';
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
@@ -34,13 +34,11 @@ function getTokenFromCookie(): string | null {
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Try store first, then cookie
     let token = useAuthStore.getState().accessToken;
     
     if (!token) {
       token = getTokenFromCookie();
       
-      // Sync to store if found in cookie
       if (token) {
         useAuthStore.getState().setAccessToken(token);
       }
@@ -63,18 +61,29 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest: any = error.config;
 
+    // ✅ IMPROVED: Check for 401 and handle refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't refresh on auth endpoints
       const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
                             originalRequest.url?.includes('/auth/register') ||
-                            originalRequest.url?.includes('/auth/refresh');
+                            originalRequest.url?.includes('/auth/refresh') ||
+                            originalRequest.url?.includes('/auth/verify-email');
       
       if (isAuthEndpoint) {
         return Promise.reject(parseApiError(error));
       }
 
+      // Check if we have refresh token
+      const hasRefreshToken = getTokenFromCookie() || document.cookie.includes('refreshToken=');
+      
+      if (!hasRefreshToken) {
+        useAuthStore.getState().clearAuth();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login?session=expired';
+        }
+        return Promise.reject(parseApiError(error));
+      }
+
       if (isRefreshing) {
-        // Queue requests while refreshing
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -91,7 +100,6 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Try to refresh token
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
@@ -99,20 +107,16 @@ apiClient.interceptors.response.use(
         );
 
         if (response.data.accessToken) {
-          // Update store with new token
           useAuthStore.getState().setAccessToken(response.data.accessToken);
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
           }
 
-          // Process queued requests
           processQueue(null, response.data.accessToken);
-          
-          // Retry the original request
           return apiClient(originalRequest);
         }
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
         
@@ -130,7 +134,6 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // ✅ IMPROVED: Always return parsed ApiError
     return Promise.reject(parseApiError(error));
   }
 );

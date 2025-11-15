@@ -33,7 +33,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 requests per hour
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
@@ -46,17 +46,14 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.verifyEmail(verifyEmailDto.token);
-
-    // Set httpOnly cookies
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
-
     return result;
   }
 
   @Public()
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
   async resendVerification(@Body() resendVerificationDto: ResendVerificationDto) {
     return this.authService.resendVerificationEmail(resendVerificationDto.email);
   }
@@ -64,16 +61,13 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 10, ttl: 900000 } }) // 10 requests per 15 minutes
+  @Throttle({ default: { limit: 10, ttl: 900000 } })
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(loginDto);
-
-    // Set httpOnly cookies
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
-
     return result;
   }
 
@@ -89,10 +83,7 @@ export class AuthController {
       user.userId,
       user.refreshToken,
     );
-
-    // Set new httpOnly cookies
     this.setAuthCookies(res, result.accessToken, result.refreshToken);
-
     return result;
   }
 
@@ -120,7 +111,6 @@ export class AuthController {
         result = await this.authService.googleLogin(req.user);
       }
 
-      // Set httpOnly cookies
       this.setAuthCookies(res, result.accessToken, result.refreshToken);
 
       const frontendUrl = this.configService.get('FRONTEND_URL');
@@ -159,12 +149,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies?.refreshToken;
-
     await this.authService.logout(user.userId, refreshToken);
-
-    // Clear cookies
     this.clearAuthCookies(res);
-
     return { success: true, message: 'Logged out successfully' };
   }
 
@@ -175,32 +161,49 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logoutAll(user.userId);
-
-    // Clear cookies
     this.clearAuthCookies(res);
-
     return { success: true, message: 'Logged out from all devices' };
   }
 
-  // Helper: Set auth cookies
+  // Helper to convert JWT expiry to milliseconds
+  private getExpiryInMs(expiryString: string): number {
+    const unit = expiryString.slice(-1);
+    const value = parseInt(expiryString.slice(0, -1));
+
+    switch (unit) {
+      case 's': return value * 1000;
+      case 'm': return value * 60 * 1000;
+      case 'h': return value * 60 * 60 * 1000;
+      case 'd': return value * 24 * 60 * 60 * 1000;
+      default: return 15 * 60 * 1000; // Default 15 minutes
+    }
+  }
+
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
+    
+    // Get expiry from .env and convert to milliseconds
+    const accessTokenExpiry = this.configService.get('JWT_EXPIRES_IN') || '1d';
+    const refreshTokenExpiry = this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
 
-    // Access token - 15 minutes
+    const accessMaxAge = this.getExpiryInMs(accessTokenExpiry);
+    const refreshMaxAge = this.getExpiryInMs(refreshTokenExpiry);
+
+    // Access token cookie
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: accessMaxAge,
       path: '/',
     });
 
-    // Refresh token - 7 days
+    // Refresh token cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: refreshMaxAge,
       path: '/',
     });
   }

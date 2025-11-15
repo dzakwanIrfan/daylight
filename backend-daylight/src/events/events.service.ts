@@ -137,6 +137,42 @@ export class EventsService {
   }
 
   /**
+   * Get events for next week
+   */
+  async getNextWeekEvents() {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Start of today
+    
+    const nextWeek = new Date(now);
+    nextWeek.setDate(now.getDate() + 7); // 7 days from now
+    nextWeek.setHours(23, 59, 59, 999); // End of that day
+
+    const events = await this.prisma.event.findMany({
+      where: {
+        eventDate: {
+          gte: now,
+          lte: nextWeek,
+        },
+        status: EventStatus.PUBLISHED,
+        isActive: true,
+      },
+      orderBy: {
+        eventDate: 'asc',
+      },
+      take: 10,
+    });
+
+    return {
+      data: events,
+      dateRange: {
+        from: now.toISOString(),
+        to: nextWeek.toISOString(),
+      },
+      total: events.length,
+    };
+  }
+
+  /**
    * Get event by ID
    */
   async getEventById(eventId: string) {

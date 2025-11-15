@@ -10,75 +10,91 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  UseInterceptors,
-  UploadedFile,
-  BadRequestException,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { UserRole } from '@prisma/client';
 import { QueryEventsDto } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { BulkActionEventDto } from './dto/bulk-action-event.dto';
-import { UploadService } from '../upload/upload.service';
 
 @Controller('events')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
 export class EventsController {
-  constructor(
-    private eventsService: EventsService,
-    private uploadService: UploadService,
-  ) {}
+  constructor(private eventsService: EventsService) {}
+
+  // PUBLIC ENDPOINTS
 
   /**
-   * Get dashboard statistics
+   * Get all public events (no auth required)
    */
+  @Public()
+  @Get('public')
+  async getPublicEvents(@Query() queryDto: QueryEventsDto) {
+    return this.eventsService.getEvents(queryDto);
+  }
+
+  /**
+   * Get events for next week (no auth required)
+   */
+  @Public()
+  @Get('public/next-week')
+  async getNextWeekEvents() {
+    return this.eventsService.getNextWeekEvents();
+  }
+
+  /**
+   * Get event by slug (no auth required)
+   */
+  @Public()
+  @Get('public/:slug')
+  async getPublicEventBySlug(@Param('slug') slug: string) {
+    return this.eventsService.getEventBySlug(slug);
+  }
+
+  // ADMIN ENDPOINTS
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get('dashboard/stats')
   async getDashboardStats() {
     return this.eventsService.getDashboardStats();
   }
 
-  /**
-   * Get all events
-   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get()
   async getEvents(@Query() queryDto: QueryEventsDto) {
     return this.eventsService.getEvents(queryDto);
   }
 
-  /**
-   * Export events
-   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get('export')
   async exportEvents(@Query() queryDto: QueryEventsDto) {
     return this.eventsService.exportEvents(queryDto);
   }
 
-  /**
-   * Get event by ID
-   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get(':id')
   async getEventById(@Param('id') id: string) {
     return this.eventsService.getEventById(id);
   }
 
-  /**
-   * Create event
-   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createEvent(@Body() createEventDto: CreateEventDto) {
     return this.eventsService.createEvent(createEventDto);
   }
 
-  /**
-   * Update event
-   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Put(':id')
   async updateEvent(
     @Param('id') id: string,
@@ -87,18 +103,16 @@ export class EventsController {
     return this.eventsService.updateEvent(id, updateEventDto);
   }
 
-  /**
-   * Delete event
-   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Delete(':id')
   async deleteEvent(@Param('id') id: string, @Query('hard') hard?: string) {
     const hardDelete = hard === 'true';
     return this.eventsService.deleteEvent(id, hardDelete);
   }
 
-  /**
-   * Bulk actions
-   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Post('bulk')
   @HttpCode(HttpStatus.OK)
   async bulkAction(@Body() bulkActionDto: BulkActionEventDto) {

@@ -11,6 +11,8 @@ import { UploadModule } from './upload/upload.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AdminModule } from './admin/admin.module';
 import { EventsModule } from './events/events.module';
+import { PaymentModule } from './payment/payment.module';
+import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { EventsModule } from './events/events.module';
     UploadModule,
     AdminModule,
     EventsModule,
+    PaymentMethodsModule,
+    PaymentModule,
   ],
   providers: [
     {

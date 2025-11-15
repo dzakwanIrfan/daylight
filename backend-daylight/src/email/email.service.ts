@@ -149,4 +149,356 @@ export class EmailService {
       `,
     });
   }
+
+  // PAYMENT NOTIFICATION EMAILS
+
+  async sendPaymentCreatedEmail(
+    email: string,
+    name: string,
+    transaction: any,
+    event: any,
+  ) {
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+      }).format(amount);
+    };
+
+    const formatDate = (date: Date) => {
+      return new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+      }).format(new Date(date));
+    };
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: email,
+      subject: `Payment Pending - ${event.title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #FF5005; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .info-box { background-color: white; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #ddd; }
+            .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+            .info-label { font-weight: bold; color: #666; }
+            .info-value { text-align: right; }
+            .payment-code { background-color: #FFF3E0; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; color: #FF5005; margin: 20px 0; border-radius: 8px; }
+            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .warning { background-color: #FFF9C4; padding: 15px; border-left: 4px solid #FFC107; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>💳 Payment Pending</h1>
+            </div>
+            <div class="content">
+              <h2>Hi ${name},</h2>
+              <p>Thank you for booking <strong>${event.title}</strong>! Your payment is pending.</p>
+              
+              <div class="info-box">
+                <h3 style="margin-top: 0; color: #FF5005;">Event Details</h3>
+                <div class="info-row">
+                  <span class="info-label">Event:</span>
+                  <span class="info-value">${event.title}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Date:</span>
+                  <span class="info-value">${formatDate(event.eventDate)}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Venue:</span>
+                  <span class="info-value">${event.venue}, ${event.city}</span>
+                </div>
+              </div>
+
+              <div class="info-box">
+                <h3 style="margin-top: 0; color: #FF5005;">Payment Details</h3>
+                <div class="info-row">
+                  <span class="info-label">Invoice Number:</span>
+                  <span class="info-value">${transaction.merchantRef}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Payment Method:</span>
+                  <span class="info-value">${transaction.paymentName}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Amount:</span>
+                  <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Expires:</span>
+                  <span class="info-value">${formatDate(transaction.expiredAt)}</span>
+                </div>
+              </div>
+
+              ${transaction.payCode ? `
+              <div class="payment-code">
+                Payment Code: ${transaction.payCode}
+              </div>
+              ` : ''}
+
+              <div class="warning">
+                <strong>⏰ Important:</strong> Please complete your payment before ${formatDate(transaction.expiredAt)} to secure your spot!
+              </div>
+
+              ${transaction.checkoutUrl ? `
+              <div style="text-align: center;">
+                <a href="${transaction.checkoutUrl}" class="button">Complete Payment</a>
+              </div>
+              ` : ''}
+
+              <p>Need help? Contact us at support@daylight.com</p>
+            </div>
+            <div class="footer">
+              <p>© 2025 DayLight. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+  }
+
+  async sendPaymentSuccessEmail(
+    email: string,
+    name: string,
+    transaction: any,
+    event: any,
+  ) {
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+      }).format(amount);
+    };
+
+    const formatDate = (date: Date) => {
+      return new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+      }).format(new Date(date));
+    };
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: email,
+      subject: `Payment Successful - ${event.title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .success-icon { font-size: 60px; text-align: center; margin: 20px 0; }
+            .info-box { background-color: white; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #ddd; }
+            .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+            .info-label { font-weight: bold; color: #666; }
+            .info-value { text-align: right; }
+            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .highlight { background-color: #E8F5E9; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✅ Payment Successful!</h1>
+            </div>
+            <div class="content">
+              <div class="success-icon">🎉</div>
+              
+              <h2>Hi ${name},</h2>
+              <p>Great news! Your payment has been confirmed. You're all set for <strong>${event.title}</strong>!</p>
+              
+              <div class="highlight">
+                <strong>🎫 Your spot is confirmed!</strong> We can't wait to see you at the event.
+              </div>
+
+              <div class="info-box">
+                <h3 style="margin-top: 0; color: #4CAF50;">Event Details</h3>
+                <div class="info-row">
+                  <span class="info-label">Event:</span>
+                  <span class="info-value">${event.title}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Date:</span>
+                  <span class="info-value">${formatDate(event.eventDate)}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Venue:</span>
+                  <span class="info-value">${event.venue}, ${event.city}</span>
+                </div>
+              </div>
+
+              <div class="info-box">
+                <h3 style="margin-top: 0; color: #4CAF50;">Payment Summary</h3>
+                <div class="info-row">
+                  <span class="info-label">Invoice Number:</span>
+                  <span class="info-value">${transaction.merchantRef}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Payment Method:</span>
+                  <span class="info-value">${transaction.paymentName}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Amount Paid:</span>
+                  <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Payment Date:</span>
+                  <span class="info-value">${formatDate(transaction.paidAt)}</span>
+                </div>
+              </div>
+
+              <div style="text-align: center;">
+                <a href="${this.configService.get('FRONTEND_URL')}/my-events" class="button">View My Events</a>
+              </div>
+
+              <p><strong>What's Next?</strong></p>
+              <ul>
+                <li>Mark your calendar for ${formatDate(event.eventDate)}</li>
+                <li>You'll receive event details and reminders closer to the date</li>
+                <li>Check your DayLight dashboard for updates</li>
+              </ul>
+
+              <p>Questions? Contact us at support@daylight.com</p>
+            </div>
+            <div class="footer">
+              <p>© 2025 DayLight. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+  }
+
+  async sendPaymentExpiredEmail(
+    email: string,
+    name: string,
+    transaction: any,
+    event: any,
+  ) {
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: email,
+      subject: `Payment Expired - ${event.title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #FF9800; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .warning { background-color: #FFF9C4; padding: 15px; border-left: 4px solid #FF9800; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>⏰ Payment Expired</h1>
+            </div>
+            <div class="content">
+              <h2>Hi ${name},</h2>
+              <p>Unfortunately, your payment for <strong>${event.title}</strong> has expired.</p>
+              
+              <div class="warning">
+                <strong>Invoice #${transaction.merchantRef}</strong> has expired and is no longer valid.
+              </div>
+
+              <p>Don't worry! You can still join this event by creating a new booking:</p>
+
+              <div style="text-align: center;">
+                <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">Book Again</a>
+              </div>
+
+              <p>Need help? Contact us at support@daylight.com</p>
+            </div>
+            <div class="footer">
+              <p>© 2025 DayLight. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+  }
+
+  async sendPaymentFailedEmail(
+    email: string,
+    name: string,
+    transaction: any,
+    event: any,
+  ) {
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: email,
+      subject: `Payment Failed - ${event.title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #F44336; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .error { background-color: #FFEBEE; padding: 15px; border-left: 4px solid #F44336; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>❌ Payment Failed</h1>
+            </div>
+            <div class="content">
+              <h2>Hi ${name},</h2>
+              <p>We're sorry, but your payment for <strong>${event.title}</strong> has failed.</p>
+              
+              <div class="error">
+                <strong>Invoice #${transaction.merchantRef}</strong> could not be processed.
+              </div>
+
+              <p><strong>What can you do?</strong></p>
+              <ul>
+                <li>Check your payment method and try again</li>
+                <li>Use a different payment method</li>
+                <li>Contact your bank if the issue persists</li>
+              </ul>
+
+              <div style="text-align: center;">
+                <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">Try Again</a>
+              </div>
+
+              <p>Need help? Contact us at support@daylight.com</p>
+            </div>
+            <div class="footer">
+              <p>© 2025 DayLight. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+  }
 }

@@ -59,6 +59,8 @@ model User {
   // Email verification - HASHED TOKEN
   emailVerificationTokenHash   String?   @unique
   emailVerificationExpires     DateTime?
+
+  transactions                  Transaction[]
   
   // Password reset - HASHED TOKEN
   resetPasswordTokenHash       String?   @unique
@@ -221,6 +223,8 @@ model Event {
   // Organizer
   organizerName   String?
   organizerContact String?
+
+  transactions                  Transaction[]
   
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -230,4 +234,112 @@ model Event {
   @@index([eventDate])
   @@index([slug])
   @@index([isActive])
+}
+
+enum PaymentChannelType {
+  DIRECT
+  REDIRECT
+}
+
+model PaymentMethod {
+  id                String              @id @default(uuid())
+  
+  // Basic Info
+  code              String              @unique
+  name              String
+  group             String
+  type              PaymentChannelType
+  
+  // Fees
+  feeMerchantFlat   Float               @default(0)
+  feeMerchantPercent Float              @default(0)
+  feeCustomerFlat   Float               @default(0)
+  feeCustomerPercent Float              @default(0)
+  
+  // Limits
+  minimumFee        Float?
+  maximumFee        Float?
+  minimumAmount     Float
+  maximumAmount     Float
+  
+  // Display
+  iconUrl           String              @db.Text
+  isActive          Boolean             @default(true)
+  sortOrder         Int                 @default(0)
+  
+  // Metadata
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@index([code])
+  @@index([group])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+model Transaction {
+  id                    String          @id @default(uuid())
+  
+  // User & Event
+  userId                String
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId               String
+  event                 Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  // Tripay References
+  tripayReference       String          @unique
+  merchantRef           String          @unique
+  
+  // Payment Details
+  paymentMethodCode     String?         
+  paymentMethod         String
+  paymentName           String
+  paymentStatus         PaymentStatus   @default(PENDING)
+  
+  // Amounts
+  amount                Float
+  feeMerchant           Float           @default(0)
+  feeCustomer           Float           @default(0)
+  totalFee              Float           @default(0)
+  amountReceived        Float
+  
+  // Payment Info
+  payCode               String?
+  payUrl                String?         @db.Text
+  checkoutUrl           String?         @db.Text
+  qrString              String?         @db.Text
+  qrUrl                 String?         @db.Text
+  
+  // Customer Info
+  customerName          String
+  customerEmail         String
+  customerPhone         String?
+  
+  // Timestamps
+  expiredAt             DateTime?
+  paidAt                DateTime?
+  
+  // Metadata
+  instructions          Json?
+  orderItems            Json
+  callbackData          Json?
+  
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@index([userId])
+  @@index([eventId])
+  @@index([tripayReference])
+  @@index([merchantRef])
+  @@index([paymentMethodCode])
+  @@index([paymentStatus])
+  @@index([createdAt])
 }

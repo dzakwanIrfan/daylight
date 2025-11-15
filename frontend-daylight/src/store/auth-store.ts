@@ -33,7 +33,6 @@ export const useAuthStore = create<AuthState>()(
       isHydrated: false,
       
       setAuth: (user, accessToken) => {
-        console.log('📝 Setting auth:', { user: user.email, role: user.role });
         set({ user, accessToken });
       },
       
@@ -42,7 +41,6 @@ export const useAuthStore = create<AuthState>()(
       },
       
       clearAuth: () => {
-        console.log('🗑️ Clearing auth');
         set({ user: null, accessToken: null });
       },
       
@@ -51,13 +49,15 @@ export const useAuthStore = create<AuthState>()(
         
         // Check if hydrated first
         if (!state.isHydrated && typeof window !== 'undefined') {
-          console.log('⚠️ Store not hydrated yet');
           return false;
         }
 
         if (typeof window !== 'undefined') {
           const hasCookie = document.cookie.includes('accessToken=');
-          const result = (!!state.accessToken || hasCookie) && !!state.user;
+          const hasUser = !!state.user;
+          const hasToken = !!state.accessToken;
+          
+          const result = (hasToken || hasCookie) && hasUser;
           return result;
         }
         
@@ -76,7 +76,6 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
       }),
       onRehydrateStorage: () => (state) => {
-        console.log('💧 Rehydration complete:', state?.user?.email);
         state?.setHydrated();
       },
     }

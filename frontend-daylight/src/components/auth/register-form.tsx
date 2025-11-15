@@ -165,6 +165,7 @@ export function RegisterForm() {
   };
 
   const handleGoogleRegister = () => {
+    
     if (!sessionId) {
       toast.error('Please complete the personality test first', {
         description: 'You need to take the personality test before registering.',
@@ -176,7 +177,8 @@ export function RegisterForm() {
       });
       return;
     }
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?sessionId=${sessionId}`;
+    
+    authService.googleLogin(sessionId);
   };
 
   const handleResendVerification = () => {
@@ -247,6 +249,9 @@ export function RegisterForm() {
         <h1 className="text-4xl logo-text font-bold text-brand mb-2">DayLight</h1>
         <h2 className="text-2xl font-semibold mb-2">Create Your Account</h2>
         <p className="text-muted-foreground">One last step to start your journey</p>
+        {sessionId && (
+          <p className="text-xs text-green-600 mt-2">✅ Personality test completed</p>
+        )}
       </div>
 
       <ErrorAlert 
@@ -380,7 +385,7 @@ export function RegisterForm() {
         <Button
           type="submit"
           className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
-          disabled={registerMutation.isPending}
+          disabled={registerMutation.isPending || !sessionId}
         >
           {registerMutation.isPending ? (
             <>
@@ -407,7 +412,7 @@ export function RegisterForm() {
         variant="outline"
         className="w-full border border-r-4 border-b-4 border-black rounded-full font-bold"
         onClick={handleGoogleRegister}
-        disabled={registerMutation.isPending}
+        disabled={registerMutation.isPending || !sessionId}
       >
         <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -417,6 +422,14 @@ export function RegisterForm() {
         </svg>
         Continue with Google
       </Button>
+
+      {!sessionId && (
+        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+          <p className="text-sm text-yellow-800 text-center">
+            ⚠️ Please complete the personality test first before registering
+          </p>
+        </div>
+      )}
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}

@@ -13,36 +13,32 @@ async function bootstrap() {
   
   const configService = app.get(ConfigService);
   
-  // Serve static files (uploads)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/api/uploads/',
   });
   
-  // Security headers
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }));
   
-  // Cookie parser
+  // CRITICAL: Cookie parser BEFORE CORS
   app.use(cookieParser());
   
-  // Enable CORS with strict configuration
-  const frontendUrl = configService.get('FRONTEND_URL');
+  // FIXED CORS Configuration
+  const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:3001';
+  const isProduction = configService.get('NODE_ENV') === 'production';
+  
   app.enableCors({
     origin: frontendUrl,
-    credentials: true,
+    credentials: true, // CRITICAL for cookies
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Set-Cookie'],
   });
 
-  // Global prefix
   app.setGlobalPrefix('api');
-
-  // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Validation pipe with sanitization
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -58,8 +54,7 @@ async function bootstrap() {
   await app.listen(port);
   
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
-  console.log(`🔒 Security headers enabled with Helmet`);
-  console.log(`🍪 Cookie-based auth enabled`);
-  console.log(`📁 Static files served from /uploads`);
+  console.log(`🌐 CORS enabled for: ${frontendUrl}`);
+  console.log(`🍪 Cookies: ${isProduction ? 'secure' : 'development mode'}`);
 }
 bootstrap();

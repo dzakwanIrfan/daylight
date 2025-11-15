@@ -61,7 +61,6 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest: any = error.config;
 
-    // ✅ IMPROVED: Check for 401 and handle refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
                             originalRequest.url?.includes('/auth/register') ||
@@ -72,8 +71,7 @@ apiClient.interceptors.response.use(
         return Promise.reject(parseApiError(error));
       }
 
-      // Check if we have refresh token
-      const hasRefreshToken = getTokenFromCookie() || document.cookie.includes('refreshToken=');
+      const hasRefreshToken = document.cookie.includes('refreshToken=');
       
       if (!hasRefreshToken) {
         useAuthStore.getState().clearAuth();

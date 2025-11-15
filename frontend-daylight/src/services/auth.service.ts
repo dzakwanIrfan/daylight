@@ -1,3 +1,4 @@
+// frontend-daylight/src/services/auth.service.ts
 import apiClient from '@/lib/axios';
 import { ForgotPasswordDto, LoginDto, RegisterDto, ResendVerificationDto, ResetPasswordDto } from '@/types/auth.types';
 
@@ -42,7 +43,9 @@ export const authService = {
     return response.data;
   },
 
-  googleLogin: () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+  googleLogin: (sessionId?: string) => {
+    const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    const url = sessionId ? `${baseUrl}?sessionId=${sessionId}` : baseUrl;
+    window.location.href = url;
   },
 };

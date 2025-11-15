@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Session,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -89,9 +90,24 @@ export class AuthController {
 
   @Public()
   @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    // Guard redirects to Google
+  async googleAuth(
+    @Query('sessionId') sessionId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    
+    if (sessionId) {
+      res.cookie('pendingSessionId', sessionId, {
+        httpOnly: true,
+        secure: this.configService.get('NODE_ENV') === 'production',
+        sameSite: 'lax',
+        maxAge: 10 * 60 * 1000,
+        path: '/',
+      });
+    }
+
+    const googleAuthUrl = this.buildGoogleAuthUrl();
+    res.redirect(googleAuthUrl);
   }
 
   @Public()
@@ -111,12 +127,17 @@ export class AuthController {
         result = await this.authService.googleLogin(req.user);
       }
 
+      // STILL set cookies (for direct API calls)
       this.setAuthCookies(res, result.accessToken, result.refreshToken);
 
       const frontendUrl = this.configService.get('FRONTEND_URL');
-      const redirectUrl = `${frontendUrl}/auth/callback?success=true`;
+      
+      // PASS TOKENS VIA URL (Temporary, will be moved to httpOnly cookies after)
+      const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
+      redirectUrl.searchParams.set('success', 'true');
+      redirectUrl.searchParams.set('token', result.accessToken);
 
-      res.redirect(redirectUrl);
+      res.redirect(redirectUrl.toString());
     } catch (error) {
       const frontendUrl = this.configService.get('FRONTEND_URL');
       res.redirect(`${frontendUrl}/auth/error?message=${error.message}`);
@@ -165,6 +186,19 @@ export class AuthController {
     return { success: true, message: 'Logged out from all devices' };
   }
 
+  // Helper: Build Google OAuth URL
+  private buildGoogleAuthUrl(): string {
+    const clientId = this.configService.get('GOOGLE_CLIENT_ID');
+    const callbackUrl = this.configService.get('GOOGLE_CALLBACK_URL');
+    const scope = 'email profile';
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&` +
+      `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
+      `response_type=code&` +
+      `scope=${encodeURIComponent(scope)}`;
+  }
+
   // Helper to convert JWT expiry to milliseconds
   private getExpiryInMs(expiryString: string): number {
     const unit = expiryString.slice(-1);
@@ -175,42 +209,42 @@ export class AuthController {
       case 'm': return value * 60 * 1000;
       case 'h': return value * 60 * 60 * 1000;
       case 'd': return value * 24 * 60 * 60 * 1000;
-      default: return 15 * 60 * 1000; // Default 15 minutes
+      default: return 15 * 60 * 1000;
     }
   }
 
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
     
-    // Get expiry from .env and convert to milliseconds
     const accessTokenExpiry = this.configService.get('JWT_EXPIRES_IN') || '1d';
     const refreshTokenExpiry = this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
 
     const accessMaxAge = this.getExpiryInMs(accessTokenExpiry);
     const refreshMaxAge = this.getExpiryInMs(refreshTokenExpiry);
 
-    // Access token cookie
-    res.cookie('accessToken', accessToken, {
+    // CRITICAL: Cookie options for cross-origin
+    const cookieOptions = {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: accessMaxAge,
+      secure: isProduction, // false in development
+      sameSite: 'lax' as const, // CRITICAL: 'lax' works for OAuth redirects
       path: '/',
+      domain: isProduction ? this.configService.get('COOKIE_DOMAIN') : undefined,
+    };
+
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: accessMaxAge,
     });
 
-    // Refresh token cookie
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
+      ...cookieOptions,
       maxAge: refreshMaxAge,
-      path: '/',
     });
   }
 
-  // Helper: Clear auth cookies
   private clearAuthCookies(res: Response) {
     res.clearCookie('accessToken', { path: '/' });
     res.clearCookie('refreshToken', { path: '/' });
+    res.clearCookie('pendingSessionId', { path: '/' });
   }
 }

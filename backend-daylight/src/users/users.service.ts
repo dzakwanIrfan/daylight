@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { AuthProvider } from '@prisma/client';
+import { AuthProvider, UserRole } from '@prisma/client';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/update-profile.dto';
 
 interface CreateUserData {
@@ -13,6 +13,8 @@ interface CreateUserData {
   provider?: AuthProvider;
   googleId?: string;
   isEmailVerified?: boolean;
+  profilePicture?: string;
+  role?: string;
 }
 
 @Injectable()
@@ -43,6 +45,8 @@ export class UsersService {
         provider: data.provider || AuthProvider.LOCAL,
         googleId: data.googleId,
         isEmailVerified: data.isEmailVerified || false,
+        profilePicture: data.profilePicture,
+        role: UserRole.USER,
       },
       select: {
         id: true,
@@ -264,6 +268,13 @@ export class UsersService {
           increment: 1,
         },
       },
+    });
+  }
+
+  async updateGoogleId(userId: string, googleId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { googleId },
     });
   }
 }

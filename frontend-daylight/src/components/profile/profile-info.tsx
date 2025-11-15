@@ -141,6 +141,8 @@ export function ProfileInfo() {
                 src={avatarUrl}
                 alt="Profile picture"
                 className="w-full h-full object-cover"
+                crossOrigin='anonymous'
+                referrerPolicy='no-referrer'
                 onError={(e) => {
                   console.error('Image load error:', e);
                   e.currentTarget.style.display = 'none';

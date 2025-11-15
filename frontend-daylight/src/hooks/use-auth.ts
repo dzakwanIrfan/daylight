@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { userService } from '@/services/user.service';
+import { toast } from 'sonner';
 
 export function useAuth(requireAuth: boolean = true) {
   const router = useRouter();
@@ -31,23 +32,39 @@ export function useAuth(requireAuth: boolean = true) {
         }
 
         // Sync profile if authenticated
-        if (authenticated && accessToken && user) {
-          try {
-            const profile = await userService.getProfile();
-            if (profile && JSON.stringify(profile) !== JSON.stringify(user)) {
+        if (authenticated && accessToken) {
+          // Check if we have user data
+          if (!user) {
+            try {
+              const profile = await userService.getProfile();
               setAuth(profile, accessToken);
+            } catch (error: any) {
+              if (error?.response?.status === 401) {
+                useAuthStore.getState().clearAuth();
+                if (requireAuth && !pathname.startsWith('/auth')) {
+                  router.replace('/auth/login?session=expired');
+                }
+              }
             }
-          } catch (error: any) {
-            if (error?.response?.status === 401) {
-              useAuthStore.getState().clearAuth();
-              if (requireAuth && !pathname.startsWith('/auth')) {
-                router.replace('/auth/login?session=expired');
+          } else {
+            // We have user, just sync to check for updates
+            try {
+              const profile = await userService.getProfile();
+              if (profile && JSON.stringify(profile) !== JSON.stringify(user)) {
+                setAuth(profile, accessToken);
+              }
+            } catch (error: any) {
+              if (error?.response?.status === 401) {
+                useAuthStore.getState().clearAuth();
+                if (requireAuth && !pathname.startsWith('/auth')) {
+                  router.replace('/auth/login?session=expired');
+                }
               }
             }
           }
         }
       } catch (error) {
-        console.error('❌ Auth check error:', error);
+        toast.error('Authentication check failed. Please try again.');
       } finally {
         setIsLoading(false);
         setIsChecking(false);

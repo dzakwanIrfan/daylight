@@ -1,41 +1,24 @@
-import { AlertCircle, XCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { cn } from '@/lib/utils';
+import { AlertCircle, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ErrorAlertProps {
-  error: string | string[] | null;
-  title?: string;
-  className?: string;
+  error: string | null;
   onDismiss?: () => void;
 }
 
-export function ErrorAlert({ error, title, className, onDismiss }: ErrorAlertProps) {
+export function ErrorAlert({ error, onDismiss }: ErrorAlertProps) {
   if (!error) return null;
 
-  const errors = Array.isArray(error) ? error : [error];
-
   return (
-    <Alert variant="destructive" className={cn('relative', className)}>
+    <Alert variant="destructive" className="relative">
       <AlertCircle className="h-4 w-4" />
-      {title && <AlertTitle>{title}</AlertTitle>}
-      <AlertDescription>
-        {errors.length === 1 ? (
-          <span>{errors[0]}</span>
-        ) : (
-          <ul className="list-disc list-inside space-y-1">
-            {errors.map((err, idx) => (
-              <li key={idx}>{err}</li>
-            ))}
-          </ul>
-        )}
-      </AlertDescription>
+      <AlertDescription>{error}</AlertDescription>
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="absolute top-3 right-3 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          className="absolute top-2 right-2 p-1 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
         >
-          <XCircle className="h-4 w-4" />
-          <span className="sr-only">Dismiss</span>
+          <X className="h-4 w-4" />
         </button>
       )}
     </Alert>

@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -26,14 +27,18 @@ interface PersonalityTestState {
 
 export const usePersonalityTestStore = create<PersonalityTestState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       sessionId: '',
       answers: [],
       currentQuestion: 1,
       relationshipStatus: undefined,
       intentOnDaylight: undefined,
       genderMixComfort: undefined,
-      setSessionId: (sessionId) => set({ sessionId }),
+      
+      setSessionId: (sessionId) => {
+        set({ sessionId });
+      },
+      
       setAnswer: (questionNumber, selectedOption) =>
         set((state) => {
           const existingIndex = state.answers.findIndex(
@@ -49,10 +54,13 @@ export const usePersonalityTestStore = create<PersonalityTestState>()(
 
           return { answers: newAnswers };
         }),
+        
       setCurrentQuestion: (questionNumber) =>
         set({ currentQuestion: questionNumber }),
+        
       setContextData: (data) => set(data),
-      reset: () =>
+      
+      reset: () => {
         set({
           sessionId: '',
           answers: [],
@@ -60,10 +68,16 @@ export const usePersonalityTestStore = create<PersonalityTestState>()(
           relationshipStatus: undefined,
           intentOnDaylight: undefined,
           genderMixComfort: undefined,
-        }),
+        });
+      },
     }),
     {
       name: 'personality-test-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state?.sessionId) {
+          toast.success('Resumed your personality test session.');
+        }
+      },
     }
   )
 );

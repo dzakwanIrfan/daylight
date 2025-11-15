@@ -28,4 +28,9 @@ export const userService = {
     });
     return response.data;
   },
+
+  deleteAccount: async () => {
+    const response = await apiClient.delete('/users/profile');
+    return response.data;
+  },
 };

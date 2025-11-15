@@ -116,6 +116,15 @@ export function TestResult() {
   }, [sessionId, router]);
 
   const handleContinueToRegister = () => {
+    
+    if (!sessionId) {
+      toast.error('Session expired', {
+        description: 'Please take the test again.',
+      });
+      router.push('/personality-test');
+      return;
+    }
+    
     router.push('/auth/register');
   };
 
@@ -134,7 +143,7 @@ export function TestResult() {
         toast.success('Link copied to clipboard!');
       }
     } catch (error) {
-      console.error('Share failed:', error);
+      toast.error('Share failed. Please try again later.');
     }
   };
 

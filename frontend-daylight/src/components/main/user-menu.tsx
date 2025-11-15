@@ -59,6 +59,8 @@ export function UserMenu() {
               src={user.profilePicture}
               alt="Profile"
               className="w-full h-full object-cover"
+              crossOrigin='anonymous'
+              referrerPolicy='no-referrer'
               onError={(e) => {
                 console.error('Avatar load error');
                 e.currentTarget.style.display = 'none';

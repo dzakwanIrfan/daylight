@@ -250,7 +250,7 @@ export function RegisterForm() {
         <h2 className="text-2xl font-semibold mb-2">Create Your Account</h2>
         <p className="text-muted-foreground">One last step to start your journey</p>
         {sessionId && (
-          <p className="text-xs text-green-600 mt-2">✅ Personality test completed</p>
+          <p className="text-xs text-green-600 mt-2">Personality test completed</p>
         )}
       </div>
 
@@ -426,7 +426,7 @@ export function RegisterForm() {
       {!sessionId && (
         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800 text-center">
-            ⚠️ Please complete the personality test first before registering
+            Please complete the personality test first before registering
           </p>
         </div>
       )}

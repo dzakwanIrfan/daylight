@@ -16,16 +16,16 @@ import { cn } from '@/lib/utils';
 
 // Mapping archetype to image paths
 const archetypeImages: Record<string, string> = {
-  BRIGHT_MORNING: '/images/archetypes/bright-morning.jpg',
-  CALM_DAWN: '/images/archetypes/calm-dawn.jpg',
-  BOLD_NOON: '/images/archetypes/bold-noon.jpg',
-  GOLDEN_HOUR: '/images/archetypes/golden-hour.jpg',
-  QUIET_DUSK: '/images/archetypes/quiet-dusk.jpg',
-  CLOUDY_DAY: '/images/archetypes/cloudy-day.jpg',
-  SERENE_DRIZZLE: '/images/archetypes/serene-drizzle.jpg',
-  BLAZING_NOON: '/images/archetypes/blazing-noon.jpg',
-  STARRY_NIGHT: '/images/archetypes/starry-night.jpg',
-  PERFECT_DAY: '/images/archetypes/perfect-day.jpg',
+  BRIGHT_MORNING: '/images/archetypes/bright-morning.png',
+  CALM_DAWN: '/images/archetypes/calm-dawn.png',
+  BOLD_NOON: '/images/archetypes/bold-noon.png',
+  GOLDEN_HOUR: '/images/archetypes/golden-hour.png',
+  QUIET_DUSK: '/images/archetypes/quiet-dusk.png',
+  CLOUDY_DAY: '/images/archetypes/cloudy-day.png',
+  SERENE_DRIZZLE: '/images/archetypes/serene-drizzle.png',
+  BLAZING_NOON: '/images/archetypes/blazing-noon.png',
+  STARRY_NIGHT: '/images/archetypes/starry-night.png',
+  PERFECT_DAY: '/images/archetypes/perfect-day.png',
 };
 
 // Personality dimensions with bipolar labels (like MBTI)
@@ -231,13 +231,12 @@ export function TestResult() {
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               className="flex justify-center"
             >
-              <div className="relative w-48 h-48 md:w-80 md:h-80 rounded-2xl overflow-hidden border-4 border-black shadow-brutal">
+              <div className="relative w-72 h-72 mx-auto">
                 <Image
                   src={archetypeImage}
                   alt={archetype.name}
                   fill
-                  className="object-cover"
-                  priority
+                  className="object-contain"
                 />
               </div>
             </motion.div>

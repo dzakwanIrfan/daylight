@@ -12,11 +12,24 @@ export default function AuthCallbackPage() {
   const searchParams = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [isProcessing, setIsProcessing] = useState(true);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     const processAuth = async () => {
       const success = searchParams.get('success');
       const tokenFromUrl = searchParams.get('token');
+      const raw = localStorage.getItem('personality-test-storage');
+
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          const id = parsed?.state?.sessionId;
+          setSessionId(id);
+          console.log('Retrieved sessionId from storage:', sessionId);
+        } catch (err) {
+          console.error("Failed to parse storage", err);
+        }
+      }
 
       if (success === 'true' && tokenFromUrl) {
         try {

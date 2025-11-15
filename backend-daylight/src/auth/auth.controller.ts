@@ -95,9 +95,8 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    
     if (sessionId) {
-      res.cookie('pendingSessionId', sessionId, {
+      res.cookie('sessionId', sessionId, {
         httpOnly: true,
         secure: this.configService.get('NODE_ENV') === 'production',
         sameSite: 'lax',
@@ -120,6 +119,7 @@ export class AuthController {
   ) {
     try {
       let result;
+      console.log('Google callback sessionId (query):', sessionId);
 
       if (sessionId) {
         result = await this.authService.registerWithGoogle(sessionId, req.user);
@@ -245,6 +245,6 @@ export class AuthController {
   private clearAuthCookies(res: Response) {
     res.clearCookie('accessToken', { path: '/' });
     res.clearCookie('refreshToken', { path: '/' });
-    res.clearCookie('pendingSessionId', { path: '/' });
+    res.clearCookie('sessionId', { path: '/' });
   }
 }

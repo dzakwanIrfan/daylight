@@ -36,23 +36,6 @@ export class EventsController {
   ) {}
 
   /**
-   * Upload event banner
-   */
-  @Post('upload/banner')
-  @UseInterceptors(FileInterceptor('banner'))
-  async uploadBanner(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    return this.uploadService.uploadFile(file, {
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
-      maxSize: 5 * 1024 * 1024, // 5MB
-      folder: 'events',
-    });
-  }
-
-  /**
    * Get dashboard statistics
    */
   @Get('dashboard/stats')

@@ -35,7 +35,6 @@ export function EditEventForm({ event }: EditEventFormProps) {
   const [requirementInput, setRequirementInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>(event.highlights || []);
   const [highlightInput, setHighlightInput] = useState('');
-  const [bannerImage, setBannerImage] = useState<string>(event.bannerImage || '');
 
   const {
     register,
@@ -59,7 +58,6 @@ export function EditEventForm({ event }: EditEventFormProps) {
       googleMapsUrl: event.googleMapsUrl,
       latitude: event.latitude,
       longitude: event.longitude,
-      bannerImage: event.bannerImage,
       price: event.price,
       currency: event.currency,
       maxParticipants: event.maxParticipants,
@@ -82,7 +80,6 @@ export function EditEventForm({ event }: EditEventFormProps) {
       id: event.id,
       data: {
         ...data,
-        bannerImage,
         tags,
         requirements,
         highlights,
@@ -380,26 +377,6 @@ export function EditEventForm({ event }: EditEventFormProps) {
             Current participants: <strong>{event.currentParticipants}</strong> / {event.maxParticipants}
           </p>
         </div>
-      </div>
-
-      {/* Media */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Banner Image</h3>
-
-        <ImageUpload
-          value={bannerImage}
-          onChange={(url) => {
-            setBannerImage(url);
-            setValue('bannerImage', url);
-          }}
-          onRemove={() => {
-            setBannerImage('');
-            setValue('bannerImage', '');
-          }}
-          disabled={updateEvent.isPending}
-          endpoint={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/events/upload/banner`}
-          maxSize={5}
-        />
       </div>
 
       {/* Tags */}

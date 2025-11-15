@@ -64,10 +64,6 @@ export class CreateEventDto {
   @IsNumber()
   longitude?: number;
 
-  @IsOptional()
-  @IsString()
-  bannerImage?: string;
-
   @IsNumber()
   @Min(0)
   price: number;

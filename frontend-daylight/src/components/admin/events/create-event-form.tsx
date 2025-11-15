@@ -30,7 +30,6 @@ export function CreateEventForm() {
   const [requirementInput, setRequirementInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>([]);
   const [highlightInput, setHighlightInput] = useState('');
-  const [bannerImage, setBannerImage] = useState<string>('');
 
   const {
     register,
@@ -60,7 +59,6 @@ export function CreateEventForm() {
   const onSubmit = (data: CreateEventInput) => {
     createEvent.mutate({
       ...data,
-      bannerImage,
       tags,
       requirements,
       highlights,
@@ -351,26 +349,6 @@ export function CreateEventForm() {
             )}
           </div>
         </div>
-      </div>
-
-      {/* Media */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Banner Image</h3>
-
-        <ImageUpload
-          value={bannerImage}
-          onChange={(url) => {
-            setBannerImage(url);
-            setValue('bannerImage', url);
-          }}
-          onRemove={() => {
-            setBannerImage('');
-            setValue('bannerImage', '');
-          }}
-          disabled={createEvent.isPending}
-          endpoint={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/events/upload/banner`}
-          maxSize={5}
-        />
       </div>
 
       {/* Tags */}

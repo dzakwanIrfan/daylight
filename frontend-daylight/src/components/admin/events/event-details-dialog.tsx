@@ -58,17 +58,6 @@ export function EventDetailsDialog({ event, open, onOpenChange }: EventDetailsDi
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Banner Image */}
-          {event.bannerImage && (
-            <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-              <img 
-                src={event.bannerImage} 
-                alt={event.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
           {/* Description */}
           <div>
             <h4 className="font-semibold text-sm text-gray-700 mb-2">Description</h4>

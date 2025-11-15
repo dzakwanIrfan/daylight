@@ -28,7 +28,6 @@ export interface Event {
   googleMapsUrl?: string;
   latitude?: number;
   longitude?: number;
-  bannerImage?: string;
   price: number;
   currency: string;
   maxParticipants: number;
@@ -59,7 +58,6 @@ export interface CreateEventInput {
   googleMapsUrl?: string;
   latitude?: number;
   longitude?: number;
-  bannerImage?: string;
   price: number;
   currency?: string;
   maxParticipants: number;

@@ -414,7 +414,6 @@ async function main() {
               googleMapsUrl: `https://maps.google.com/?q=${cityCoords.lat},${cityCoords.lng}`,
               latitude: cityCoords.lat,
               longitude: cityCoords.lng,
-              bannerImage: null, // Will be uploaded by admin
               price: template.price,
               currency: 'IDR',
               maxParticipants: template.maxParticipants,

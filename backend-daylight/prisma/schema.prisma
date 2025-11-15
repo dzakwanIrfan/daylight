@@ -202,9 +202,6 @@ model Event {
   latitude        Float?
   longitude       Float?
   
-  // Media
-  bannerImage     String?
-  
   // Pricing & Capacity
   price           Float
   currency        String        @default("IDR")

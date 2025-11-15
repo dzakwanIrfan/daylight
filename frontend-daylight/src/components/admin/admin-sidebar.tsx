@@ -4,6 +4,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { X, LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -59,9 +60,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         {/* Logo & Close Button */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-brand to-brand/80 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
+            <Image src="/daylight.png" alt="DayLight Logo" width={32} height={32} className="rounded-lg" />
             <div>
               <h1 className="font-headline text-lg font-bold text-gray-900">DayLight</h1>
               <p className="text-xs text-gray-500">Admin Panel</p>

@@ -13,8 +13,10 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth-store';
+import { ApiError, getUserFriendlyErrorMessage } from '@/lib/api-error';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -28,6 +30,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [showPassword, setShowPassword] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const {
     register,
@@ -41,7 +44,7 @@ export function LoginForm() {
     mutationFn: authService.login,
     onSuccess: (data) => {
       if (data.success && data.user && data.accessToken) {
-        // Update auth store
+        setApiError(null);
         setAuth(data.user, data.accessToken);
 
         toast.success('Welcome back!', {
@@ -58,16 +61,28 @@ export function LoginForm() {
       }
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Invalid credentials';
-      // ✅ FIXED: Show error with longer duration, no page refresh
-      toast.error('Login failed', {
-        description: Array.isArray(message) ? message.join(', ') : message,
-        duration: 6000, // Give user time to read the error
-      });
+      if (error instanceof ApiError) {
+        const friendlyMessage = getUserFriendlyErrorMessage(error);
+        setApiError(friendlyMessage);
+        
+        toast.error('Login failed', {
+          description: friendlyMessage,
+          duration: 6000,
+        });
+      } else {
+        const fallbackMessage = 'An unexpected error occurred. Please try again.';
+        setApiError(fallbackMessage);
+        
+        toast.error('Login failed', {
+          description: fallbackMessage,
+          duration: 6000,
+        });
+      }
     },
   });
 
   const onSubmit = (data: LoginFormData) => {
+    setApiError(null);
     loginMutation.mutate(data);
   };
 
@@ -82,6 +97,11 @@ export function LoginForm() {
         <h2 className="text-2xl font-semibold mb-2">Welcome Back</h2>
         <p className="text-muted-foreground">Sign in to continue your journey</p>
       </div>
+
+      <ErrorAlert 
+        error={apiError} 
+        onDismiss={() => setApiError(null)}
+      />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-2">

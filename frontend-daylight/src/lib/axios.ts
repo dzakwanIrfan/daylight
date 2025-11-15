@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/auth-store';
+import { parseApiError, ApiError } from './api-error';
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
@@ -52,7 +53,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    return Promise.reject(parseApiError(error));
   }
 );
 
@@ -63,6 +64,15 @@ apiClient.interceptors.response.use(
     const originalRequest: any = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't refresh on auth endpoints
+      const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
+                            originalRequest.url?.includes('/auth/register') ||
+                            originalRequest.url?.includes('/auth/refresh');
+      
+      if (isAuthEndpoint) {
+        return Promise.reject(parseApiError(error));
+      }
+
       if (isRefreshing) {
         // Queue requests while refreshing
         return new Promise((resolve, reject) => {
@@ -74,14 +84,14 @@ apiClient.interceptors.response.use(
             }
             return apiClient(originalRequest);
           })
-          .catch((err) => Promise.reject(err));
+          .catch((err) => Promise.reject(parseApiError(err)));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // ✅ IMPROVED: Try to refresh token
+        // Try to refresh token
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
@@ -114,14 +124,14 @@ apiClient.interceptors.response.use(
             window.location.href = '/auth/login?session=expired';
           }
         }
-        return Promise.reject(refreshError);
+        return Promise.reject(parseApiError(refreshError));
       } finally {
         isRefreshing = false;
       }
     }
 
-    // ✅ IMPROVED: For non-401 errors, just reject without refresh
-    return Promise.reject(error);
+    // ✅ IMPROVED: Always return parsed ApiError
+    return Promise.reject(parseApiError(error));
   }
 );
 

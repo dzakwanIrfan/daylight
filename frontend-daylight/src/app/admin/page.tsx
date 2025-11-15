@@ -58,7 +58,7 @@ export default function AdminDashboardPage() {
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Card key={stat.title} className="p-6 bg-white">
+              <Card key={stat.title} className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">
@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6 bg-white">
+          <Card className="p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Recent Users
             </h2>
@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className="p-6 bg-white">
+          <Card className="p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Upcoming Events
             </h2>

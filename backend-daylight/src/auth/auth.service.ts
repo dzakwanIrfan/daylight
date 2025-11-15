@@ -22,6 +22,21 @@ export interface TokenPayload {
   type: 'access' | 'refresh';
 }
 
+export const AuthErrorMessages = {
+  INVALID_CREDENTIALS: 'Invalid email or password',
+  EMAIL_NOT_VERIFIED: 'Please verify your email address before logging in',
+  ACCOUNT_DEACTIVATED: 'Your account has been deactivated',
+  EMAIL_ALREADY_EXISTS: 'Email already registered',
+  INVALID_TOKEN: 'Invalid or expired token',
+  TOKEN_NOT_FOUND: 'Token not found',
+  USER_NOT_FOUND: 'User not found',
+  INVALID_REFRESH_TOKEN: 'Invalid or expired refresh token',
+  EMAIL_ALREADY_VERIFIED: 'Email is already verified',
+  PROVIDER_MISMATCH: 'This account uses a different login method',
+  PERSONALITY_TEST_REQUIRED: 'Please complete the personality test first',
+  SESSION_EXPIRED: 'Session expired. Please login again',
+} as const;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -44,12 +59,12 @@ export class AuthService {
     try {
       const existingUser = await this.usersService.findByEmail(email);
       if (existingUser) {
-        throw new ConflictException('Email already registered');
+        throw new ConflictException(AuthErrorMessages.EMAIL_ALREADY_EXISTS);
       }
 
       const personalityResult = await this.personalityService.getResultBySession(sessionId);
       if (!personalityResult) {
-        throw new BadRequestException('Please complete the personality test first');
+        throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
       }
 
       const user = await this.usersService.createUser({
@@ -103,7 +118,7 @@ export class AuthService {
     const user = await this.usersService.findByVerificationToken(tokenHash);
 
     if (!user) {
-      throw new BadRequestException('Invalid or expired verification token');
+      throw new BadRequestException(AuthErrorMessages.INVALID_TOKEN);
     }
 
     await this.usersService.verifyEmail(user.id);
@@ -146,11 +161,11 @@ export class AuthService {
     }
 
     if (user.isEmailVerified) {
-      throw new BadRequestException('Email is already verified');
+      throw new BadRequestException(AuthErrorMessages.EMAIL_ALREADY_VERIFIED);
     }
 
     if (user.provider !== AuthProvider.LOCAL) {
-      throw new BadRequestException(`This account uses ${user.provider} login`);
+      throw new BadRequestException(`${AuthErrorMessages.PROVIDER_MISMATCH}: ${user.provider}`);
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -176,24 +191,24 @@ export class AuthService {
 
     const user = await this.usersService.findByEmail(email);
 
+    // ✅ FIXED: Consistent error message
     if (!user || !user.password) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(AuthErrorMessages.INVALID_CREDENTIALS);
     }
 
     const isPasswordValid = await this.usersService.validatePassword(password, user.password);
 
+    // ✅ FIXED: Consistent error message
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(AuthErrorMessages.INVALID_CREDENTIALS);
     }
 
     if (!user.isEmailVerified) {
-      throw new UnauthorizedException(
-        'Please verify your email address before logging in. Check your inbox for the verification link.',
-      );
+      throw new UnauthorizedException(AuthErrorMessages.EMAIL_NOT_VERIFIED);
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Your account has been deactivated');
+      throw new UnauthorizedException(AuthErrorMessages.ACCOUNT_DEACTIVATED);
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
@@ -224,7 +239,7 @@ export class AuthService {
         );
       }
 
-      throw new BadRequestException('Please complete personality test before registration');
+      throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
@@ -245,7 +260,7 @@ export class AuthService {
     const personalityResult = await this.personalityService.getResultBySession(sessionId);
 
     if (!personalityResult) {
-      throw new BadRequestException('Please complete the personality test first');
+      throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
     }
 
     const user = await this.usersService.createUser({
@@ -292,7 +307,7 @@ export class AuthService {
 
     if (user.provider !== AuthProvider.LOCAL) {
       throw new BadRequestException(
-        `This account uses ${user.provider} login. Please login with ${user.provider}.`,
+        `${AuthErrorMessages.PROVIDER_MISMATCH}: Please login with ${user.provider}.`,
       );
     }
 
@@ -319,7 +334,7 @@ export class AuthService {
     const user = await this.usersService.findByResetToken(tokenHash);
 
     if (!user) {
-      throw new BadRequestException('Invalid or expired reset token');
+      throw new BadRequestException(AuthErrorMessages.INVALID_TOKEN);
     }
 
     await this.usersService.updatePassword(user.id, newPassword);
@@ -335,7 +350,7 @@ export class AuthService {
     const user = await this.usersService.findById(userId);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException(AuthErrorMessages.USER_NOT_FOUND);
     }
 
     const tokenHash = this.hashToken(refreshToken);
@@ -346,11 +361,11 @@ export class AuthService {
     });
 
     if (!storedToken || storedToken.isRevoked) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(AuthErrorMessages.INVALID_REFRESH_TOKEN);
     }
 
     if (storedToken.expiresAt < new Date()) {
-      throw new UnauthorizedException('Refresh token expired');
+      throw new UnauthorizedException(AuthErrorMessages.INVALID_REFRESH_TOKEN);
     }
 
     // Revoke old refresh token

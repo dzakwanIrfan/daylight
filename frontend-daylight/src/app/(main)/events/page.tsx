@@ -3,7 +3,7 @@
 import { DashboardLayout } from '@/components/main/dashboard-layout';
 import { useAuthStore } from '@/store/auth-store';
 import { useEffect, useState } from 'react';
-import { Calendar, Loader2, Sparkles, Users, TrendingUp, Heart } from 'lucide-react';
+import { Calendar, Loader2, Sparkles, Users, Heart, UtensilsCrossedIcon, BusIcon, HeartHandshakeIcon, CloudyIcon } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuthStore();
@@ -25,7 +25,7 @@ export default function HomePage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Welcome Header */}
-        <div className="space-y-2">
+        <div className="bg-linear-to-br from-brand/5 via-white to-brand/10 rounded-lg border border-brand/20 p-6 space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold">
             Welcome back, {user?.firstName}! 👋
           </h1>
@@ -36,11 +36,11 @@ export default function HomePage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Upcoming Events */}
+          {/* Events */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-brand/30 transition-colors">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-muted-foreground">
-                Upcoming Events
+                Events Attended
               </h3>
               <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-brand" />
@@ -49,7 +49,7 @@ export default function HomePage() {
             <div className="space-y-1">
               <div className="text-3xl font-bold">0</div>
               <p className="text-xs text-muted-foreground">
-                No events scheduled yet
+                No events attended yet
               </p>
             </div>
           </div>
@@ -95,61 +95,61 @@ export default function HomePage() {
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold mb-4">Let's Get Started</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
               <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                <Calendar className="w-5 h-5 text-brand" />
+                <UtensilsCrossedIcon className="w-5 h-5 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium">Find Events</h4>
+                <h4 className="font-medium">DayBreak</h4>
                 <p className="text-sm text-muted-foreground">
-                  Discover gatherings near you
+                  Start fresh. Meet new people.
                 </p>
               </div>
             </button>
 
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
               <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5 text-brand" />
+                <BusIcon className="w-5 h-5 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium">Meet People</h4>
+                <h4 className="font-medium">DayTrip</h4>
                 <p className="text-sm text-muted-foreground">
-                  Connect with your community
+                  Go out. Connect through adventure.
                 </p>
               </div>
             </button>
 
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
               <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-brand" />
+                <HeartHandshakeIcon className="w-5 h-5 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium">View Personality</h4>
+                <h4 className="font-medium">DayCare</h4>
                 <p className="text-sm text-muted-foreground">
-                  See your archetype details
+                  A safe space to support each other.
                 </p>
               </div>
             </button>
 
             <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-brand/30 hover:bg-brand/5 transition-colors text-left">
               <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-5 h-5 text-brand" />
+                <CloudyIcon className="w-5 h-5 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium">Explore Activities</h4>
+                <h4 className="font-medium">DayDream</h4>
                 <p className="text-sm text-muted-foreground">
-                  Browse popular activities
+                  Share ideas. Inspire together.
                 </p>
               </div>
             </button>
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {/* Events Next Week */}
         <div className="bg-linear-to-br from-brand/5 via-white to-brand/10 rounded-lg border border-brand/20 p-6">
-          <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+          <h2 className="text-lg font-semibold mb-4">Events Next Week</h2>
           <div className="text-center py-12">
             <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
               <Heart className="w-8 h-8 text-brand" />

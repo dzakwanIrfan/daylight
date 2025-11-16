@@ -92,7 +92,7 @@ export function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+        <div className="absolute right-0 mt-2 w-60 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
           <div className="px-4 py-3 border-b border-gray-100 sm:hidden">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-brand/20 to-brand/5 flex items-center justify-center border border-brand/20">
@@ -101,7 +101,9 @@ export function UserMenu() {
                     key={user.profilePicture}
                     src={user.profilePicture}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-full"
+                    crossOrigin='anonymous'
+                    referrerPolicy='no-referrer'
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                       const initialsElement = e.currentTarget.nextElementSibling as HTMLElement;

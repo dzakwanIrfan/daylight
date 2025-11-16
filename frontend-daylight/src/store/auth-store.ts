@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+interface SubscriptionInfo {
+  id: string;
+  planId: string;
+  planName: string;
+  planType: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+}
+
 interface User {
   id: string;
   email: string;
@@ -12,6 +22,8 @@ interface User {
   isEmailVerified?: boolean;
   personalityType?: string;
   role?: 'USER' | 'ADMIN';
+  hasActiveSubscription?: boolean;
+  subscription?: SubscriptionInfo | null;
 }
 
 interface AuthState {

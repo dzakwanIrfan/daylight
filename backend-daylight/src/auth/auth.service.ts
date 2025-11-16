@@ -13,7 +13,7 @@ import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthProvider, UserRole } from '@prisma/client';
+import { AuthProvider, UserRole, SubscriptionStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
 export interface TokenPayload {
@@ -51,6 +51,51 @@ export class AuthService {
 
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  /**
+   * Get user subscription status
+   */
+  private async getUserSubscriptionStatus(userId: string) {
+    const now = new Date();
+    
+    const activeSubscription = await this.prisma.userSubscription.findFirst({
+      where: {
+        userId,
+        status: SubscriptionStatus.ACTIVE,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      include: {
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            durationInMonths: true,
+          },
+        },
+      },
+      orderBy: {
+        endDate: 'desc',
+      },
+    });
+
+    return activeSubscription ? {
+      hasActiveSubscription: true,
+      subscription: {
+        id: activeSubscription.id,
+        planId: activeSubscription.planId,
+        planName: activeSubscription.plan.name,
+        planType: activeSubscription.plan.type,
+        status: activeSubscription.status,
+        startDate: activeSubscription.startDate,
+        endDate: activeSubscription.endDate,
+      },
+    } : {
+      hasActiveSubscription: false,
+      subscription: null,
+    };
   }
 
   async register(registerDto: RegisterDto) {
@@ -137,6 +182,9 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
+    // Get subscription status
+    const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
+
     return {
       success: true,
       message: 'Email verified successfully!',
@@ -146,6 +194,8 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         isEmailVerified: true,
+        role: user.role,
+        ...subscriptionStatus,
       },
       ...tokens,
     };
@@ -212,6 +262,9 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
+    // Get subscription status
+    const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
+
     return {
       success: true,
       user: {
@@ -221,6 +274,7 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: user.isEmailVerified,
         role: user.role,
+        ...subscriptionStatus,
       },
       ...tokens,
     };
@@ -260,6 +314,9 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
+    // Get subscription status
+    const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
+
     return {
       success: true,
       user: {
@@ -269,6 +326,7 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: user.isEmailVerified,
         role: user.role,
+        ...subscriptionStatus,
       },
       ...tokens,
     };
@@ -318,6 +376,9 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
 
+    // Get subscription status (new user, so no subscription yet)
+    const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
+
     return {
       success: true,
       user: {
@@ -327,6 +388,7 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: true,
         role: UserRole.USER,
+        ...subscriptionStatus,
       },
       ...tokens,
     };

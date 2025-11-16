@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { AuthProvider, UserRole } from '@prisma/client';
+import { AuthProvider, UserRole, SubscriptionStatus } from '@prisma/client';
 import { UpdateProfileDto, ChangePasswordDto } from './dto/update-profile.dto';
 
 interface CreateUserData {
@@ -143,7 +143,43 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    // Get active subscription
+    const now = new Date();
+    const activeSubscription = await this.prisma.userSubscription.findFirst({
+      where: {
+        userId,
+        status: SubscriptionStatus.ACTIVE,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      include: {
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            durationInMonths: true,
+          },
+        },
+      },
+      orderBy: {
+        endDate: 'desc',
+      },
+    });
+
+    return {
+      ...user,
+      hasActiveSubscription: !!activeSubscription,
+      subscription: activeSubscription ? {
+        id: activeSubscription.id,
+        planId: activeSubscription.planId,
+        planName: activeSubscription.plan.name,
+        planType: activeSubscription.plan.type,
+        status: activeSubscription.status,
+        startDate: activeSubscription.startDate,
+        endDate: activeSubscription.endDate,
+      } : null,
+    };
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
@@ -171,12 +207,49 @@ export class UsersService {
         provider: true,
         isEmailVerified: true,
         createdAt: true,
+        role: true,
+      },
+    });
+
+    // Get subscription info
+    const now = new Date();
+    const activeSubscription = await this.prisma.userSubscription.findFirst({
+      where: {
+        userId,
+        status: SubscriptionStatus.ACTIVE,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      include: {
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            durationInMonths: true,
+          },
+        },
+      },
+      orderBy: {
+        endDate: 'desc',
       },
     });
 
     return {
       message: 'Profile updated successfully',
-      user: updatedUser,
+      user: {
+        ...updatedUser,
+        hasActiveSubscription: !!activeSubscription,
+        subscription: activeSubscription ? {
+          id: activeSubscription.id,
+          planId: activeSubscription.planId,
+          planName: activeSubscription.plan.name,
+          planType: activeSubscription.plan.type,
+          status: activeSubscription.status,
+          startDate: activeSubscription.startDate,
+          endDate: activeSubscription.endDate,
+        } : null,
+      },
     };
   }
 

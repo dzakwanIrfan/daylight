@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/main/dashboard-layout';
 import { usePublicEvent, useEventPurchaseStatus } from '@/hooks/use-public-events';
 import { useAuth } from '@/hooks/use-auth';
@@ -22,6 +23,7 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { PaymentStatus } from '@/types/event.types';
 import { toast } from 'sonner';
+import { SubscriptionUpsellModal } from '@/components/subscriptions/subscription-upsell-modal';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -34,6 +36,9 @@ export default function EventDetailPage() {
     data: purchaseStatus, 
     isLoading: isPurchaseStatusLoading 
   } = useEventPurchaseStatus(slug);
+
+  // State for Subscription Upsell Modal
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -138,13 +143,29 @@ export default function EventDetailPage() {
       return;
     }
 
-    // Proceed to payment
+    // SHOW UPSELL MODAL FOR NON-SUBSCRIBERS
+    if (!subscriptionAccess && event.price > 0) {
+      setShowUpsellModal(true);
+      return;
+    }
+
+    // For free events, proceed directly
     router.push(`/events/${event.slug}/payment`);
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-3xl mx-auto py-4 px-4 sm:px-6">
+        {/* Subscription Upsell Modal */}
+        <SubscriptionUpsellModal
+          isOpen={showUpsellModal}
+          onClose={() => setShowUpsellModal(false)}
+          eventPrice={event.price}
+          eventTitle={event.title}
+          eventSlug={event.slug}
+          currency={event.currency}
+        />
+
         {/* Back Button */}
         <button
           onClick={() => router.back()}

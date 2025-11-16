@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
@@ -14,6 +14,11 @@ const nextConfig = {
         pathname: '/**',
       },
       {
+        protocol: 'https', // ⚠️ Production domain
+        hostname: 'api.daylightapp.asia',
+        pathname: '/**',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
         pathname: '/**',
@@ -21,6 +26,7 @@ const nextConfig = {
     ],
   },
   reactStrictMode: true,
+  output: 'standalone', 
 };
 
 export default nextConfig;

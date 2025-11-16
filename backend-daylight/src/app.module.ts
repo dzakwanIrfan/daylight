@@ -14,6 +14,7 @@ import { EventsModule } from './events/events.module';
 import { PaymentModule } from './payment/payment.module';
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { UserEventsModule } from './user-events/user-events.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { UserEventsModule } from './user-events/user-events.module';
     PaymentMethodsModule,
     PaymentModule,
     UserEventsModule,
+    TransactionsModule,
   ],
   providers: [
     {

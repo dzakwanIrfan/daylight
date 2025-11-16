@@ -27,6 +27,11 @@ const menuItems = [
     href: '/admin/events',
     icon: Calendar,
   },
+  { 
+    title: 'Transactions', 
+    href: '/admin/transactions', 
+    icon: FileText 
+  },
 ];
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {

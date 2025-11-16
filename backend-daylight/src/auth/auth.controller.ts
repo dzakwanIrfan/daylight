@@ -9,7 +9,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  Session,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -88,59 +87,93 @@ export class AuthController {
     return result;
   }
 
+  /**
+   * Initiate Google OAuth dengan state parameter
+   */
   @Public()
   @Get('google')
   async googleAuth(
     @Query('sessionId') sessionId: string,
-    @Req() req: Request,
     @Res() res: Response,
   ) {
+    let state = '';
+    
     if (sessionId) {
-      res.cookie('sessionId', sessionId, {
-        httpOnly: true,
-        secure: this.configService.get('NODE_ENV') === 'production',
-        sameSite: 'lax',
-        maxAge: 10 * 60 * 1000,
-        path: '/',
-      });
+      const stateData = { sessionId };
+      state = Buffer.from(JSON.stringify(stateData)).toString('base64');
     }
 
-    const googleAuthUrl = this.buildGoogleAuthUrl();
+    const googleAuthUrl = this.buildGoogleAuthUrl(state);
     res.redirect(googleAuthUrl);
   }
 
+  /**
+   * Google callback - Set cookie via Set-Cookie header then redirect dengan token di URL
+   */
   @Public()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(
-    @Req() req,
+    @Req() req: any,
     @Res() res: Response,
-    @Query('sessionId') sessionId?: string,
   ) {
     try {
+      const googleUser = req.user;
       let result;
-      console.log('Google callback sessionId (query):', sessionId);
 
-      if (sessionId) {
-        result = await this.authService.registerWithGoogle(sessionId, req.user);
+      if (googleUser.sessionId) {
+        result = await this.authService.registerWithGoogle(
+          googleUser.sessionId,
+          googleUser,
+        );
       } else {
-        result = await this.authService.googleLogin(req.user);
+        result = await this.authService.googleLogin(googleUser);
       }
 
-      // STILL set cookies (for direct API calls)
-      this.setAuthCookies(res, result.accessToken, result.refreshToken);
-
       const frontendUrl = this.configService.get('FRONTEND_URL');
+      const isProduction = this.configService.get('NODE_ENV') === 'production';
       
-      // PASS TOKENS VIA URL (Temporary, will be moved to httpOnly cookies after)
+      // Pass tokens via URL for intermediate page to process
+      // Intermediate page will call /auth/session-login to set httpOnly cookies properly
       const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
       redirectUrl.searchParams.set('success', 'true');
       redirectUrl.searchParams.set('token', result.accessToken);
+      redirectUrl.searchParams.set('refresh', result.refreshToken);
 
       res.redirect(redirectUrl.toString());
     } catch (error) {
       const frontendUrl = this.configService.get('FRONTEND_URL');
-      res.redirect(`${frontendUrl}/auth/error?message=${error.message}`);
+      const errorMessage = encodeURIComponent(error.message || 'Authentication failed');
+      res.redirect(`${frontendUrl}/auth/error?message=${errorMessage}`);
+    }
+  }
+
+  /**
+   * Session login endpoint - untuk set cookies dari frontend
+   * Frontend akan call endpoint ini dengan tokens dari URL
+   */
+  @Public()
+  @Post('session-login')
+  @HttpCode(HttpStatus.OK)
+  async sessionLogin(
+    @Body() body: { accessToken: string; refreshToken: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      // Validate tokens
+      if (!body.accessToken || !body.refreshToken) {
+        throw new Error('Tokens are required');
+      }
+
+      // Set httpOnly cookies
+      this.setAuthCookies(res, body.accessToken, body.refreshToken);
+
+      return {
+        success: true,
+        message: 'Session established successfully',
+      };
+    } catch (error) {
+      throw new Error('Failed to establish session');
     }
   }
 
@@ -186,20 +219,29 @@ export class AuthController {
     return { success: true, message: 'Logged out from all devices' };
   }
 
-  // Helper: Build Google OAuth URL
-  private buildGoogleAuthUrl(): string {
+  /**
+   * Build Google OAuth URL dengan state parameter
+   */
+  private buildGoogleAuthUrl(state?: string): string {
     const clientId = this.configService.get('GOOGLE_CLIENT_ID');
     const callbackUrl = this.configService.get('GOOGLE_CALLBACK_URL');
     const scope = 'email profile';
 
-    return `https://accounts.google.com/o/oauth2/v2/auth?` +
+    let url = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
       `response_type=code&` +
-      `scope=${encodeURIComponent(scope)}`;
+      `scope=${encodeURIComponent(scope)}&` +
+      `access_type=offline&` +
+      `prompt=consent`;
+
+    if (state) {
+      url += `&state=${encodeURIComponent(state)}`;
+    }
+
+    return url;
   }
 
-  // Helper to convert JWT expiry to milliseconds
   private getExpiryInMs(expiryString: string): number {
     const unit = expiryString.slice(-1);
     const value = parseInt(expiryString.slice(0, -1));
@@ -222,11 +264,10 @@ export class AuthController {
     const accessMaxAge = this.getExpiryInMs(accessTokenExpiry);
     const refreshMaxAge = this.getExpiryInMs(refreshTokenExpiry);
 
-    // CRITICAL: Cookie options for cross-origin
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction, // false in development
-      sameSite: 'lax' as const, // CRITICAL: 'lax' works for OAuth redirects
+      secure: isProduction,
+      sameSite: 'lax' as const,
       path: '/',
       domain: isProduction ? this.configService.get('COOKIE_DOMAIN') : undefined,
     };

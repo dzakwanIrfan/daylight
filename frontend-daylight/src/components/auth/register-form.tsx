@@ -164,8 +164,10 @@ export function RegisterForm() {
     });
   };
 
+  /**
+   * Pass sessionId to authService.googleLogin
+   */
   const handleGoogleRegister = () => {
-    
     if (!sessionId) {
       toast.error('Please complete the personality test first', {
         description: 'You need to take the personality test before registering.',
@@ -426,7 +428,7 @@ export function RegisterForm() {
       {!sessionId && (
         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800 text-center">
-            Please complete the personality test first before registering
+            ⚠️ Please complete the personality test first before registering
           </p>
         </div>
       )}

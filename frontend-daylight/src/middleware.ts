@@ -7,9 +7,9 @@ const publicRoutes = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/verify-email',
-  '/personality-test',
   '/auth/callback',
   '/auth/error',
+  '/personality-test',
 ];
 
 const authRoutes = ['/auth/login', '/auth/register'];
@@ -33,6 +33,10 @@ export function middleware(request: NextRequest) {
 
   const isAuthRoute = authRoutes.includes(pathname);
 
+  if (pathname === '/auth/callback') {
+    return NextResponse.next();
+  }
+
   // Get tokens from cookies
   const accessToken = request.cookies.get('accessToken')?.value;
   const refreshToken = request.cookies.get('refreshToken')?.value;
@@ -47,9 +51,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If authenticated and trying to access auth pages
+  // If authenticated and trying to access auth pages (except callback)
   if (hasAuth && isAuthRoute) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/events', request.url));
   }
 
   return NextResponse.next();

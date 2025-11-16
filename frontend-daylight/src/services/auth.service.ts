@@ -1,6 +1,11 @@
-// frontend-daylight/src/services/auth.service.ts
 import apiClient from '@/lib/axios';
-import { ForgotPasswordDto, LoginDto, RegisterDto, ResendVerificationDto, ResetPasswordDto } from '@/types/auth.types';
+import { 
+  ForgotPasswordDto, 
+  LoginDto, 
+  RegisterDto, 
+  ResendVerificationDto, 
+  ResetPasswordDto 
+} from '@/types/auth.types';
 
 export const authService = {
   login: async (data: LoginDto) => {
@@ -43,9 +48,19 @@ export const authService = {
     return response.data;
   },
 
+  /**
+   * Backend akan encode ke state parameter OAuth
+   */
   googleLogin: (sessionId?: string) => {
     const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
-    const url = sessionId ? `${baseUrl}?sessionId=${sessionId}` : baseUrl;
-    window.location.href = url;
+    
+    if (sessionId) {
+      // Registration flow - kirim sessionId
+      const url = `${baseUrl}?sessionId=${encodeURIComponent(sessionId)}`;
+      window.location.href = url;
+    } else {
+      // Login flow - no sessionId
+      window.location.href = baseUrl;
+    }
   },
 };

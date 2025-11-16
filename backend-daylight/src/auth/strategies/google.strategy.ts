@@ -24,12 +24,30 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ): Promise<any> {
     const { id, name, emails, photos } = profile;
 
+    // Extract sessionId dari state parameter
+    let sessionId: string | undefined;
+    
+    try {
+      // Google akan return state di query.state
+      const stateParam = request.query?.state;
+      
+      if (stateParam) {
+        // Decode state (format: base64 encoded JSON)
+        const decoded = Buffer.from(stateParam, 'base64').toString('utf-8');
+        const stateData = JSON.parse(decoded);
+        sessionId = stateData.sessionId;
+      }
+    } catch (error) {
+      console.error('Error parsing state parameter:', error);
+    }
+
     const user = {
       id,
       email: emails[0].value,
       firstName: name.givenName,
       lastName: name.familyName,
       picture: photos[0].value,
+      sessionId,
     };
 
     done(null, user);

@@ -283,9 +283,15 @@ export class AuthService {
     }
 
     // Check if user already exists
-    const existingUser = await this.usersService.findByEmail(profile.email);
-    if (existingUser) {
+    const existingUserByEmail = await this.usersService.findByEmail(profile.email);
+    if (existingUserByEmail) {
       throw new ConflictException(AuthErrorMessages.EMAIL_ALREADY_EXISTS);
+    }
+
+    // Check if Google ID already linked
+    const existingUserByGoogleId = await this.usersService.findByGoogleId(profile.id);
+    if (existingUserByGoogleId) {
+      throw new ConflictException('This Google account is already registered');
     }
 
     // Create new user with Google provider

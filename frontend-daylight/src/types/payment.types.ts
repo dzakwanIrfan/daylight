@@ -11,6 +11,11 @@ export enum PaymentChannelType {
   REDIRECT = 'REDIRECT',
 }
 
+export enum TransactionType {
+  EVENT = 'EVENT',
+  SUBSCRIPTION = 'SUBSCRIPTION',
+}
+
 export interface PaymentMethod {
   id: string;
   code: string;
@@ -60,13 +65,14 @@ export interface FeeCalculation {
 export interface Transaction {
   id: string;
   userId: string;
-  eventId: string;
+  eventId: string | null;
   tripayReference: string;
   merchantRef: string;
   paymentMethodCode: string | null;
   paymentMethod: string;
   paymentName: string;
   paymentStatus: PaymentStatus;
+  transactionType: TransactionType;
   amount: number;
   feeMerchant: number;
   feeCustomer: number;

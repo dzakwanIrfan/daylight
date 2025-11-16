@@ -24,6 +24,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:events": "ts-node prisma/seed-events.ts",
     "prisma:paymentMethods": "ts-node prisma/seed-paymentMethods.ts",
+    "prisma:subscriptions": "ts-node prisma/seed-subscriptions.ts",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

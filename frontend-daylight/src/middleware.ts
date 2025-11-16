@@ -10,6 +10,7 @@ const publicRoutes = [
   '/auth/callback',
   '/auth/error',
   '/personality-test',
+  '/subscriptions',
 ];
 
 const authRoutes = ['/auth/login', '/auth/register'];

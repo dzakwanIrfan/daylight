@@ -94,7 +94,7 @@ export function UserMenu() {
           
           {/* Subscription Crown Badge */}
           {hasActiveSubscription && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-liniear-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center border border-white shadow-sm">
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-linear-to-br from-yellow-400 to-brand rounded-full flex items-center justify-center border border-white shadow-sm">
               <Crown className="w-2.5 h-2.5 text-white" />
             </div>
           )}
@@ -150,7 +150,7 @@ export function UserMenu() {
                 </div>
                 
                 {hasActiveSubscription && (
-                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-liniear-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center border border-white shadow-sm">
+                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-linear-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center border border-white shadow-sm">
                     <Crown className="w-2.5 h-2.5 text-white" />
                   </div>
                 )}

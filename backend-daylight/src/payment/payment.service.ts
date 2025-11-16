@@ -78,19 +78,8 @@ export class PaymentService {
    */
   async getPaymentChannels() {
     try {
-      const response = await axios.get(
-        `${this.tripayBaseUrl}/merchant/payment-channel`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.tripayApiKey}`,
-          },
-        },
-      );
-
-      return {
-        success: true,
-        data: response.data.data,
-      };
+      // Use payment methods service instead of direct Tripay call
+      return this.paymentMethodsService.getActivePaymentMethods();
     } catch (error) {
       throw new InternalServerErrorException(
         'Failed to fetch payment channels',

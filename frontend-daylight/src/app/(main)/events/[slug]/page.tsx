@@ -262,6 +262,7 @@ export default function EventDetailPage() {
         <div className="sticky bottom-16 sm:bottom-6 bg-white rounded-xl border border-gray-200 p-4 shadow-lg">
           <button
             disabled={isFull}
+            onClick={() => router.push(`/events/${event.slug}/payment`)}
             className={`w-full px-6 py-3.5 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all ${
               isFull
                 ? 'bg-gray-300 text-gray-600 cursor-not-allowed'

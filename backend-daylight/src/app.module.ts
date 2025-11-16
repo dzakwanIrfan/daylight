@@ -13,6 +13,7 @@ import { AdminModule } from './admin/admin.module';
 import { EventsModule } from './events/events.module';
 import { PaymentModule } from './payment/payment.module';
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
+import { UserEventsModule } from './user-events/user-events.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
     EventsModule,
     PaymentMethodsModule,
     PaymentModule,
+    UserEventsModule,
   ],
   providers: [
     {

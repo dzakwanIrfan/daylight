@@ -42,7 +42,8 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const token = this.extractTokenFromHandshake(client);
       
       if (!token) {
-        this.logger.warn(`Connection rejected: No token provided`);
+        this.logger.warn(`Connection rejected: No token provided - ${client.id}`);
+        client.emit('error', { message: 'Authentication required' });
         client.disconnect();
         return;
       }
@@ -50,7 +51,8 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const payload = await this.verifyToken(token);
       
       if (!payload || !payload.sub) {
-        this.logger.warn(`Connection rejected: Invalid token`);
+        this.logger.warn(`Connection rejected: Invalid token - ${client.id}`);
+        client.emit('error', { message: 'Invalid token' });
         client.disconnect();
         return;
       }
@@ -70,7 +72,7 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
       // Join user's personal room
       client.join(`user:${userId}`);
 
-      this.logger.log(`Client connected: ${client.id} (User: ${userId})`);
+      this.logger.log(`✅ Client connected: ${client.id} (User: ${userId})`);
       
       // Send connection success
       client.emit('connected', {
@@ -80,7 +82,8 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
       });
 
     } catch (error) {
-      this.logger.error(`Connection error: ${error.message}`);
+      this.logger.error(`❌ Connection error: ${error.message}`);
+      client.emit('error', { message: 'Connection failed' });
       client.disconnect();
     }
   }
@@ -100,9 +103,9 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
         }
       }
       this.socketUsers.delete(client.id);
-      this.logger.log(`Client disconnected: ${client.id} (User: ${userId})`);
+      this.logger.log(`❌ Client disconnected: ${client.id} (User: ${userId})`);
     } else {
-      this.logger.log(`Client disconnected: ${client.id}`);
+      this.logger.log(`❌ Client disconnected: ${client.id} (Unknown user)`);
     }
   }
 
@@ -138,7 +141,7 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
       // Join transaction room
       client.join(`transaction:${transactionId}`);
 
-      this.logger.log(`User ${userId} subscribed to transaction ${transactionId}`);
+      this.logger.log(`📡 User ${userId} subscribed to transaction ${transactionId}`);
 
       return {
         success: true,
@@ -150,7 +153,7 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
         },
       };
     } catch (error) {
-      this.logger.error(`Subscribe error: ${error.message}`);
+      this.logger.error(`❌ Subscribe error: ${error.message}`);
       return { success: false, message: 'Failed to subscribe' };
     }
   }

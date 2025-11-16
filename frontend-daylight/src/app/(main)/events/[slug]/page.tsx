@@ -15,6 +15,8 @@ import {
   Check,
   AlertCircle,
   CheckCircle2,
+  Crown,
+  Gift,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -74,26 +76,36 @@ export default function EventDetailPage() {
   const isFull = spotsLeft <= 0;
   const isAlmostFull = spotsLeft <= 5 && spotsLeft > 0;
 
+  // Purchase Status
   const hasPurchased = purchaseStatus?.hasPurchased ?? false;
   const canPurchase = purchaseStatus?.canPurchase ?? true;
   const purchaseStatusValue = purchaseStatus?.status;
+  const hasSubscription = purchaseStatus?.hasSubscription ?? false;
+  const subscriptionAccess = purchaseStatus?.subscriptionAccess ?? false;
 
   // Determine button state
-  const isButtonDisabled = isFull || (hasPurchased && !canPurchase);
+  const isButtonDisabled = 
+    isFull || 
+    (hasPurchased && !canPurchase && !subscriptionAccess);
 
   const getButtonText = () => {
     if (isFull) return 'Event Full';
     if (isPurchaseStatusLoading) return 'Checking...';
     
+    // If has subscription access
+    if (subscriptionAccess) {
+      return 'Register for Free';
+    }
+    
     if (hasPurchased) {
       if (purchaseStatusValue === PaymentStatus.PAID) {
-        return 'Already Purchased';
+        return 'Already Registered';
       }
       if (purchaseStatusValue === PaymentStatus.PENDING) {
         return 'Payment Pending';
       }
       if (canPurchase) {
-        return 'Try Again'; // For FAILED, EXPIRED, REFUNDED
+        return 'Try Again';
       }
     }
     
@@ -108,7 +120,13 @@ export default function EventDetailPage() {
       return;
     }
 
-    // If already purchased and can't purchase again, show message
+    // If has subscription access - REGISTER FREE
+    if (subscriptionAccess) {
+      router.push(`/events/${event.slug}/register-free`);
+      return;
+    }
+
+    // If already purchased and can't purchase again
     if (hasPurchased && !canPurchase) {
       if (purchaseStatusValue === PaymentStatus.PAID) {
         toast.info('You have already joined this event');
@@ -126,7 +144,7 @@ export default function EventDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="space-y-6 max-w-3xl mx-auto py-4 px-4 sm:px-6">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
@@ -136,19 +154,45 @@ export default function EventDetailPage() {
           <span className="text-sm font-medium">Back</span>
         </button>
 
-        {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+        {/* Subscription Access Alert - SUBTLE */}
+        {subscriptionAccess && (
+          <div className="bg-white border border-orange-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                <Crown className="w-5 h-5 text-brand" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="font-semibold text-gray-900 text-sm">
+                    Premium Access
+                  </p>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded text-xs font-medium">
+                    <Gift className="w-3 h-3" />
+                    FREE
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  You have unlimited access to this event through your active subscription
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Direct Purchase Status Alerts */}
+        {!subscriptionAccess && hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-semibold text-green-900 mb-1">
+                <p className="font-semibold text-green-900 mb-1 text-sm">
                   You're registered for this event!
                 </p>
                 <p className="text-sm text-green-700">
                   Check your ticket in{' '}
                   <button
                     onClick={() => router.push('/my-events')}
-                    className="underline hover:text-green-900"
+                    className="underline hover:text-green-900 font-medium"
                   >
                     My Events
                   </button>
@@ -158,19 +202,19 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {hasPurchased && purchaseStatusValue === PaymentStatus.PENDING && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+        {!subscriptionAccess && hasPurchased && purchaseStatusValue === PaymentStatus.PENDING && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-semibold text-yellow-900 mb-1">
+                <p className="font-semibold text-yellow-900 mb-1 text-sm">
                   Payment Pending
                 </p>
                 <p className="text-sm text-yellow-700">
                   Your payment is being processed. Check{' '}
                   <button
                     onClick={() => router.push('/my-events?tab=transactions')}
-                    className="underline hover:text-yellow-900"
+                    className="underline hover:text-yellow-900 font-medium"
                   >
                     transaction status
                   </button>
@@ -180,12 +224,12 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {hasPurchased && canPurchase && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        {!subscriptionAccess && hasPurchased && canPurchase && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-semibold text-blue-900 mb-1">
+                <p className="font-semibold text-blue-900 mb-1 text-sm">
                   Previous Payment {purchaseStatusValue}
                 </p>
                 <p className="text-sm text-blue-700">
@@ -196,9 +240,8 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {/* Hero Section - RESPONSIVE */}
-        <div className={`bg-brand rounded-xl p-5 md:p-6 text-white space-y-4`}>
-          {/* Title & Category */}
+        {/* Hero Section - CLEAN */}
+        <div className="bg-brand rounded-lg p-5 md:p-6 text-white space-y-4">
           <div className="space-y-3">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">
               {event.title}
@@ -207,6 +250,12 @@ export default function EventDetailPage() {
               <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs sm:text-sm font-medium">
                 {event.category}
               </span>
+              {subscriptionAccess && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/90 text-brand rounded-full text-xs font-semibold">
+                  <Crown className="w-3 h-3" />
+                  FREE ACCESS
+                </span>
+              )}
               {isFull && (
                 <span className="inline-block px-3 py-1 bg-red-500 rounded-full text-xs sm:text-sm font-medium">
                   Event Full
@@ -220,24 +269,39 @@ export default function EventDetailPage() {
             </div>
           </div>
 
-          {/* Price - Moved below title on mobile */}
           <div className="pt-2 border-t border-white/20">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-bold">
-                {event.price === 0 ? (
-                  'Free'
-                ) : (
-                  <>
+              {subscriptionAccess ? (
+                <>
+                  <span className="text-lg sm:text-xl text-white/60 line-through">
                     {event.currency === 'IDR' ? 'Rp ' : '$'}
                     {new Intl.NumberFormat('id-ID').format(event.price)}
-                  </>
-                )}
-              </span>
-              <span className="text-sm text-white/80">per person</span>
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-bold text-white">
+                    FREE
+                  </span>
+                </>
+              ) : (
+                <span className="text-2xl sm:text-3xl font-bold">
+                  {event.price === 0 ? (
+                    'Free'
+                  ) : (
+                    <>
+                      {event.currency === 'IDR' ? 'Rp ' : '$'}
+                      {new Intl.NumberFormat('id-ID').format(event.price)}
+                    </>
+                  )}
+                </span>
+              )}
+              {!subscriptionAccess && <span className="text-sm text-white/80">per person</span>}
             </div>
+            {subscriptionAccess && (
+              <p className="text-xs text-white/70 mt-1">
+                Included in your premium subscription
+              </p>
+            )}
           </div>
 
-          {/* Short Description */}
           {event.shortDescription && (
             <p className="text-white/90 text-sm sm:text-base leading-relaxed pt-2">
               {event.shortDescription}
@@ -245,12 +309,11 @@ export default function EventDetailPage() {
           )}
         </div>
 
-        {/* Quick Info Cards - Stacked on Mobile */}
+        {/* Quick Info Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          {/* Date & Time */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
                 <Calendar className="w-5 h-5 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
@@ -268,10 +331,9 @@ export default function EventDetailPage() {
             </div>
           </div>
 
-          {/* Location */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
                 <MapPin className="w-5 h-5 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
@@ -298,8 +360,8 @@ export default function EventDetailPage() {
           </div>
         </div>
 
-        {/* Participants Progress */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
+        {/* Participants */}
+        <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-brand" />
@@ -325,8 +387,8 @@ export default function EventDetailPage() {
         </div>
 
         {/* Description */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
-          <h2 className="text-lg font-semibold mb-3">About This Event</h2>
+        <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">About This Event</h2>
           <p className="text-gray-700 text-sm sm:text-base whitespace-pre-line leading-relaxed">
             {event.description}
           </p>
@@ -334,8 +396,8 @@ export default function EventDetailPage() {
 
         {/* Highlights */}
         {event.highlights && event.highlights.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
-            <h2 className="text-lg font-semibold mb-3">Event Highlights</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Event Highlights</h2>
             <ul className="space-y-2.5">
               {event.highlights.map((highlight, index) => (
                 <li key={index} className="flex items-start gap-3">
@@ -349,8 +411,8 @@ export default function EventDetailPage() {
 
         {/* Requirements */}
         {event.requirements && event.requirements.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
-            <h2 className="text-lg font-semibold mb-3">What to Bring</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">What to Bring</h2>
             <ul className="space-y-2.5">
               {event.requirements.map((requirement, index) => (
                 <li key={index} className="flex items-start gap-3">
@@ -364,8 +426,8 @@ export default function EventDetailPage() {
 
         {/* Organizer */}
         {event.organizerName && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
-            <h2 className="text-lg font-semibold mb-3">Organizer</h2>
+          <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Organizer</h2>
             <div>
               <p className="font-medium text-base sm:text-lg text-gray-900">
                 {event.organizerName}
@@ -379,28 +441,38 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {/* ============================================ */}
-        {/* CTA Button - UPDATED WITH PURCHASE STATUS */}
-        {/* ============================================ */}
-        <div className="sticky bottom-16 sm:bottom-6 bg-white rounded-xl border border-gray-200 p-4 shadow-lg">
-          <button
-            disabled={isButtonDisabled || isPurchaseStatusLoading}
-            onClick={handleJoinEvent}
-            className={`w-full px-6 py-3.5 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all ${
-              isButtonDisabled
-                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                : 'bg-brand text-white hover:bg-brand/90 hover:shadow-xl active:scale-[0.98]'
-            }`}
-          >
-            {getButtonText()}
-          </button>
-          
-          {/* Helper text for purchase status */}
-          {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
-            <p className="text-xs text-center text-gray-600 mt-2">
-              View your ticket in My Events
-            </p>
-          )}
+        {/* CTA Button */}
+        <div className="sticky bottom-4 sm:bottom-6 z-10">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
+            <button
+              onClick={handleJoinEvent}
+              disabled={isButtonDisabled || isPurchaseStatusLoading}
+              className={`w-full px-6 py-3.5 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all flex items-center justify-center gap-2 ${
+                isButtonDisabled || isPurchaseStatusLoading
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : subscriptionAccess
+                  ? 'bg-brand text-white hover:bg-brand/90 hover:shadow-md active:scale-[0.98]'
+                  : 'bg-brand text-white hover:bg-brand/90 hover:shadow-md active:scale-[0.98]'
+              }`}
+            >
+              {subscriptionAccess && !isFull && !isPurchaseStatusLoading && (
+                <Gift className="w-5 h-5" />
+              )}
+              {getButtonText()}
+            </button>
+            
+            {/* Helper text */}
+            {subscriptionAccess && !isFull && (
+              <p className="text-xs text-center text-gray-600 mt-2">
+                Premium members can join for free
+              </p>
+            )}
+            {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && !subscriptionAccess && (
+              <p className="text-xs text-center text-gray-600 mt-2">
+                View your ticket in My Events
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </DashboardLayout>

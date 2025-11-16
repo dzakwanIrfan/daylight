@@ -298,7 +298,7 @@ export default function SubscriptionCheckoutPage() {
           <div className="space-y-6">
             {/* Payment Summary */}
             {selectedPaymentMethod && feeCalculation?.success && (
-              <div className="bg-white border border-gray-200 rounded-lg p-5 sticky top-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-5 sticky top-20">
                 <h3 className="font-semibold text-gray-900 mb-4 text-sm">
                   Payment Summary
                 </h3>

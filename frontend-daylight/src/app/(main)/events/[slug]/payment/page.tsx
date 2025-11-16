@@ -288,7 +288,7 @@ export default function CreatePaymentPage() {
 
           {/* Sidebar - Fee Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-6 space-y-4">
+            <div className="sticky top-20 space-y-4">
               {selectedMethod && feeData?.success && !isCalculatingFee ? (
                 <FeeBreakdown
                   calculation={feeData.data as any}

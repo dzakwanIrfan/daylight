@@ -62,6 +62,9 @@ export interface EventPurchaseStatus {
     paidAt: string | null;
     createdAt: string;
   } | null;
+  hasSubscription: boolean;
+  subscriptionAccess: boolean;
+  message?: string;
 }
 
 export interface CreateEventInput {

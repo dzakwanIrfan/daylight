@@ -39,6 +39,7 @@ async function bootstrap() {
     ? [
         'https://daylightapp.asia',
         'https://www.daylightapp.asia',
+        'https://app.daylightapp.asia',
         frontendUrl,
       ]
     : [frontendUrl];
@@ -55,7 +56,7 @@ async function bootstrap() {
         callback(new Error('Not allowed by CORS'));
       }
     },
-    credentials: true,
+    credentials: true, // CRITICAL for cookies
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type', 

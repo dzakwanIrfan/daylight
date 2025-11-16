@@ -104,6 +104,9 @@ export class AuthController {
     res.redirect(googleAuthUrl);
   }
 
+  /**
+   * Google callback - Set cookies THEN redirect tanpa token di URL
+   */
   @Public()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
@@ -124,43 +127,24 @@ export class AuthController {
         result = await this.authService.googleLogin(googleUser);
       }
 
-      // Set cookies PERTAMA
+      // Set cookies FIRST sebelum redirect
       this.setAuthCookies(res, result.accessToken, result.refreshToken);
 
       const frontendUrl = this.configService.get('FRONTEND_URL');
       
-      // Redirect tanpa tokens di URL untuk security
+      // Redirect tanpa token di URL (cookies sudah di-set)
       const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
       redirectUrl.searchParams.set('success', 'true');
 
+      // Log untuk debugging
+      console.log('🍪 Cookies set, redirecting to:', redirectUrl.toString());
+
       res.redirect(redirectUrl.toString());
     } catch (error) {
+      console.error('❌ Google auth error:', error);
       const frontendUrl = this.configService.get('FRONTEND_URL');
       const errorMessage = encodeURIComponent(error.message || 'Authentication failed');
       res.redirect(`${frontendUrl}/auth/error?message=${errorMessage}`);
-    }
-  }
-
-  @Public()
-  @Post('session-login')
-  @HttpCode(HttpStatus.OK)
-  async sessionLogin(
-    @Body() body: { accessToken: string; refreshToken: string },
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    try {
-      if (!body.accessToken || !body.refreshToken) {
-        throw new Error('Tokens are required');
-      }
-
-      this.setAuthCookies(res, body.accessToken, body.refreshToken);
-
-      return {
-        success: true,
-        message: 'Session established successfully',
-      };
-    } catch (error) {
-      throw new Error('Failed to establish session');
     }
   }
 
@@ -245,7 +229,6 @@ export class AuthController {
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
     const cookieDomain = this.configService.get('COOKIE_DOMAIN'); // dari .env
-    const cookieSecure = this.configService.get('COOKIE_SECURE') === 'true';
     
     const accessTokenExpiry = this.configService.get('JWT_EXPIRES_IN') || '1d';
     const refreshTokenExpiry = this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
@@ -255,10 +238,10 @@ export class AuthController {
 
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction && cookieSecure, // true hanya di production dengan HTTPS
-      sameSite: isProduction ? 'none' as const : 'lax' as const, // 'none' untuk cross-site di production
+      secure: isProduction, // true di production (HTTPS)
+      sameSite: isProduction ? 'none' as const : 'lax' as const, // 'none' untuk cross-domain
       path: '/',
-      domain: isProduction ? cookieDomain : undefined, 
+      domain: isProduction ? cookieDomain : undefined, // gunakan COOKIE_DOMAIN dari .env
     };
 
     console.log('🍪 Setting cookies with options:', {
@@ -266,6 +249,8 @@ export class AuthController {
       domain: cookieOptions.domain,
       secure: cookieOptions.secure,
       sameSite: cookieOptions.sameSite,
+      accessMaxAge: `${accessMaxAge}ms`,
+      refreshMaxAge: `${refreshMaxAge}ms`,
     });
 
     res.cookie('accessToken', accessToken, {

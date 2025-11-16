@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { userService } from '@/services/user.service';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import apiClient from '@/lib/axios';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -15,48 +16,50 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('Processing authentication...');
   
+  // Use ref to prevent double execution in React Strict Mode
   const hasProcessed = useRef(false);
 
   useEffect(() => {
-    if (hasProcessed.current) return;
+    // If already processed, skip
+    if (hasProcessed.current) {
+      return;
+    }
 
     const processAuth = async () => {
       try {
-        const success = searchParams?.get('success');
+        const success = searchParams.get('success');
+        const accessToken = searchParams.get('token');
+        const refreshToken = searchParams.get('refresh');
 
         if (success !== 'true') {
           throw new Error('Authentication failed. Please try again.');
         }
 
+        if (!accessToken || !refreshToken) {
+          throw new Error('No authentication tokens received. Please try again.');
+        }
+
+        // MARK as processed BEFORE any async operations
         hasProcessed.current = true;
 
-        setMessage('Verifying session...');
+        setMessage('Establishing secure session...');
 
-        // Tunggu sebentar agar cookies ter-set dengan benar dari redirect
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // STEP 1: Call backend to set httpOnly cookies
+        await apiClient.post('/auth/session-login', {
+          accessToken,
+          refreshToken,
+        });
 
         setMessage('Fetching your profile...');
 
-        // Fetch user profile (cookies sudah ada dari backend redirect)
+        // STEP 2: Store token temporarily for profile request
+        useAuthStore.getState().setAccessToken(accessToken);
+
+        // STEP 3: Fetch user profile
         const profile = await userService.getProfile();
-        
-        // Get token from cookie untuk store
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('accessToken='))
-          ?.split('=')[1];
 
-        if (!profile) {
-          throw new Error('Failed to retrieve user profile.');
-        }
-
-        if (!token) {
-          console.error('Cookies available:', document.cookie);
-          throw new Error('No authentication token found. Please try logging in again.');
-        }
-
-        // Set auth in store
-        setAuth(profile, token);
+        // STEP 4: Set auth in store (persists to localStorage)
+        setAuth(profile, accessToken);
 
         setMessage('Login successful! Redirecting...');
 
@@ -65,17 +68,16 @@ export default function AuthCallbackPage() {
           duration: 3000,
         });
 
-        // Clear URL parameters
+        // STEP 5: Clear sensitive data from URL
         window.history.replaceState({}, '', '/auth/callback');
 
-        // Redirect
+        // STEP 6: Redirect to events page
         setTimeout(() => {
           router.push('/events');
           router.refresh();
         }, 1000);
         
       } catch (error: any) {
-        console.error('❌ Auth callback error:', error);
         
         const errorMessage = error?.response?.data?.message || 
                            error?.message || 
@@ -101,6 +103,7 @@ export default function AuthCallbackPage() {
     }
   }, [searchParams, router, setAuth]);
 
+  // Loading state
   if (isProcessing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -115,6 +118,7 @@ export default function AuthCallbackPage() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -132,6 +136,7 @@ export default function AuthCallbackPage() {
     );
   }
 
+  // Success state
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center space-y-4">

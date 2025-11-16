@@ -4,7 +4,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
-import { Transaction, PaymentStatus } from '@/types/transaction.types';
+import { Transaction, PaymentStatus, TransactionType } from '@/types/transaction.types';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { TransactionsTableRowActions } from './transactions-table-row-actions';
@@ -16,6 +16,11 @@ const statusColors: Record<PaymentStatus, string> = {
   FAILED: 'bg-red-100 text-red-800 border-red-200',
   EXPIRED: 'bg-gray-100 text-gray-800 border-gray-200',
   REFUNDED: 'bg-purple-100 text-purple-800 border-purple-200',
+};
+
+const typeColors: Record<TransactionType, string> = {
+  EVENT: 'bg-blue-100 text-blue-800 border-blue-200',
+  SUBSCRIPTION: 'bg-orange-100 text-orange-800 border-orange-200',
 };
 
 export const columns: ColumnDef<Transaction>[] = [
@@ -64,6 +69,23 @@ export const columns: ColumnDef<Transaction>[] = [
     enableHiding: false,
   },
   {
+    accessorKey: 'transactionType',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Type" />
+    ),
+    cell: ({ row }) => {
+      const type = row.getValue('transactionType') as TransactionType;
+      return (
+        <Badge variant="outline" className={typeColors[type]}>
+          {type}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => {
+      return Array.isArray(value) && value.includes(row.getValue(id));
+    },
+  },
+  {
     accessorKey: 'customerName',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Customer" />
@@ -84,24 +106,44 @@ export const columns: ColumnDef<Transaction>[] = [
     enableSorting: false,
   },
   {
-    accessorKey: 'event',
+    accessorKey: 'item',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Event" />
+      <DataTableColumnHeader column={column} title="Item" />
     ),
     cell: ({ row }) => {
-      const event = row.original.event;
-      return (
-        <div className="flex flex-col max-w-[250px]">
-          <span className="font-medium text-gray-900 truncate">
-            {event?.title || 'N/A'}
-          </span>
-          {event?.eventDate && (
-            <span className="text-xs text-gray-500">
-              {format(new Date(event.eventDate), 'dd MMM yyyy', { locale: idLocale })}
+      const transaction = row.original;
+      
+      if (transaction.transactionType === TransactionType.EVENT) {
+        const event = transaction.event;
+        return (
+          <div className="flex flex-col max-w-[250px]">
+            <span className="font-medium text-gray-900 truncate">
+              {event?.title || 'N/A'}
             </span>
-          )}
-        </div>
-      );
+            {event?.eventDate && (
+              <span className="text-xs text-gray-500">
+                {format(new Date(event.eventDate), 'dd MMM yyyy', { locale: idLocale })}
+              </span>
+            )}
+          </div>
+        );
+      }
+
+      if (transaction.transactionType === TransactionType.SUBSCRIPTION) {
+        const subscription = transaction.userSubscription;
+        return (
+          <div className="flex flex-col max-w-[250px]">
+            <span className="font-medium text-gray-900 truncate">
+              {subscription?.plan.name || 'Subscription'}
+            </span>
+            <span className="text-xs text-gray-500">
+              {subscription?.plan.durationInMonths} month(s)
+            </span>
+          </div>
+        );
+      }
+
+      return <span className="text-gray-500">-</span>;
     },
     enableSorting: false,
   },

@@ -7,9 +7,9 @@ import { DataTable } from '@/components/data-table/data-table';
 import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton';
 import { columns } from '@/components/admin/transactions/columns';
 import { TransactionsBulkActions } from '@/components/admin/transactions/transactions-bulk-actions';
-import { PaymentStatus, Transaction } from '@/types/transaction.types';
+import { PaymentStatus, Transaction, TransactionType } from '@/types/transaction.types';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, CreditCard, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
+import { Download, Loader2, CreditCard, CheckCircle, Clock, XCircle, DollarSign, Package, Crown } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { transactionService } from '@/services/transaction.service';
 import { toast } from 'sonner';
@@ -30,7 +30,9 @@ export default function TransactionsPage() {
         paid: 0, 
         pending: 0, 
         failed: 0,
-        totalRevenue: 0 
+        totalRevenue: 0,
+        eventTransactions: 0,
+        subscriptionTransactions: 0,
       };
     }
     
@@ -45,6 +47,8 @@ export default function TransactionsPage() {
       totalRevenue: transactions
         .filter(t => t.paymentStatus === PaymentStatus.PAID)
         .reduce((sum, t) => sum + t.amountReceived, 0),
+      eventTransactions: transactions.filter(t => t.transactionType === TransactionType.EVENT).length,
+      subscriptionTransactions: transactions.filter(t => t.transactionType === TransactionType.SUBSCRIPTION).length,
     };
   }, [transactions]);
 
@@ -56,9 +60,10 @@ export default function TransactionsPage() {
       const headers = [
         'Merchant Ref',
         'Tripay Ref',
+        'Type',
         'Customer Name',
         'Customer Email',
-        'Event',
+        'Item',
         'Payment Method',
         'Amount',
         'Fee',
@@ -70,13 +75,21 @@ export default function TransactionsPage() {
 
       const csvContent = [
         headers.join(','),
-        ...exportTransactions.map((t) =>
-          [
+        ...exportTransactions.map((t) => {
+          let itemName = 'N/A';
+          if (t.transactionType === TransactionType.EVENT && t.event) {
+            itemName = t.event.title;
+          } else if (t.transactionType === TransactionType.SUBSCRIPTION && t.userSubscription) {
+            itemName = t.userSubscription.plan.name;
+          }
+
+          return [
             t.merchantRef,
             t.tripayReference,
+            t.transactionType,
             `"${t.customerName}"`,
             t.customerEmail,
-            `"${t.event?.title || 'N/A'}"`,
+            `"${itemName}"`,
             `"${t.paymentName}"`,
             t.amount,
             t.totalFee,
@@ -84,8 +97,8 @@ export default function TransactionsPage() {
             t.paymentStatus,
             new Date(t.createdAt).toLocaleDateString('id-ID'),
             t.paidAt ? new Date(t.paidAt).toLocaleDateString('id-ID') : '-',
-          ].join(',')
-        ),
+          ].join(',');
+        }),
       ].join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -132,6 +145,23 @@ export default function TransactionsPage() {
       icon: XCircle,
       color: 'text-red-600',
       bg: 'bg-red-50',
+    },
+  ];
+
+  const typeStatsCards = [
+    {
+      title: 'Event Transactions',
+      value: stats.eventTransactions,
+      icon: Package,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+    },
+    {
+      title: 'Subscription Transactions',
+      value: stats.subscriptionTransactions,
+      icon: Crown,
+      color: 'text-orange-600',
+      bg: 'bg-orange-50',
     },
   ];
 
@@ -186,6 +216,30 @@ export default function TransactionsPage() {
           })}
         </div>
 
+        {/* Type Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {typeStatsCards.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={stat.title} className="p-6 bg-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      {stat.title}
+                    </p>
+                    <h3 className="text-2xl font-bold text-gray-900 mt-2">
+                      {stat.value}
+                    </h3>
+                  </div>
+                  <div className={`${stat.bg} ${stat.color} p-3 rounded-lg`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
         {/* Revenue Card */}
         <Card className="p-6 bg-linear-to-r from-green-50 to-emerald-50 border-green-200">
           <div className="flex items-center justify-between">
@@ -207,9 +261,9 @@ export default function TransactionsPage() {
         <Card className="p-6 bg-white">
           {isLoading ? (
             <DataTableSkeleton
-              columnCount={10}
+              columnCount={11}
               searchableColumnCount={1}
-              filterableColumnCount={1}
+              filterableColumnCount={2}
               rowCount={10}
             />
           ) : (
@@ -223,6 +277,14 @@ export default function TransactionsPage() {
                 },
               ]}
               filterableColumns={[
+                {
+                  id: 'transactionType',
+                  title: 'Type',
+                  options: [
+                    { label: 'Event', value: TransactionType.EVENT },
+                    { label: 'Subscription', value: TransactionType.SUBSCRIPTION },
+                  ],
+                },
                 {
                   id: 'paymentStatus',
                   title: 'Status',

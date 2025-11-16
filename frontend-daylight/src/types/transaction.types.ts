@@ -6,16 +6,22 @@ export enum PaymentStatus {
   REFUNDED = 'REFUNDED',
 }
 
+export enum TransactionType {
+  EVENT = 'EVENT',
+  SUBSCRIPTION = 'SUBSCRIPTION',
+}
+
 export interface Transaction {
   id: string;
   userId: string;
-  eventId: string;
+  eventId: string | null;
   tripayReference: string;
   merchantRef: string;
   paymentMethodCode: string | null;
   paymentMethod: string;
   paymentName: string;
   paymentStatus: PaymentStatus;
+  transactionType: TransactionType;
   amount: number;
   feeMerchant: number;
   feeCustomer: number;
@@ -58,7 +64,20 @@ export interface Transaction {
     city: string;
     price: number;
     currency: string;
-  };
+  } | null;
+  userSubscription?: {
+    id: string;
+    status: string;
+    startDate: string | null;
+    endDate: string | null;
+    plan: {
+      id: string;
+      name: string;
+      type: string;
+      durationInMonths: number;
+      price: number;
+    };
+  } | null;
 }
 
 export interface QueryTransactionsParams {
@@ -71,6 +90,7 @@ export interface QueryTransactionsParams {
   paymentMethod?: string;
   userId?: string;
   eventId?: string;
+  transactionType?: TransactionType;
   dateFrom?: string;
   dateTo?: string;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Transaction, PaymentStatus } from '@/types/transaction.types';
+import { Transaction, PaymentStatus, TransactionType } from '@/types/transaction.types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
@@ -12,12 +12,11 @@ import {
   CreditCard, 
   DollarSign, 
   Hash,
-  Mail,
-  Phone,
-  MapPin,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  Package,
+  Crown
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,11 @@ const statusColors: Record<PaymentStatus, string> = {
   REFUNDED: 'bg-purple-100 text-purple-800 border-purple-200',
 };
 
+const typeColors: Record<TransactionType, string> = {
+  EVENT: 'bg-blue-100 text-blue-800 border-blue-200',
+  SUBSCRIPTION: 'bg-orange-100 text-orange-800 border-orange-200',
+};
+
 const statusIcons: Record<PaymentStatus, React.ReactNode> = {
   PENDING: <Clock className="h-4 w-4" />,
   PAID: <CheckCircle className="h-4 w-4" />,
@@ -51,6 +55,11 @@ export function TransactionDetailsDialog({ transaction, open, onOpenChange }: Tr
         <DialogHeader>
           <DialogTitle className="text-xl">Transaction Details</DialogTitle>
           <div className="flex gap-2 mt-2">
+            <Badge variant="outline" className={typeColors[transaction.transactionType]}>
+              {transaction.transactionType === TransactionType.EVENT && <Package className="mr-1 h-3 w-3" />}
+              {transaction.transactionType === TransactionType.SUBSCRIPTION && <Crown className="mr-1 h-3 w-3" />}
+              {transaction.transactionType}
+            </Badge>
             <Badge variant="outline" className={statusColors[transaction.paymentStatus]}>
               <span className="mr-1">{statusIcons[transaction.paymentStatus]}</span>
               {transaction.paymentStatus}
@@ -110,8 +119,8 @@ export function TransactionDetailsDialog({ transaction, open, onOpenChange }: Tr
 
           <Separator />
 
-          {/* Event Information */}
-          {transaction.event && (
+          {/* Item Information - EVENT */}
+          {transaction.transactionType === TransactionType.EVENT && transaction.event && (
             <>
               <div>
                 <h4 className="font-semibold text-sm text-gray-700 mb-3 flex items-center gap-2">
@@ -135,6 +144,55 @@ export function TransactionDetailsDialog({ transaction, open, onOpenChange }: Tr
                       <p className="text-sm text-gray-900">{transaction.event.venue}, {transaction.event.city}</p>
                     </div>
                   </div>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Item Information - SUBSCRIPTION */}
+          {transaction.transactionType === TransactionType.SUBSCRIPTION && transaction.userSubscription && (
+            <>
+              <div>
+                <h4 className="font-semibold text-sm text-gray-700 mb-3 flex items-center gap-2">
+                  <Crown className="h-4 w-4" />
+                  Subscription Information
+                </h4>
+                <div className="space-y-2 ml-6">
+                  <div className="space-y-1">
+                    <span className="text-xs text-gray-500">Plan Name</span>
+                    <p className="text-sm font-medium text-gray-900">{transaction.userSubscription.plan.name}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <span className="text-xs text-gray-500">Duration</span>
+                      <p className="text-sm text-gray-900">
+                        {transaction.userSubscription.plan.durationInMonths} month(s)
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-gray-500">Status</span>
+                      <Badge variant="outline" className="text-xs">
+                        {transaction.userSubscription.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  {transaction.userSubscription.startDate && transaction.userSubscription.endDate && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <span className="text-xs text-gray-500">Start Date</span>
+                        <p className="text-sm text-gray-900">
+                          {format(new Date(transaction.userSubscription.startDate), 'dd MMM yyyy', { locale: idLocale })}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs text-gray-500">End Date</span>
+                        <p className="text-sm text-gray-900">
+                          {format(new Date(transaction.userSubscription.endDate), 'dd MMM yyyy', { locale: idLocale })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <Separator />

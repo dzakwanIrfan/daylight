@@ -37,10 +37,7 @@ async function bootstrap() {
   // Allow multiple origins untuk production
   const allowedOrigins = isProduction 
     ? [
-        'https://daylightapp.asia',
-        'https://www.daylightapp.asia',
         'https://app.daylightapp.asia',
-        frontendUrl,
       ]
     : [frontendUrl];
   

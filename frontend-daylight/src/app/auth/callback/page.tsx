@@ -33,7 +33,7 @@ export default function AuthCallbackPage() {
         setMessage('Verifying session...');
 
         // Tunggu sebentar agar cookies ter-set dengan benar dari redirect
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         setMessage('Fetching your profile...');
 
@@ -51,6 +51,7 @@ export default function AuthCallbackPage() {
         }
 
         if (!token) {
+          console.error('Cookies available:', document.cookie);
           throw new Error('No authentication token found. Please try logging in again.');
         }
 

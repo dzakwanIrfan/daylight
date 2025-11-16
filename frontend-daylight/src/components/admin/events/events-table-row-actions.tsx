@@ -1,7 +1,7 @@
 'use client';
 
 import { Row } from '@tanstack/react-table';
-import { MoreHorizontal, Pencil, Trash2, Eye, Copy, Star } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Eye, Copy, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -55,6 +55,11 @@ export function EventsTableRowActions({ row }: EventsTableRowActionsProps) {
           <DropdownMenuItem onClick={() => setShowDetailsDialog(true)}>
             <Eye className="mr-2 h-4 w-4" />
             View Details
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => router.push(`/admin/events/${event.id}/participants`)}>
+            <Users className="mr-2 h-4 w-4" />
+            View Participants
           </DropdownMenuItem>
           
           <DropdownMenuItem onClick={handleEdit}>

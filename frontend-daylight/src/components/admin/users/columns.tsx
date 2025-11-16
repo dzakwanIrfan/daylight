@@ -46,7 +46,12 @@ export const columns: ColumnDef<AdminUser>[] = [
       return (
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.profilePicture || undefined} alt={user.email} />
+            <AvatarImage 
+              src={user.profilePicture || undefined} 
+              alt={user.email} 
+              crossOrigin='anonymous'
+              referrerPolicy='no-referrer'
+            />
             <AvatarFallback className="bg-brand/10 text-brand text-sm font-medium">
               {initials}
             </AvatarFallback>

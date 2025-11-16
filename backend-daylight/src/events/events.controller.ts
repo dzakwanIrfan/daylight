@@ -22,6 +22,7 @@ import { QueryEventsDto } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { BulkActionEventDto } from './dto/bulk-action-event.dto';
+import { QueryEventParticipantsDto } from './dto/query-event-participants.dto';
 
 @Controller('events')
 export class EventsController {
@@ -127,5 +128,44 @@ export class EventsController {
   @HttpCode(HttpStatus.OK)
   async bulkAction(@Body() bulkActionDto: BulkActionEventDto) {
     return this.eventsService.bulkAction(bulkActionDto);
+  }
+
+  /**
+   * Get event participants (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get(':id/participants')
+  async getEventParticipants(
+    @Param('id') id: string,
+    @Query() queryDto: QueryEventParticipantsDto,
+  ) {
+    return this.eventsService.getEventParticipants(id, queryDto);
+  }
+
+  /**
+   * Get participant detail (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get(':id/participants/:transactionId')
+  async getParticipantDetail(
+    @Param('id') eventId: string,
+    @Param('transactionId') transactionId: string,
+  ) {
+    return this.eventsService.getParticipantDetail(eventId, transactionId);
+  }
+
+  /**
+   * Export event participants (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get(':id/participants/export')
+  async exportEventParticipants(
+    @Param('id') id: string,
+    @Query() queryDto: QueryEventParticipantsDto,
+  ) {
+    return this.eventsService.exportEventParticipants(id, queryDto);
   }
 }

@@ -18,7 +18,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] glass-card">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>User Details</DialogTitle>
         </DialogHeader>
@@ -27,7 +27,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
           {/* Profile Section */}
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.profilePicture || undefined} alt={user.email} />
+              <AvatarImage src={user.profilePicture || undefined} alt={user.email} crossOrigin="anonymous" referrerPolicy="no-referrer" />
               <AvatarFallback className="bg-brand/10 text-brand text-lg font-medium">
                 {initials}
               </AvatarFallback>

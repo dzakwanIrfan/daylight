@@ -11,6 +11,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { BulkActionEventDto, EventBulkActionType } from './dto/bulk-action-event.dto';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
+import { ParticipantSortField, QueryEventParticipantsDto } from './dto/query-event-participants.dto';
 
 @Injectable()
 export class EventsService {
@@ -578,5 +579,284 @@ export class EventsService {
     });
 
     return events;
+  }
+
+  /**
+   * Get event participants with filtering and pagination
+   */
+  async getEventParticipants(eventId: string, queryDto: QueryEventParticipantsDto) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy = ParticipantSortField.PAID_AT,
+      sortOrder = SortOrder.DESC,
+      paymentStatus,
+    } = queryDto;
+
+    // Check if event exists
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, title: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    const where: Prisma.TransactionWhereInput = {
+      eventId,
+      transactionType: TransactionType.EVENT,
+    };
+
+    // Search filter
+    if (search) {
+      where.OR = [
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerEmail: { contains: search, mode: 'insensitive' } },
+        { customerPhone: { contains: search, mode: 'insensitive' } },
+        { user: { 
+          OR: [
+            { email: { contains: search, mode: 'insensitive' } },
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+          ]
+        }},
+      ];
+    }
+
+    // Payment status filter
+    if (paymentStatus) {
+      where.paymentStatus = paymentStatus;
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    // Execute queries
+    const [transactions, total, paidCount, totalRevenue] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              phoneNumber: true,
+              profilePicture: true,
+              isEmailVerified: true,
+              createdAt: true,
+              personalityResult: {
+                select: {
+                  archetype: true,
+                  profileScore: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.transaction.count({ where }),
+      this.prisma.transaction.count({
+        where: {
+          ...where,
+          paymentStatus: PaymentStatus.PAID,
+        },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          ...where,
+          paymentStatus: PaymentStatus.PAID,
+        },
+        _sum: {
+          amountReceived: true,
+        },
+      }),
+    ]);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    // Calculate quantity from orderItems
+    const participantsWithQuantity = transactions.map((transaction) => {
+      const orderItems = transaction.orderItems as any[];
+      const quantity = orderItems[0]?.quantity || 1;
+      
+      return {
+        ...transaction,
+        quantity,
+      };
+    });
+
+    return {
+      event: {
+        id: event.id,
+        title: event.title,
+      },
+      data: participantsWithQuantity,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+      },
+      statistics: {
+        totalTransactions: total,
+        paidTransactions: paidCount,
+        pendingTransactions: total - paidCount,
+        totalRevenue: totalRevenue._sum.amountReceived || 0,
+      },
+      filters: {
+        search,
+        paymentStatus,
+      },
+      sorting: {
+        sortBy,
+        sortOrder,
+      },
+    };
+  }
+
+  /**
+   * Get participant detail by transaction ID
+   */
+  async getParticipantDetail(eventId: string, transactionId: string) {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: {
+        id: transactionId,
+        eventId,
+        transactionType: TransactionType.EVENT,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+            profilePicture: true,
+            provider: true,
+            isEmailVerified: true,
+            isActive: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+            personalityResult: {
+              select: {
+                archetype: true,
+                profileScore: true,
+                energyScore: true,
+                opennessScore: true,
+                structureScore: true,
+                affectScore: true,
+                comfortScore: true,
+                lifestyleScore: true,
+                relationshipStatus: true,
+                intentOnDaylight: true,
+                genderMixComfort: true,
+              },
+            },
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            category: true,
+            eventDate: true,
+            startTime: true,
+            endTime: true,
+            venue: true,
+            address: true,
+            city: true,
+            price: true,
+          },
+        },
+      },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    // Calculate quantity from orderItems
+    const orderItems = transaction.orderItems as any[];
+    const quantity = orderItems[0]?.quantity || 1;
+
+    return {
+      ...transaction,
+      quantity,
+    };
+  }
+
+  /**
+   * Export event participants
+   */
+  async exportEventParticipants(eventId: string, queryDto: QueryEventParticipantsDto) {
+    const { search, paymentStatus } = queryDto;
+
+    // Check if event exists
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, title: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    const where: Prisma.TransactionWhereInput = {
+      eventId,
+      transactionType: TransactionType.EVENT,
+    };
+
+    if (search) {
+      where.OR = [
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerEmail: { contains: search, mode: 'insensitive' } },
+        { user: { email: { contains: search, mode: 'insensitive' } }},
+      ];
+    }
+
+    if (paymentStatus) {
+      where.paymentStatus = paymentStatus;
+    }
+
+    const transactions = await this.prisma.transaction.findMany({
+      where,
+      orderBy: { paidAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+            phoneNumber: true,
+          },
+        },
+      },
+    });
+
+    return transactions.map((transaction) => {
+      const orderItems = transaction.orderItems as any[];
+      const quantity = orderItems[0]?.quantity || 1;
+
+      return {
+        ...transaction,
+        quantity,
+      };
+    });
   }
 }

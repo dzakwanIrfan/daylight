@@ -46,8 +46,12 @@ export default function AuthCallbackPage() {
           .find(row => row.startsWith('accessToken='))
           ?.split('=')[1];
 
-        if (!profile || !token) {
-          throw new Error('Failed to retrieve authentication data.');
+        if (!profile) {
+          throw new Error('Failed to retrieve user profile.');
+        }
+
+        if (!token) {
+          throw new Error('No authentication token found. Please try logging in again.');
         }
 
         // Set auth in store
@@ -70,6 +74,8 @@ export default function AuthCallbackPage() {
         }, 1000);
         
       } catch (error: any) {
+        console.error('❌ Auth callback error:', error);
+        
         const errorMessage = error?.response?.data?.message || 
                            error?.message || 
                            'Authentication failed. Please try again.';

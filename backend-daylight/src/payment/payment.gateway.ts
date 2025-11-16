@@ -8,7 +8,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
@@ -16,17 +16,22 @@ import { ConfigService } from '@nestjs/config';
 @WebSocketGateway({
   namespace: 'payment',
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true,
   },
+  transports: ['websocket'],
+  pingTimeout: 30000,
+  pingInterval: 25000,
 })
 export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(PaymentGateway.name);
-  private userSockets: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
-  private socketUsers: Map<string, string> = new Map(); // socketId -> userId
+  
+  // Simple maps for tracking
+  private userSockets = new Map<string, Set<string>>(); // userId -> socketIds
+  private socketUsers = new Map<string, string>(); // socketId -> userId
 
   constructor(
     private jwtService: JwtService,
@@ -34,104 +39,100 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
     private configService: ConfigService,
   ) {}
 
-  /**
-   * Handle client connection
-   */
   async handleConnection(client: Socket) {
     try {
-      const token = this.extractTokenFromHandshake(client);
-      
+      this.logger.log(`Connection attempt from: ${client.id}`);
+
+      const token = this.extractToken(client);
       if (!token) {
-        this.logger.warn(`Connection rejected: No token provided - ${client.id}`);
-        client.emit('error', { message: 'Authentication required' });
+        this.logger.warn(`No token: ${client.id}`);
+        client.emit('auth_error', { message: 'No token provided' });
         client.disconnect();
         return;
       }
 
       const payload = await this.verifyToken(token);
-      
-      if (!payload || !payload.sub) {
-        this.logger.warn(`Connection rejected: Invalid token - ${client.id}`);
-        client.emit('error', { message: 'Invalid token' });
+      if (!payload?.sub) {
+        this.logger.warn(`Invalid token: ${client.id}`);
+        client.emit('auth_error', { message: 'Invalid token' });
         client.disconnect();
         return;
       }
 
       const userId = payload.sub;
-      
-      // Store socket connection
+
+      // Check user exists
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, isActive: true },
+      });
+
+      if (!user || !user.isActive) {
+        this.logger.warn(`User invalid: ${userId}`);
+        client.emit('auth_error', { message: 'User not valid' });
+        client.disconnect();
+        return;
+      }
+
+      // Store connection
       if (!this.userSockets.has(userId)) {
         this.userSockets.set(userId, new Set());
       }
-      const userSocketSet = this.userSockets.get(userId);
-      if (userSocketSet) {
-        userSocketSet.add(client.id);
-      }
+      this.userSockets.get(userId)!.add(client.id);
       this.socketUsers.set(client.id, userId);
 
-      // Join user's personal room
+      // Join user room
       client.join(`user:${userId}`);
 
-      this.logger.log(`✅ Client connected: ${client.id} (User: ${userId})`);
-      
-      // Send connection success
+      this.logger.log(`✅ Connected: ${client.id} (User: ${userId})`);
+
+      // Send success
       client.emit('connected', {
         success: true,
-        message: 'Connected to payment updates',
-        userId: userId,
+        userId,
+        socketId: client.id,
       });
 
     } catch (error) {
-      this.logger.error(`❌ Connection error: ${error.message}`);
-      client.emit('error', { message: 'Connection failed' });
+      this.logger.error(`Connection error: ${error.message}`);
+      client.emit('auth_error', { message: 'Connection failed' });
       client.disconnect();
     }
   }
 
-  /**
-   * Handle client disconnection
-   */
   handleDisconnect(client: Socket) {
     const userId = this.socketUsers.get(client.id);
     
     if (userId) {
-      const userSocketSet = this.userSockets.get(userId);
-      if (userSocketSet) {
-        userSocketSet.delete(client.id);
-        if (userSocketSet.size === 0) {
+      const sockets = this.userSockets.get(userId);
+      if (sockets) {
+        sockets.delete(client.id);
+        if (sockets.size === 0) {
           this.userSockets.delete(userId);
         }
       }
       this.socketUsers.delete(client.id);
-      this.logger.log(`❌ Client disconnected: ${client.id} (User: ${userId})`);
-    } else {
-      this.logger.log(`❌ Client disconnected: ${client.id} (Unknown user)`);
+      this.logger.log(`Disconnected: ${client.id} (User: ${userId})`);
     }
   }
 
-  /**
-   * Subscribe to payment updates
-   */
   @SubscribeMessage('subscribe:payment')
-  async handleSubscribePayment(
+  async handleSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { transactionId: string },
   ) {
     try {
       const userId = this.socketUsers.get(client.id);
-      
       if (!userId) {
-        return { success: false, message: 'Unauthorized' };
+        return { success: false, message: 'Not authenticated' };
       }
 
       const { transactionId } = data;
 
-      // Verify user owns this transaction
+      // Verify transaction
       const transaction = await this.prisma.transaction.findFirst({
-        where: {
-          id: transactionId,
-          userId: userId,
-        },
+        where: { id: transactionId, userId },
+        select: { id: true, paymentStatus: true },
       });
 
       if (!transaction) {
@@ -141,210 +142,90 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
       // Join transaction room
       client.join(`transaction:${transactionId}`);
 
-      this.logger.log(`📡 User ${userId} subscribed to transaction ${transactionId}`);
+      this.logger.log(`Subscribed: ${userId} -> ${transactionId}`);
 
       return {
         success: true,
-        message: 'Subscribed to payment updates',
-        transaction: {
-          id: transaction.id,
-          status: transaction.paymentStatus,
-          amount: transaction.amount,
-        },
+        message: 'Subscribed',
+        transaction,
       };
     } catch (error) {
-      this.logger.error(`❌ Subscribe error: ${error.message}`);
-      return { success: false, message: 'Failed to subscribe' };
+      this.logger.error(`Subscribe error: ${error.message}`);
+      return { success: false, message: 'Subscribe failed' };
     }
   }
 
-  /**
-   * Unsubscribe from payment updates
-   */
   @SubscribeMessage('unsubscribe:payment')
-  handleUnsubscribePayment(
+  handleUnsubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { transactionId: string },
   ) {
-    const { transactionId } = data;
-    client.leave(`transaction:${transactionId}`);
-    
-    this.logger.log(`Client ${client.id} unsubscribed from transaction ${transactionId}`);
-    
-    return {
-      success: true,
-      message: 'Unsubscribed from payment updates',
-    };
+    client.leave(`transaction:${data.transactionId}`);
+    return { success: true };
   }
 
-  /**
-   * Emit payment status update to specific transaction
-   */
+  // Emit methods
   emitPaymentStatusUpdate(transactionId: string, data: any) {
     this.server.to(`transaction:${transactionId}`).emit('payment:status-update', {
       transactionId,
-      status: data.status,
-      paidAt: data.paidAt,
-      updatedAt: data.updatedAt,
-      message: this.getStatusMessage(data.status),
+      ...data,
     });
-
-    this.logger.log(`Payment status update sent for transaction ${transactionId}: ${data.status}`);
   }
 
-  /**
-   * Emit payment update to specific user
-   */
   emitPaymentUpdateToUser(userId: string, data: any) {
     this.server.to(`user:${userId}`).emit('payment:update', data);
-    this.logger.log(`Payment update sent to user ${userId}`);
   }
 
-  /**
-   * Emit payment success
-   */
   emitPaymentSuccess(transactionId: string, userId: string, data: any) {
-    // Emit to transaction room
     this.server.to(`transaction:${transactionId}`).emit('payment:success', {
       transactionId,
-      event: data.event,
-      amount: data.amount,
-      paidAt: data.paidAt,
-      message: 'Pembayaran berhasil! 🎉',
+      ...data,
     });
-
-    // Emit to user room
     this.server.to(`user:${userId}`).emit('payment:success', {
       transactionId,
-      event: data.event,
-      message: 'Pembayaran berhasil! Tiket Anda sudah dikonfirmasi.',
+      ...data,
     });
-
-    this.logger.log(`Payment success notification sent for transaction ${transactionId}`);
   }
 
-  /**
-   * Emit payment failed
-   */
   emitPaymentFailed(transactionId: string, userId: string, data: any) {
     this.server.to(`transaction:${transactionId}`).emit('payment:failed', {
       transactionId,
-      status: data.status,
-      message: 'Pembayaran gagal. Silakan coba lagi.',
+      ...data,
     });
-
-    this.server.to(`user:${userId}`).emit('payment:failed', {
-      transactionId,
-      message: 'Pembayaran gagal. Silakan coba lagi.',
-    });
-
-    this.logger.log(`Payment failed notification sent for transaction ${transactionId}`);
   }
 
-  /**
-   * Emit payment expired
-   */
   emitPaymentExpired(transactionId: string, userId: string) {
     this.server.to(`transaction:${transactionId}`).emit('payment:expired', {
       transactionId,
-      message: 'Pembayaran kadaluarsa. Silakan buat transaksi baru.',
     });
-
-    this.server.to(`user:${userId}`).emit('payment:expired', {
-      transactionId,
-      message: 'Pembayaran kadaluarsa. Silakan buat transaksi baru.',
-    });
-
-    this.logger.log(`Payment expired notification sent for transaction ${transactionId}`);
   }
 
-  /**
-   * Emit payment countdown
-   */
   emitPaymentCountdown(transactionId: string, timeRemaining: number) {
     this.server.to(`transaction:${transactionId}`).emit('payment:countdown', {
       transactionId,
       timeRemaining,
-      message: `Sisa waktu: ${this.formatTime(timeRemaining)}`,
     });
   }
 
-  /**
-   * Extract token from handshake
-   */
-  private extractTokenFromHandshake(client: Socket): string | null {
-    const token = 
+  private extractToken(client: Socket): string | null {
+    return (
       client.handshake.auth?.token ||
       client.handshake.headers?.authorization?.replace('Bearer ', '') ||
-      null;
-    
-    return token;
+      null
+    );
   }
 
-  /**
-   * Verify JWT token
-   */
   private async verifyToken(token: string): Promise<any> {
     try {
       return await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>('JWT_SECRET'),
+        secret: this.configService.get('JWT_SECRET'),
       });
-    } catch (error) {
-      this.logger.error(`Token verification failed: ${error.message}`);
+    } catch {
       return null;
     }
   }
 
-  /**
-   * Get status message
-   */
-  private getStatusMessage(status: string): string {
-    const messages = {
-      PENDING: 'Menunggu pembayaran...',
-      PAID: 'Pembayaran berhasil! 🎉',
-      FAILED: 'Pembayaran gagal',
-      EXPIRED: 'Pembayaran kadaluarsa',
-      REFUNDED: 'Pembayaran dikembalikan',
-    };
-    return messages[status] || 'Status tidak diketahui';
-  }
-
-  /**
-   * Format time remaining
-   */
-  private formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}j ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
-  }
-
-  /**
-   * Get connected users count
-   */
-  getConnectedUsersCount(): number {
-    return this.userSockets.size;
-  }
-
-  /**
-   * Get user's active sockets
-   */
-  getUserSockets(userId: string): Set<string> | undefined {
-    return this.userSockets.get(userId);
-  }
-
-  /**
-   * Check if user is connected
-   */
   isUserConnected(userId: string): boolean {
-    const sockets = this.userSockets.get(userId);
-    return sockets ? sockets.size > 0 : false;
+    return this.userSockets.has(userId) && this.userSockets.get(userId)!.size > 0;
   }
 }

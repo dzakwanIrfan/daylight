@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/auth-store';
 import { PaymentWebSocketEvent } from '@/types/payment.types';
@@ -29,208 +29,138 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
 
   const { accessToken, isAuthenticated } = useAuthStore();
   const socketRef = useRef<Socket | null>(null);
-  const isConnectingRef = useRef(false);
-  const hasSubscribedRef = useRef(false);
-  
-  // Store callbacks in refs to avoid recreating socket connection
-  const callbacksRef = useRef({
-    onPaymentUpdate,
-    onPaymentSuccess,
-    onPaymentFailed,
-    onPaymentExpired,
-    onCountdown,
-  });
-
-  // Update callbacks ref when they change
-  useEffect(() => {
-    callbacksRef.current = {
-      onPaymentUpdate,
-      onPaymentSuccess,
-      onPaymentFailed,
-      onPaymentExpired,
-      onCountdown,
-    };
-  }, [onPaymentUpdate, onPaymentSuccess, onPaymentFailed, onPaymentExpired, onCountdown]);
-
-  const subscribeToTransaction = useCallback((txId: string) => {
-    if (!socketRef.current?.connected) {
-      console.warn('⚠️ Socket not connected, cannot subscribe');
-      return;
-    }
-
-    if (hasSubscribedRef.current) {
-      console.log('ℹ️ Already subscribed to transaction');
-      return;
-    }
-
-    console.log('📡 Subscribing to transaction:', txId);
-    socketRef.current.emit(
-      'subscribe:payment',
-      { transactionId: txId },
-      (response: any) => {
-        console.log('📡 Subscribed to transaction:', response);
-        hasSubscribedRef.current = true;
-      }
-    );
-  }, []);
-
-  const unsubscribeFromTransaction = useCallback((txId: string) => {
-    if (!socketRef.current?.connected || !hasSubscribedRef.current) {
-      return;
-    }
-
-    console.log('📴 Unsubscribing from transaction:', txId);
-    socketRef.current.emit(
-      'unsubscribe:payment',
-      { transactionId: txId },
-      (response: any) => {
-        console.log('📴 Unsubscribed from transaction:', response);
-        hasSubscribedRef.current = false;
-      }
-    );
-  }, []);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const hasSetupRef = useRef(false);
 
   useEffect(() => {
-    // Don't connect if disabled or not authenticated
+    // Don't setup if disabled or not authenticated
     if (!enabled || !isAuthenticated() || !accessToken) {
-      console.log('❌ WebSocket not connecting:', { enabled, authenticated: isAuthenticated() });
+      console.log('❌ Socket disabled');
       return;
     }
 
-    // Prevent multiple simultaneous connections
-    if (isConnectingRef.current || socketRef.current?.connected) {
-      console.log('ℹ️ WebSocket already connecting or connected');
+    // Prevent double setup
+    if (hasSetupRef.current) {
+      console.log('ℹ️ Socket already setup');
       return;
     }
 
-    isConnectingRef.current = true;
-    console.log('🔌 Initiating WebSocket connection...');
+    console.log('🔌 Setting up socket...');
+    hasSetupRef.current = true;
 
+    // Create socket
     const socket = io(
       `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/payment`,
       {
         auth: { token: accessToken },
         transports: ['websocket'],
-        autoConnect: false, // Manual connect
-        reconnection: false, // Disable auto-reconnect to prevent loops
+        reconnection: false, // IMPORTANT: Disable auto-reconnect
       }
     );
 
-    // Setup event listeners
+    // Connection handlers
     socket.on('connect', () => {
-      console.log('✅ Payment WebSocket connected:', socket.id);
-      isConnectingRef.current = false;
+      console.log('✅ Socket connected:', socket.id);
+      setIsConnected(true);
     });
 
     socket.on('connected', (data) => {
-      console.log('🔌 Payment WebSocket confirmed:', data);
-      
-      // Auto-subscribe if transaction ID is available
-      if (transactionId && !hasSubscribedRef.current) {
-        setTimeout(() => subscribeToTransaction(transactionId), 500);
-      }
+      console.log('🔌 Connection confirmed:', data);
     });
 
-    socket.on('disconnect', (reason) => {
-      console.log('❌ Payment WebSocket disconnected:', reason);
-      isConnectingRef.current = false;
-      hasSubscribedRef.current = false;
+    socket.on('disconnect', () => {
+      console.log('❌ Socket disconnected');
+      setIsConnected(false);
+      setIsSubscribed(false);
     });
 
-    socket.on('connect_error', (err) => {
-      console.error('❌ Payment WebSocket error:', err.message);
-      isConnectingRef.current = false;
+    socket.on('auth_error', (data) => {
+      console.error('❌ Auth error:', data);
+      socket.disconnect();
     });
 
-    // Payment events - use callback refs
+    // Payment events
     socket.on('payment:update', (data: PaymentWebSocketEvent) => {
       console.log('💳 Payment update:', data);
-      callbacksRef.current.onPaymentUpdate?.(data);
+      onPaymentUpdate?.(data);
     });
 
     socket.on('payment:status-update', (data: PaymentWebSocketEvent) => {
-      console.log('🔄 Payment status update:', data);
-      callbacksRef.current.onPaymentUpdate?.(data);
-      toast.info(data.message || 'Payment status updated');
+      console.log('🔄 Status update:', data);
+      onPaymentUpdate?.(data);
     });
 
     socket.on('payment:success', (data: PaymentWebSocketEvent) => {
       console.log('✅ Payment success:', data);
-      callbacksRef.current.onPaymentSuccess?.(data);
-      toast.success(data.message || 'Payment successful! 🎉');
+      onPaymentSuccess?.(data);
+      toast.success('Pembayaran berhasil! 🎉');
     });
 
     socket.on('payment:failed', (data: PaymentWebSocketEvent) => {
       console.log('❌ Payment failed:', data);
-      callbacksRef.current.onPaymentFailed?.(data);
-      toast.error(data.message || 'Payment failed');
+      onPaymentFailed?.(data);
+      toast.error('Pembayaran gagal');
     });
 
     socket.on('payment:expired', (data: PaymentWebSocketEvent) => {
       console.log('⏰ Payment expired:', data);
-      callbacksRef.current.onPaymentExpired?.(data);
-      toast.error(data.message || 'Payment expired');
+      onPaymentExpired?.(data);
+      toast.error('Pembayaran kadaluarsa');
     });
 
     socket.on('payment:countdown', (data: PaymentWebSocketEvent) => {
       if (data.timeRemaining !== undefined) {
-        callbacksRef.current.onCountdown?.(data.timeRemaining);
+        onCountdown?.(data.timeRemaining);
       }
-    });
-
-    socket.on('payment:warning', (data: PaymentWebSocketEvent) => {
-      toast.warning(data.message || 'Payment expiring soon!');
-    });
-
-    socket.on('payment:urgent', (data: PaymentWebSocketEvent) => {
-      toast.error(data.message || 'Payment expiring very soon!', {
-        duration: 10000,
-      });
     });
 
     socketRef.current = socket;
-    
-    // Connect after setup
-    socket.connect();
 
     // Cleanup
     return () => {
-      console.log('🔌 Cleaning up WebSocket connection...');
-      
-      if (transactionId && hasSubscribedRef.current) {
-        unsubscribeFromTransaction(transactionId);
-      }
-
+      console.log('🔌 Cleaning up socket...');
       if (socketRef.current) {
         socketRef.current.removeAllListeners();
         socketRef.current.disconnect();
         socketRef.current = null;
       }
-      
-      isConnectingRef.current = false;
-      hasSubscribedRef.current = false;
+      hasSetupRef.current = false;
+      setIsConnected(false);
+      setIsSubscribed(false);
     };
-  }, [enabled, accessToken, isAuthenticated]); // Minimal dependencies
+  }, [enabled, accessToken, isAuthenticated]); // Minimal deps
 
-  // Handle transaction subscription separately
+  // Handle subscription
   useEffect(() => {
-    if (transactionId && socketRef.current?.connected && !hasSubscribedRef.current) {
-      const timer = setTimeout(() => {
-        subscribeToTransaction(transactionId);
-      }, 500);
-
-      return () => {
-        clearTimeout(timer);
-        if (hasSubscribedRef.current) {
-          unsubscribeFromTransaction(transactionId);
-        }
-      };
+    if (!transactionId || !isConnected || isSubscribed) {
+      return;
     }
-  }, [transactionId, subscribeToTransaction, unsubscribeFromTransaction]);
+
+    console.log('📡 Subscribing to:', transactionId);
+
+    socketRef.current?.emit(
+      'subscribe:payment',
+      { transactionId },
+      (response: any) => {
+        console.log('📡 Subscribe response:', response);
+        if (response?.success) {
+          setIsSubscribed(true);
+        }
+      }
+    );
+
+    return () => {
+      if (isSubscribed && transactionId) {
+        console.log('📴 Unsubscribing from:', transactionId);
+        socketRef.current?.emit('unsubscribe:payment', { transactionId });
+        setIsSubscribed(false);
+      }
+    };
+  }, [transactionId, isConnected, isSubscribed]);
 
   return {
-    isConnected: socketRef.current?.connected || false,
-    subscribeToTransaction,
-    unsubscribeFromTransaction,
+    isConnected,
+    isSubscribed,
   };
 }

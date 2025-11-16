@@ -10,30 +10,32 @@ interface CountdownTimerProps {
 
 export function CountdownTimer({ expiredAt, onExpired }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [hasExpired, setHasExpired] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
       const now = new Date().getTime();
       const expiry = new Date(expiredAt).getTime();
-      const difference = expiry - now;
-
-      return Math.max(0, Math.floor(difference / 1000));
+      const diff = Math.floor((expiry - now) / 1000);
+      return diff > 0 ? diff : 0;
     };
 
+    // Initial calculation
     setTimeLeft(calculateTimeLeft());
 
-    const timer = setInterval(() => {
+    // Update every second
+    const interval = setInterval(() => {
       const newTimeLeft = calculateTimeLeft();
       setTimeLeft(newTimeLeft);
 
-      if (newTimeLeft === 0) {
-        clearInterval(timer);
+      if (newTimeLeft === 0 && !hasExpired) {
+        setHasExpired(true);
         onExpired?.();
       }
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [expiredAt, onExpired]);
+    return () => clearInterval(interval);
+  }, [expiredAt, hasExpired, onExpired]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -41,23 +43,35 @@ export function CountdownTimer({ expiredAt, onExpired }: CountdownTimerProps) {
     const secs = seconds % 60;
 
     const parts = [];
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
+    if (hours > 0) parts.push(`${hours}j`);
+    if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
     parts.push(`${secs}s`);
 
     return parts.join(' ');
   };
 
   const getColorClass = () => {
-    if (timeLeft <= 300) return 'text-red-600 bg-red-50'; // 5 minutes
-    if (timeLeft <= 3600) return 'text-orange-600 bg-orange-50'; // 1 hour
-    return 'text-brand bg-brand/10';
+    if (timeLeft > 3600) return 'bg-white/20 text-white';
+    if (timeLeft > 300) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800 animate-pulse';
   };
 
+  if (timeLeft === 0) {
+    return (
+      <div className="bg-red-100 text-red-800 rounded-lg px-4 py-2 flex items-center gap-2">
+        <Clock className="w-4 h-4" />
+        <span className="font-semibold text-sm">Expired</span>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${getColorClass()}`}>
+    <div className={`rounded-lg px-4 py-2 flex items-center gap-2 ${getColorClass()}`}>
       <Clock className="w-4 h-4" />
-      <span className="font-semibold text-sm">{formatTime(timeLeft)}</span>
+      <div className="text-sm">
+        <div className="font-semibold">{formatTime(timeLeft)}</div>
+        <div className="text-xs opacity-75">remaining</div>
+      </div>
     </div>
   );
 }

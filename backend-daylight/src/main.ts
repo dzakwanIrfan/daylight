@@ -17,25 +17,55 @@ async function bootstrap() {
     prefix: '/api/uploads/',
   });
   
-  // Helmet configuration for production
+  // Security headers
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: false, // Disable if you have issues with CSP
   }));
   
-  // CRITICAL: Cookie parser BEFORE CORS
+  // Cookie parser BEFORE CORS
   app.use(cookieParser());
   
-  // CORS Configuration - PRODUCTION READY
-  const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:3001';
+  // Trust proxy untuk detect HTTPS di balik nginx
   const isProduction = configService.get('NODE_ENV') === 'production';
+  if (isProduction) {
+    app.set('trust proxy', 1);
+  }
+  
+  // CORS Configuration
+  const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:3001';
+  
+  // Allow multiple origins untuk production (dengan/tanpa www)
+  const allowedOrigins = isProduction 
+    ? [
+        'https://daylightapp.asia',
+        'https://www.daylightapp.asia',
+        frontendUrl,
+      ]
+    : [frontendUrl];
   
   app.enableCors({
-    origin: frontendUrl,
-    credentials: true, // CRITICAL for cookies
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log('❌ Blocked by CORS:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
     exposedHeaders: ['Set-Cookie'],
+    maxAge: 86400, // 24 hours
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
@@ -55,11 +85,12 @@ async function bootstrap() {
   );
 
   const port = configService.get('PORT') || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0'); // Listen on all interfaces
   
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
-  console.log(`🌐 CORS enabled for: ${frontendUrl}`);
-  console.log(`🍪 Cookies: ${isProduction ? 'secure mode (HTTPS)' : 'development mode'}`);
-  console.log(`🔒 Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+  console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
+  console.log(`🍪 Cookies: ${isProduction ? 'secure=true, sameSite=none' : 'development mode'}`);
+  console.log(`🔒 Trust Proxy: ${isProduction ? 'enabled' : 'disabled'}`);
+  console.log(`🌍 Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
 }
 bootstrap();

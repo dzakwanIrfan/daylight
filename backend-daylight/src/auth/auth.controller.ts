@@ -87,9 +87,6 @@ export class AuthController {
     return result;
   }
 
-  /**
-   * Initiate Google OAuth dengan state parameter
-   */
   @Public()
   @Get('google')
   async googleAuth(
@@ -107,9 +104,6 @@ export class AuthController {
     res.redirect(googleAuthUrl);
   }
 
-  /**
-   * Google callback - Set cookie via Set-Cookie header then redirect dengan token di URL
-   */
   @Public()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
@@ -130,14 +124,14 @@ export class AuthController {
         result = await this.authService.googleLogin(googleUser);
       }
 
+      // Set cookies PERTAMA
+      this.setAuthCookies(res, result.accessToken, result.refreshToken);
+
       const frontendUrl = this.configService.get('FRONTEND_URL');
       
-      // Pass tokens via URL for intermediate page to process
-      // Intermediate page will call /auth/session-login to set httpOnly cookies properly
+      // Redirect tanpa tokens di URL untuk security
       const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
       redirectUrl.searchParams.set('success', 'true');
-      redirectUrl.searchParams.set('token', result.accessToken);
-      redirectUrl.searchParams.set('refresh', result.refreshToken);
 
       res.redirect(redirectUrl.toString());
     } catch (error) {
@@ -147,10 +141,6 @@ export class AuthController {
     }
   }
 
-  /**
-   * Session login endpoint - untuk set cookies dari frontend
-   * Frontend akan call endpoint ini dengan tokens dari URL
-   */
   @Public()
   @Post('session-login')
   @HttpCode(HttpStatus.OK)
@@ -159,12 +149,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     try {
-      // Validate tokens
       if (!body.accessToken || !body.refreshToken) {
         throw new Error('Tokens are required');
       }
 
-      // Set httpOnly cookies
       this.setAuthCookies(res, body.accessToken, body.refreshToken);
 
       return {
@@ -218,9 +206,6 @@ export class AuthController {
     return { success: true, message: 'Logged out from all devices' };
   }
 
-  /**
-   * Build Google OAuth URL dengan state parameter
-   */
   private buildGoogleAuthUrl(state?: string): string {
     const clientId = this.configService.get('GOOGLE_CLIENT_ID');
     const callbackUrl = this.configService.get('GOOGLE_CALLBACK_URL');
@@ -259,7 +244,8 @@ export class AuthController {
    */
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    const cookieDomain = this.configService.get('COOKIE_DOMAIN');
+    const cookieDomain = this.configService.get('COOKIE_DOMAIN'); // dari .env
+    const cookieSecure = this.configService.get('COOKIE_SECURE') === 'true';
     
     const accessTokenExpiry = this.configService.get('JWT_EXPIRES_IN') || '1d';
     const refreshTokenExpiry = this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
@@ -267,21 +253,19 @@ export class AuthController {
     const accessMaxAge = this.getExpiryInMs(accessTokenExpiry);
     const refreshMaxAge = this.getExpiryInMs(refreshTokenExpiry);
 
-    // PRODUCTION READY Cookie Options
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction, // true untuk HTTPS di production
-      sameSite: isProduction ? ('none' as const) : ('lax' as const), // 'none' diperlukan untuk cross-domain di production
+      secure: isProduction && cookieSecure, // true hanya di production dengan HTTPS
+      sameSite: isProduction ? 'none' as const : 'lax' as const, // 'none' untuk cross-site di production
       path: '/',
-      domain: isProduction && cookieDomain ? cookieDomain : undefined, // Set domain hanya di production
+      domain: isProduction ? cookieDomain : undefined, 
     };
 
     console.log('🍪 Setting cookies with options:', {
-      ...cookieOptions,
       isProduction,
-      cookieDomain,
-      accessMaxAge,
-      refreshMaxAge,
+      domain: cookieOptions.domain,
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
     });
 
     res.cookie('accessToken', accessToken, {
@@ -301,9 +285,9 @@ export class AuthController {
 
     const clearOptions = {
       path: '/',
-      domain: isProduction && cookieDomain ? cookieDomain : undefined,
+      domain: isProduction ? cookieDomain : undefined,
       secure: isProduction,
-      sameSite: isProduction ? ('none' as const) : ('lax' as const),
+      sameSite: isProduction ? 'none' as const : 'lax' as const,
     };
 
     res.clearCookie('accessToken', clearOptions);

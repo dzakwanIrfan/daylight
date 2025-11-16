@@ -5,7 +5,7 @@ import {
   ConflictException 
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, EventStatus } from '@prisma/client';
+import { Prisma, EventStatus, PaymentStatus } from '@prisma/client';
 import { QueryEventsDto, SortOrder } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -41,6 +41,68 @@ export class EventsService {
     }
 
     return uniqueSlug;
+  }
+
+  /**
+   * Check if user has already purchased this event
+   * Returns: null (never purchased) | PAID | PENDING | FAILED | EXPIRED | REFUNDED
+   */
+  async checkUserPurchaseStatus(slug: string, userId: string) {
+    // First, get the event by slug
+    const event = await this.prisma.event.findUnique({
+      where: { slug },
+      select: { id: true, title: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    // Find user's transaction for this event
+    const transaction = await this.prisma.transaction.findFirst({
+      where: {
+        userId,
+        eventId: event.id,
+      },
+      orderBy: {
+        createdAt: 'desc', // Get latest transaction
+      },
+      select: {
+        id: true,
+        paymentStatus: true,
+        merchantRef: true,
+        paidAt: true,
+        createdAt: true,
+      },
+    });
+
+    if (!transaction) {
+      return {
+        hasPurchased: false,
+        canPurchase: true,
+        status: null,
+        transaction: null,
+      };
+    }
+
+    // Determine if user can purchase again
+    const canPurchaseAgain = new Set<PaymentStatus>([
+      PaymentStatus.FAILED,
+      PaymentStatus.EXPIRED,
+      PaymentStatus.REFUNDED,
+    ]).has(transaction.paymentStatus);
+
+    return {
+      hasPurchased: true,
+      canPurchase: canPurchaseAgain,
+      status: transaction.paymentStatus,
+      transaction: {
+        id: transaction.id,
+        merchantRef: transaction.merchantRef,
+        paidAt: transaction.paidAt,
+        createdAt: transaction.createdAt,
+      },
+    };
   }
 
   /**

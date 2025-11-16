@@ -1,7 +1,8 @@
 'use client';
 
 import { DashboardLayout } from '@/components/main/dashboard-layout';
-import { usePublicEvent } from '@/hooks/use-public-events';
+import { usePublicEvent, useEventPurchaseStatus } from '@/hooks/use-public-events';
+import { useAuth } from '@/hooks/use-auth';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Loader2,
@@ -12,15 +13,25 @@ import {
   ArrowLeft,
   ExternalLink,
   Check,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { PaymentStatus } from '@/types/event.types';
+import { toast } from 'sonner';
 
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const slug = params.slug as string;
+  
   const { data: event, isLoading } = usePublicEvent(slug);
+  const { 
+    data: purchaseStatus, 
+    isLoading: isPurchaseStatusLoading 
+  } = useEventPurchaseStatus(slug);
 
   if (isLoading) {
     return (
@@ -63,6 +74,56 @@ export default function EventDetailPage() {
   const isFull = spotsLeft <= 0;
   const isAlmostFull = spotsLeft <= 5 && spotsLeft > 0;
 
+  const hasPurchased = purchaseStatus?.hasPurchased ?? false;
+  const canPurchase = purchaseStatus?.canPurchase ?? true;
+  const purchaseStatusValue = purchaseStatus?.status;
+
+  // Determine button state
+  const isButtonDisabled = isFull || (hasPurchased && !canPurchase);
+
+  const getButtonText = () => {
+    if (isFull) return 'Event Full';
+    if (isPurchaseStatusLoading) return 'Checking...';
+    
+    if (hasPurchased) {
+      if (purchaseStatusValue === PaymentStatus.PAID) {
+        return 'Already Purchased';
+      }
+      if (purchaseStatusValue === PaymentStatus.PENDING) {
+        return 'Payment Pending';
+      }
+      if (canPurchase) {
+        return 'Try Again'; // For FAILED, EXPIRED, REFUNDED
+      }
+    }
+    
+    return 'Join Event';
+  };
+
+  const handleJoinEvent = () => {
+    // If not logged in, redirect to login
+    if (!user) {
+      toast.error('Please login to join this event');
+      router.push(`/auth/login?redirect=/events/${event.slug}`);
+      return;
+    }
+
+    // If already purchased and can't purchase again, show message
+    if (hasPurchased && !canPurchase) {
+      if (purchaseStatusValue === PaymentStatus.PAID) {
+        toast.info('You have already joined this event');
+        router.push('/my-events');
+      } else if (purchaseStatusValue === PaymentStatus.PENDING) {
+        toast.info('Your payment is still pending. Please check your transactions.');
+        router.push('/my-events?tab=transactions');
+      }
+      return;
+    }
+
+    // Proceed to payment
+    router.push(`/events/${event.slug}/payment`);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-3xl mx-auto">
@@ -74,6 +135,66 @@ export default function EventDetailPage() {
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm font-medium">Back</span>
         </button>
+
+        {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-green-900 mb-1">
+                  You're registered for this event!
+                </p>
+                <p className="text-sm text-green-700">
+                  Check your ticket in{' '}
+                  <button
+                    onClick={() => router.push('/my-events')}
+                    className="underline hover:text-green-900"
+                  >
+                    My Events
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasPurchased && purchaseStatusValue === PaymentStatus.PENDING && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-yellow-900 mb-1">
+                  Payment Pending
+                </p>
+                <p className="text-sm text-yellow-700">
+                  Your payment is being processed. Check{' '}
+                  <button
+                    onClick={() => router.push('/my-events?tab=transactions')}
+                    className="underline hover:text-yellow-900"
+                  >
+                    transaction status
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasPurchased && canPurchase && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-blue-900 mb-1">
+                  Previous Payment {purchaseStatusValue}
+                </p>
+                <p className="text-sm text-blue-700">
+                  You can try purchasing this event again.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Hero Section - RESPONSIVE */}
         <div className={`bg-brand rounded-xl p-5 md:p-6 text-white space-y-4`}>
@@ -258,19 +379,28 @@ export default function EventDetailPage() {
           </div>
         )}
 
-        {/* CTA Button - Fixed at bottom on mobile */}
+        {/* ============================================ */}
+        {/* CTA Button - UPDATED WITH PURCHASE STATUS */}
+        {/* ============================================ */}
         <div className="sticky bottom-16 sm:bottom-6 bg-white rounded-xl border border-gray-200 p-4 shadow-lg">
           <button
-            disabled={isFull}
-            onClick={() => router.push(`/events/${event.slug}/payment`)}
+            disabled={isButtonDisabled || isPurchaseStatusLoading}
+            onClick={handleJoinEvent}
             className={`w-full px-6 py-3.5 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all ${
-              isFull
+              isButtonDisabled
                 ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                 : 'bg-brand text-white hover:bg-brand/90 hover:shadow-xl active:scale-[0.98]'
             }`}
           >
-            {isFull ? 'Event Full' : 'Join Event'}
+            {getButtonText()}
           </button>
+          
+          {/* Helper text for purchase status */}
+          {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
+            <p className="text-xs text-center text-gray-600 mt-2">
+              View your ticket in My Events
+            </p>
+          )}
         </div>
       </div>
     </DashboardLayout>

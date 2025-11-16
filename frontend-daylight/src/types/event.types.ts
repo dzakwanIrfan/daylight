@@ -12,6 +12,14 @@ export enum EventStatus {
   COMPLETED = 'COMPLETED',
 }
 
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  FAILED = 'FAILED',
+  EXPIRED = 'EXPIRED',
+  REFUNDED = 'REFUNDED',
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -42,6 +50,18 @@ export interface Event {
   organizerContact?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EventPurchaseStatus {
+  hasPurchased: boolean;
+  canPurchase: boolean;
+  status: PaymentStatus | null;
+  transaction: {
+    id: string;
+    merchantRef: string;
+    paidAt: string | null;
+    createdAt: string;
+  } | null;
 }
 
 export interface CreateEventInput {

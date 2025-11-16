@@ -1,34 +1,22 @@
 import apiClient from '@/lib/axios';
-import type {
-  Event,
-  QueryEventsResponse,
-  QueryEventsParams,
-} from '@/types/event.types';
-
-export interface NextWeekEventsResponse {
-  data: Event[];
-  dateRange: {
-    from: string;
-    to: string;
-  };
-  total: number;
-}
+import type { Event } from '@/types/event.types';
+import type { EventPurchaseStatus } from '@/types/event.types';
 
 class PublicEventService {
   private readonly baseURL = '/events/public';
 
   /**
-   * Get public events with filters
+   * Get all public events
    */
-  async getEvents(params?: QueryEventsParams): Promise<QueryEventsResponse> {
+  async getPublicEvents(params?: any): Promise<any> {
     const response = await apiClient.get(this.baseURL, { params });
     return response.data;
   }
 
   /**
-   * Get events for next week
+   * Get next week events
    */
-  async getNextWeekEvents(): Promise<NextWeekEventsResponse> {
+  async getNextWeekEvents(): Promise<any> {
     const response = await apiClient.get(`${this.baseURL}/next-week`);
     return response.data;
   }
@@ -38,6 +26,14 @@ class PublicEventService {
    */
   async getEventBySlug(slug: string): Promise<Event> {
     const response = await apiClient.get(`${this.baseURL}/${slug}`);
+    return response.data;
+  }
+
+  /**
+   * Check if user has already purchased this event
+   */
+  async checkPurchaseStatus(slug: string): Promise<EventPurchaseStatus> {
+    const response = await apiClient.get(`${this.baseURL}/${slug}/purchase-status`);
     return response.data;
   }
 }

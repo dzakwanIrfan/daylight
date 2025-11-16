@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { QueryEventsDto } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -53,6 +54,15 @@ export class EventsController {
   @Get('public/:slug')
   async getPublicEventBySlug(@Param('slug') slug: string) {
     return this.eventsService.getEventBySlug(slug);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('public/:slug/purchase-status')
+  async checkUserPurchaseStatus(
+    @Param('slug') slug: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.eventsService.checkUserPurchaseStatus(slug, user.id);
   }
 
   // ADMIN ENDPOINTS

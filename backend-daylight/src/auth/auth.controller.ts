@@ -105,7 +105,7 @@ export class AuthController {
   }
 
   /**
-   * Google callback - Set cookies THEN redirect tanpa token di URL
+   * Set cookies THEN redirect
    */
   @Public()
   @Get('google/callback')
@@ -127,16 +127,15 @@ export class AuthController {
         result = await this.authService.googleLogin(googleUser);
       }
 
-      // Set cookies FIRST sebelum redirect
+      // Set cookies FIRST
       this.setAuthCookies(res, result.accessToken, result.refreshToken);
 
       const frontendUrl = this.configService.get('FRONTEND_URL');
       
-      // Redirect tanpa token di URL (cookies sudah di-set)
+      // Redirect tanpa token di URL
       const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
       redirectUrl.searchParams.set('success', 'true');
 
-      // Log untuk debugging
       console.log('🍪 Cookies set, redirecting to:', redirectUrl.toString());
 
       res.redirect(redirectUrl.toString());
@@ -228,7 +227,7 @@ export class AuthController {
    */
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    const cookieDomain = this.configService.get('COOKIE_DOMAIN'); // dari .env
+    const cookieDomain = this.configService.get('COOKIE_DOMAIN');
     
     const accessTokenExpiry = this.configService.get('JWT_EXPIRES_IN') || '1d';
     const refreshTokenExpiry = this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
@@ -239,9 +238,9 @@ export class AuthController {
     const cookieOptions = {
       httpOnly: true,
       secure: isProduction, // true di production (HTTPS)
-      sameSite: isProduction ? 'none' as const : 'lax' as const, // 'none' untuk cross-domain
+      sameSite: isProduction ? 'none' as const : 'lax' as const,
       path: '/',
-      domain: isProduction ? cookieDomain : undefined, // gunakan COOKIE_DOMAIN dari .env
+      domain: isProduction ? cookieDomain : undefined,
     };
 
     console.log('🍪 Setting cookies with options:', {

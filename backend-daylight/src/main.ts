@@ -34,7 +34,7 @@ async function bootstrap() {
   // CORS Configuration
   const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:3001';
   
-  // Allow multiple origins untuk production (dengan/tanpa www)
+  // Allow multiple origins untuk production
   const allowedOrigins = isProduction 
     ? [
         'https://daylightapp.asia',
@@ -86,11 +86,11 @@ async function bootstrap() {
   );
 
   const port = configService.get('PORT') || 3000;
-  await app.listen(port, '0.0.0.0'); // Listen on all interfaces
+  await app.listen(port, '0.0.0.0');
   
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
   console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
-  console.log(`🍪 Cookies: ${isProduction ? 'secure=true, sameSite=none' : 'development mode'}`);
+  console.log(`🍪 Cookie domain: ${configService.get('COOKIE_DOMAIN')}`);
   console.log(`🔒 Trust Proxy: ${isProduction ? 'enabled' : 'disabled'}`);
   console.log(`🌍 Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
 }

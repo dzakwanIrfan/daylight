@@ -5,15 +5,19 @@ import {
   ConflictException 
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, EventStatus, PaymentStatus } from '@prisma/client';
+import { Prisma, EventStatus, PaymentStatus, TransactionType } from '@prisma/client';
 import { QueryEventsDto, SortOrder } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { BulkActionEventDto, EventBulkActionType } from './dto/bulk-action-event.dto';
+import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 
 @Injectable()
 export class EventsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private subscriptionsService: SubscriptionsService,
+  ) {}
 
   /**
    * Generate unique slug from title
@@ -48,24 +52,43 @@ export class EventsService {
    * Returns: null (never purchased) | PAID | PENDING | FAILED | EXPIRED | REFUNDED
    */
   async checkUserPurchaseStatus(slug: string, userId: string) {
-    // First, get the event by slug
     const event = await this.prisma.event.findUnique({
       where: { slug },
-      select: { id: true, title: true },
+      select: { id: true, title: true, price: true },
     });
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
 
-    // Find user's transaction for this event
+    // ========================================
+    // CHECK SUBSCRIPTION FIRST
+    // ========================================
+    const hasValidSubscription = await this.subscriptionsService.hasValidSubscription(userId);
+    
+    if (hasValidSubscription) {
+      return {
+        hasPurchased: false,
+        canPurchase: false, // Can't purchase if has subscription
+        status: null,
+        transaction: null,
+        hasSubscription: true,
+        subscriptionAccess: true,
+        message: 'You have access to this event through your active subscription',
+      };
+    }
+
+    // ========================================
+    // CHECK DIRECT PURCHASE
+    // ========================================
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         userId,
         eventId: event.id,
+        transactionType: TransactionType.EVENT, // Only check event transactions
       },
       orderBy: {
-        createdAt: 'desc', // Get latest transaction
+        createdAt: 'desc',
       },
       select: {
         id: true,
@@ -82,10 +105,11 @@ export class EventsService {
         canPurchase: true,
         status: null,
         transaction: null,
+        hasSubscription: false,
+        subscriptionAccess: false,
       };
     }
 
-    // Determine if user can purchase again
     const canPurchaseAgain = new Set<PaymentStatus>([
       PaymentStatus.FAILED,
       PaymentStatus.EXPIRED,
@@ -102,6 +126,8 @@ export class EventsService {
         paidAt: transaction.paidAt,
         createdAt: transaction.createdAt,
       },
+      hasSubscription: false,
+      subscriptionAccess: false,
     };
   }
 

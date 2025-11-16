@@ -24,6 +24,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentCallbackDto } from './dto/payment-callback.dto';
 import { QueryTransactionsDto } from './dto/query-transactions.dto';
 import { Request } from 'express';
+import { CreateSubscriptionPaymentDto } from './dto/create-subscription-payment.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -147,5 +148,18 @@ export class PaymentController {
   @Get('admin/statistics')
   async getPaymentStatistics() {
     return this.paymentService.getPaymentStatistics();
+  }
+
+  /**
+   * Create subscription payment
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('subscribe')
+  @HttpCode(HttpStatus.CREATED)
+  async createSubscriptionPayment(
+    @CurrentUser() user: any,
+    @Body() dto: CreateSubscriptionPaymentDto,
+  ) {
+    return this.paymentService.createSubscriptionPayment(user.id, dto);
   }
 }

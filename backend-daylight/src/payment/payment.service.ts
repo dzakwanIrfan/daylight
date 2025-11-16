@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   Logger,
   UnauthorizedException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,11 +13,13 @@ import { EmailService } from '../email/email.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentCallbackDto } from './dto/payment-callback.dto';
 import { QueryTransactionsDto } from './dto/query-transactions.dto';
-import { PaymentStatus, Prisma } from '@prisma/client';
+import { PaymentStatus, Prisma, TransactionType } from '@prisma/client';
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { PaymentMethodsService } from 'src/payment-methods/payment-methods.service';
 import { PaymentGateway } from './payment.gateway';
+import { CreateSubscriptionPaymentDto } from './dto/create-subscription-payment.dto';
+import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 
 @Injectable()
 export class PaymentService {
@@ -33,6 +36,7 @@ export class PaymentService {
     private emailService: EmailService,
     private paymentMethodsService: PaymentMethodsService,
     private paymentGateway: PaymentGateway,
+    private subscriptionsService: SubscriptionsService,
   ) {
     this.tripayApiKey = this.getRequiredConfig('TRIPAY_API_KEY');
     this.tripayPrivateKey = this.getRequiredConfig('TRIPAY_PRIVATE_KEY');
@@ -317,7 +321,6 @@ export class PaymentService {
 
   /**
    * Handle payment callback from Tripay
-   * CRITICAL: This is the main callback handler
    */
   async handleCallback(
     callbackData: PaymentCallbackDto,
@@ -327,7 +330,6 @@ export class PaymentService {
     this.logger.log(`Reference: ${callbackData.reference}`);
     this.logger.log(`Merchant Ref: ${callbackData.merchant_ref}`);
     this.logger.log(`Status: ${callbackData.status}`);
-    this.logger.log(`Signature: ${signature}`);
 
     // Verify signature
     const isValid = this.verifyCallbackSignature(callbackData, signature);
@@ -338,12 +340,20 @@ export class PaymentService {
 
     this.logger.log('✅ Signature verified');
 
-    const { merchant_ref, reference, status, paid_at } = callbackData;
+    const { merchant_ref, status, paid_at } = callbackData;
 
     // Find transaction
     const transaction = await this.prisma.transaction.findUnique({
       where: { merchantRef: merchant_ref },
-      include: { event: true, user: true },
+      include: { 
+        event: true, 
+        user: true,
+        userSubscription: {
+          include: {
+            plan: true,
+          },
+        },
+      },
     });
 
     if (!transaction) {
@@ -352,8 +362,9 @@ export class PaymentService {
     }
 
     this.logger.log(`Found transaction: ${transaction.id}`);
+    this.logger.log(`Transaction type: ${transaction.transactionType}`);
 
-    // Map Tripay status to our PaymentStatus enum
+    // Map Tripay status
     let mappedStatus: PaymentStatus;
     switch (status) {
       case 'PAID':
@@ -382,25 +393,48 @@ export class PaymentService {
     if (status === 'PAID' && paid_at) {
       updateData.paidAt = new Date(paid_at * 1000);
 
-      // Update event participants
-      const orderItems = transaction.orderItems as any[];
-      await this.prisma.event.update({
-        where: { id: transaction.eventId },
-        data: {
-          currentParticipants: {
-            increment: orderItems[0]?.quantity || 1,
-          },
-        },
-      });
+      // HANDLE SUBSCRIPTION PAYMENT
+      if (transaction.transactionType === TransactionType.SUBSCRIPTION) {
+        this.logger.log('Processing SUBSCRIPTION payment');
+        
+        if (transaction.userSubscription) {
+          await this.subscriptionsService.activateSubscription(
+            transaction.userSubscription.id
+          );
+          this.logger.log(`✅ Subscription activated: ${transaction.userSubscription.id}`);
+        }
+      }
 
-      this.logger.log('✅ Event participants updated');
+      // HANDLE EVENT PAYMENT
+      if (transaction.transactionType === TransactionType.EVENT && transaction.eventId) {
+        this.logger.log('Processing EVENT payment');
+        
+        const orderItems = transaction.orderItems as any[];
+        await this.prisma.event.update({
+          where: { id: transaction.eventId },
+          data: {
+            currentParticipants: {
+              increment: orderItems[0]?.quantity || 1,
+            },
+          },
+        });
+        this.logger.log('✅ Event participants updated');
+      }
     }
 
     // Update transaction
     const updatedTransaction = await this.prisma.transaction.update({
       where: { id: transaction.id },
       data: updateData,
-      include: { event: true, user: true },
+      include: { 
+        event: true, 
+        user: true,
+        userSubscription: {
+          include: {
+            plan: true,
+          },
+        },
+      },
     });
 
     this.logger.log('✅ Transaction updated');
@@ -412,7 +446,9 @@ export class PaymentService {
           transaction.id,
           transaction.userId,
           {
+            type: transaction.transactionType,
             event: updatedTransaction.event,
+            subscription: updatedTransaction.userSubscription,
             amount: transaction.amount,
             paidAt: updatedTransaction.paidAt,
           },
@@ -441,33 +477,7 @@ export class PaymentService {
       this.logger.error(`WebSocket error: ${wsError.message}`);
     }
 
-    // Send email notifications
-    try {
-      if (status === 'PAID') {
-        await this.emailService.sendPaymentSuccessEmail(
-          transaction.customerEmail,
-          transaction.customerName,
-          updatedTransaction,
-          updatedTransaction.event,
-        );
-      } else if (status === 'EXPIRED') {
-        await this.emailService.sendPaymentExpiredEmail(
-          transaction.customerEmail,
-          transaction.customerName,
-          updatedTransaction,
-          updatedTransaction.event,
-        );
-      } else if (status === 'FAILED') {
-        await this.emailService.sendPaymentFailedEmail(
-          transaction.customerEmail,
-          transaction.customerName,
-          updatedTransaction,
-          updatedTransaction.event,
-        );
-      }
-    } catch (emailError) {
-      this.logger.error(`Email error: ${emailError.message}`);
-    }
+    // TODO: Send email notifications for subscription
 
     return {
       success: true,
@@ -729,7 +739,8 @@ export class PaymentService {
 
         if (
           tripayData.status === 'PAID' &&
-          transaction.paymentStatus !== 'PAID'
+          transaction.paymentStatus !== 'PAID' &&
+          transaction.eventId
         ) {
           const orderItems = transaction.orderItems as any[];
           await this.prisma.event.update({
@@ -810,5 +821,178 @@ export class PaymentService {
       },
       recentTransactions,
     };
+  }
+
+  /**
+   * Create subscription payment
+   */
+  async createSubscriptionPayment(
+    userId: string,
+    dto: CreateSubscriptionPaymentDto
+  ) {
+    const { planId, paymentMethod, customerName, customerEmail, customerPhone } = dto;
+
+    // Get subscription plan
+    const planResult = await this.subscriptionsService.getPlanById(planId);
+    const plan = planResult.data;
+
+    if (!plan.isActive) {
+      throw new BadRequestException('Subscription plan is not available');
+    }
+
+    // Check if user already has active subscription
+    const hasActive = await this.subscriptionsService.hasValidSubscription(userId);
+    if (hasActive) {
+      throw new ConflictException(
+        'You already have an active subscription. Please wait until it expires.'
+      );
+    }
+
+    // Get user details
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Validate payment method
+    const methodData = await this.paymentMethodsService.getPaymentMethodByCode(
+      paymentMethod
+    );
+
+    if (!methodData.data.isActive) {
+      throw new BadRequestException('Payment method is not available');
+    }
+
+    // Calculate amount
+    const amount = plan.price;
+    const merchantRef = this.generateMerchantRef();
+
+    // Calculate fee
+    const feeCalculation = await this.paymentMethodsService.calculateFee(
+      paymentMethod,
+      amount
+    );
+
+    const feeMerchant = feeCalculation.data.fee.merchant.total;
+    const feeCustomer = feeCalculation.data.fee.customer.total;
+    const totalFee = feeCalculation.data.fee.total;
+    const finalAmount = feeCalculation.data.finalAmount;
+
+    // Generate signature
+    const signature = this.generateSignature(merchantRef, finalAmount);
+
+    // Prepare order items
+    const orderItems = [
+      {
+        name: `${plan.name} Subscription`,
+        price: plan.price,
+        quantity: 1,
+        subtotal: amount,
+      },
+    ];
+
+    // Create transaction with Tripay
+    try {
+      const tripayResponse = await axios.post(
+        `${this.tripayBaseUrl}/transaction/create`,
+        {
+          method: paymentMethod,
+          merchant_ref: merchantRef,
+          amount: finalAmount,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone || undefined,
+          order_items: orderItems,
+          callback_url: this.tripayCallbackUrl,
+          return_url: `${this.configService.get('FRONTEND_URL')}/my-subscriptions`,
+          expired_time: Math.floor(Date.now() / 1000) + 24 * 3600,
+          signature: signature,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.tripayApiKey}`,
+          },
+        }
+      );
+
+      const tripayData = tripayResponse.data.data;
+
+      // Save transaction with SUBSCRIPTION type
+      const transaction = await this.prisma.transaction.create({
+        data: {
+          userId,
+          eventId: null, // No event for subscription
+          tripayReference: tripayData.reference,
+          merchantRef: merchantRef,
+          paymentMethodCode: paymentMethod,
+          paymentMethod: tripayData.payment_method,
+          paymentName: tripayData.payment_name,
+          paymentStatus: PaymentStatus.PENDING,
+          transactionType: TransactionType.SUBSCRIPTION, // SET TYPE
+          amount: amount,
+          feeMerchant: feeMerchant,
+          feeCustomer: feeCustomer,
+          totalFee: totalFee,
+          amountReceived: tripayData.amount_received,
+          payCode: tripayData.pay_code,
+          payUrl: tripayData.pay_url,
+          checkoutUrl: tripayData.checkout_url,
+          qrString: tripayData.qr_string,
+          qrUrl: tripayData.qr_url,
+          customerName,
+          customerEmail,
+          customerPhone: customerPhone || undefined,
+          expiredAt: new Date(tripayData.expired_time * 1000),
+          instructions: tripayData.instructions,
+          orderItems: orderItems,
+        },
+      });
+
+      // Create pending subscription
+      await this.subscriptionsService.createPendingSubscription(
+        userId,
+        planId,
+        transaction.id
+      );
+
+      // Emit WebSocket notification
+      try {
+        this.paymentGateway.emitPaymentUpdateToUser(userId, {
+          type: 'payment:created',
+          transaction: {
+            id: transaction.id,
+            status: transaction.paymentStatus,
+            amount: transaction.amount,
+            expiredAt: transaction.expiredAt,
+          },
+          message: 'Subscription payment created',
+        });
+      } catch (wsError) {
+        this.logger.error(`WebSocket error: ${wsError.message}`);
+      }
+
+      return {
+        success: true,
+        message: 'Subscription payment created successfully',
+        data: {
+          transaction,
+          plan,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Tripay API Error:', error.response?.data || error.message);
+      throw new InternalServerErrorException(
+        error.response?.data?.message || 'Failed to create payment'
+      );
+    }
   }
 }

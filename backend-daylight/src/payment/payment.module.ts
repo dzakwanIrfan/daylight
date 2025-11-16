@@ -9,12 +9,14 @@ import { PaymentMethodsModule } from '../payment-methods/payment-methods.module'
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     PrismaModule,
     EmailModule,
     PaymentMethodsModule,
+    SubscriptionsModule,
     ScheduleModule.forRoot(),
     JwtModule.registerAsync({
       imports: [ConfigModule],

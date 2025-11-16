@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,6 +16,7 @@ import { PaymentStatus, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { PaymentMethodsService } from 'src/payment-methods/payment-methods.service';
+import { PaymentGateway } from './payment.gateway';
 
 @Injectable()
 export class PaymentService {
@@ -23,12 +25,14 @@ export class PaymentService {
   private readonly tripayMerchantCode: string;
   private readonly tripayBaseUrl: string;
   private readonly tripayCallbackUrl: string;
+  private readonly logger = new Logger(PaymentService.name);
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
     private emailService: EmailService,
     private paymentMethodsService: PaymentMethodsService,
+    private paymentGateway: PaymentGateway,
   ) {
     this.tripayApiKey = this.configService.get<string>('TRIPAY_API_KEY') || '';
     this.tripayPrivateKey = this.configService.get<string>('TRIPAY_PRIVATE_KEY') || '';
@@ -268,23 +272,38 @@ export class PaymentService {
         },
         });
 
+        try {
+          this.paymentGateway.emitPaymentUpdateToUser(userId, {
+            type: 'payment:created',
+            transaction: {
+              id: transaction.id,
+              status: transaction.paymentStatus,
+              amount: transaction.amount,
+              expiredAt: transaction.expiredAt,
+            },
+            message: 'Pembayaran berhasil dibuat',
+          });
+        } catch (wsError) {
+          console.error('WebSocket notification error:', wsError);
+        }
+
         // Send payment created email
         await this.emailService.sendPaymentCreatedEmail(
-        customerEmail,
-        customerName,
-        transaction,
-        event,
+          customerEmail,
+          customerName,
+          transaction,
+          event,
         );
 
         return {
-        success: true,
-        message: 'Payment created successfully',
-        data: transaction,
+          success: true,
+          message: 'Payment created successfully',
+          data: transaction,
         };
     } catch (error) {
-        console.error('Tripay API Error:', error.response?.data || error.message);
-        throw new InternalServerErrorException(
-        error.response?.data?.message || 'Failed to create payment',
+          console.error('Tripay API Error:', error.response?.data || error.message);
+          throw new InternalServerErrorException(
+          error.response?.data?.message || 'Failed to create payment',
         );
     }
     }
@@ -300,7 +319,7 @@ export class PaymentService {
 
     const { merchant_ref, reference, status, paid_at } = callbackData;
 
-    // Find transaction
+    // Find transaction - FIXED: Include event relation
     const transaction = await this.prisma.transaction.findUnique({
       where: { merchantRef: merchant_ref },
       include: { event: true, user: true },
@@ -338,6 +357,42 @@ export class PaymentService {
       include: { event: true, user: true },
     });
 
+    // Emit WebSocket events based on status
+    try {
+      if (status === 'PAID') {
+        this.paymentGateway.emitPaymentSuccess(
+          transaction.id,
+          transaction.userId,
+          {
+            event: updatedTransaction.event, 
+            amount: transaction.amount,
+            paidAt: updatedTransaction.paidAt,
+          },
+        );
+      } else if (status === 'EXPIRED') {
+        this.paymentGateway.emitPaymentExpired(
+          transaction.id,
+          transaction.userId,
+        );
+      } else if (status === 'FAILED') {
+        this.paymentGateway.emitPaymentFailed(
+          transaction.id,
+          transaction.userId,
+          { status },
+        );
+      }
+
+      // Emit general status update
+      this.paymentGateway.emitPaymentStatusUpdate(transaction.id, {
+        status: updatedTransaction.paymentStatus,
+        paidAt: updatedTransaction.paidAt,
+        updatedAt: updatedTransaction.updatedAt,
+      });
+    } catch (wsError) {
+      this.logger.error('WebSocket notification error:', wsError);
+      // Don't throw error, just log it
+    }
+
     // Send email notification based on status
     try {
       if (status === 'PAID') {
@@ -345,21 +400,21 @@ export class PaymentService {
           transaction.customerEmail,
           transaction.customerName,
           updatedTransaction,
-          transaction.event,
+          updatedTransaction.event,
         );
       } else if (status === 'EXPIRED') {
         await this.emailService.sendPaymentExpiredEmail(
           transaction.customerEmail,
           transaction.customerName,
           updatedTransaction,
-          transaction.event,
+          updatedTransaction.event,
         );
       } else if (status === 'FAILED') {
         await this.emailService.sendPaymentFailedEmail(
           transaction.customerEmail,
           transaction.customerName,
           updatedTransaction,
-          transaction.event,
+          updatedTransaction.event,
         );
       }
     } catch (emailError) {
@@ -575,6 +630,9 @@ export class PaymentService {
         id: transactionId,
         userId: userId,
       },
+      include: {
+        event: true,
+      },
     });
 
     if (!transaction) {
@@ -607,6 +665,25 @@ export class PaymentService {
               : null,
           },
         });
+
+        try {
+          this.paymentGateway.emitPaymentStatusUpdate(transaction.id, {
+            status: tripayData.status,
+            paidAt: tripayData.paid_at ? new Date(tripayData.paid_at * 1000) : null,
+            updatedAt: new Date(),
+          });
+
+          // Emit specific event based on new status
+          if (tripayData.status === PaymentStatus.PAID) {
+            this.paymentGateway.emitPaymentSuccess(transaction.id, userId, {
+              event: transaction.event,
+              amount: transaction.amount,
+              paidAt: new Date(tripayData.paid_at * 1000),
+            });
+          }
+        } catch (wsError) {
+          console.error('WebSocket notification error:', wsError);
+        }
 
         // If paid, update event participants
         if (

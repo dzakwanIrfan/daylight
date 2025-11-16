@@ -4,17 +4,13 @@ import { DashboardLayout } from '@/components/main/dashboard-layout';
 import { useParams, useRouter } from 'next/navigation';
 import {
   useTransactionDetail,
-  useCheckPaymentStatus,
 } from '@/hooks/use-payment';
-import { usePaymentSocket } from '@/hooks/use-payment-socket';
-import { useState, useCallback } from 'react';
 import {
   Loader2,
   CheckCircle2,
   XCircle,
   Clock,
   AlertCircle,
-  RefreshCw,
   ArrowLeft,
   Calendar,
   MapPin,
@@ -37,49 +33,9 @@ export default function PaymentDetailPage() {
     isLoading,
     refetch,
   } = useTransactionDetail(transactionId);
-  const checkStatusMutation = useCheckPaymentStatus();
 
   const transaction = transactionResponse?.data;
   const isPending = transaction?.paymentStatus === PaymentStatus.PENDING;
-
-  // Stable callbacks using useCallback
-  const handlePaymentSuccess = useCallback(() => {
-    toast.success('Payment successful! 🎉');
-    refetch();
-  }, [refetch]);
-
-  const handlePaymentFailed = useCallback(() => {
-    toast.error('Payment failed');
-    refetch();
-  }, [refetch]);
-
-  const handlePaymentExpired = useCallback(() => {
-    toast.error('Payment expired');
-    refetch();
-  }, [refetch]);
-
-  const handlePaymentUpdate = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  // Only connect WebSocket for pending payments
-  const { isConnected } = usePaymentSocket({
-    transactionId: isPending ? transactionId : undefined,
-    enabled: isPending,
-    onPaymentSuccess: handlePaymentSuccess,
-    onPaymentFailed: handlePaymentFailed,
-    onPaymentExpired: handlePaymentExpired,
-    onPaymentUpdate: handlePaymentUpdate,
-  });
-
-  const handleCheckStatus = async () => {
-    try {
-      await checkStatusMutation.mutateAsync(transactionId);
-      toast.success('Status updated');
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to check status');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -179,38 +135,6 @@ export default function PaymentDetailPage() {
             )}
           </div>
         </div>
-
-        {/* WebSocket Connection Status - Only show for pending */}
-        {isPending && (
-          <div className="bg-white border border-gray-200 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-                  }`}
-                />
-                <span className="text-sm text-gray-600">
-                  {isConnected
-                    ? 'Real-time updates active'
-                    : 'Connecting...'}
-                </span>
-              </div>
-              <button
-                onClick={handleCheckStatus}
-                disabled={checkStatusMutation.isPending}
-                className="flex items-center gap-2 text-sm text-brand hover:text-brand/80 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${
-                    checkStatusMutation.isPending ? 'animate-spin' : ''
-                  }`}
-                />
-                Check Status
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Rest of the component remains the same... */}
         {/* Event Details */}

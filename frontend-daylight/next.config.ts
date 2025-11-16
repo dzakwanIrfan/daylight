@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https', // ⚠️ Production domain
+        protocol: 'https',
         hostname: 'api.daylightapp.asia',
         pathname: '/**',
       },
@@ -26,7 +26,6 @@ const nextConfig: NextConfig = {
     ],
   },
   reactStrictMode: true,
-  output: 'standalone', 
 };
 
 export default nextConfig;

@@ -46,6 +46,7 @@ export default function AuthCallbackPage() {
           .split('; ')
           .find(row => row.startsWith('accessToken='))
           ?.split('=')[1];
+        console.log('Retrieved token from cookie:', token);
 
         if (!profile) {
           throw new Error('Failed to retrieve user profile.');
@@ -57,6 +58,7 @@ export default function AuthCallbackPage() {
 
         // Set auth in store
         setAuth(profile, token);
+        console.log('User authenticated:', profile);
 
         setMessage('Login successful! Redirecting...');
 

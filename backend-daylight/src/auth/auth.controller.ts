@@ -131,7 +131,6 @@ export class AuthController {
       }
 
       const frontendUrl = this.configService.get('FRONTEND_URL');
-      const isProduction = this.configService.get('NODE_ENV') === 'production';
       
       // Pass tokens via URL for intermediate page to process
       // Intermediate page will call /auth/session-login to set httpOnly cookies properly
@@ -255,8 +254,12 @@ export class AuthController {
     }
   }
 
+  /**
+   * Cookie configuration untuk production
+   */
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
+    const cookieDomain = this.configService.get('COOKIE_DOMAIN');
     
     const accessTokenExpiry = this.configService.get('JWT_EXPIRES_IN') || '1d';
     const refreshTokenExpiry = this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
@@ -264,13 +267,22 @@ export class AuthController {
     const accessMaxAge = this.getExpiryInMs(accessTokenExpiry);
     const refreshMaxAge = this.getExpiryInMs(refreshTokenExpiry);
 
+    // PRODUCTION READY Cookie Options
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax' as const,
+      secure: isProduction, // true untuk HTTPS di production
+      sameSite: isProduction ? ('none' as const) : ('lax' as const), // 'none' diperlukan untuk cross-domain di production
       path: '/',
-      domain: isProduction ? this.configService.get('COOKIE_DOMAIN') : undefined,
+      domain: isProduction && cookieDomain ? cookieDomain : undefined, // Set domain hanya di production
     };
+
+    console.log('🍪 Setting cookies with options:', {
+      ...cookieOptions,
+      isProduction,
+      cookieDomain,
+      accessMaxAge,
+      refreshMaxAge,
+    });
 
     res.cookie('accessToken', accessToken, {
       ...cookieOptions,
@@ -284,8 +296,18 @@ export class AuthController {
   }
 
   private clearAuthCookies(res: Response) {
-    res.clearCookie('accessToken', { path: '/' });
-    res.clearCookie('refreshToken', { path: '/' });
-    res.clearCookie('sessionId', { path: '/' });
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    const cookieDomain = this.configService.get('COOKIE_DOMAIN');
+
+    const clearOptions = {
+      path: '/',
+      domain: isProduction && cookieDomain ? cookieDomain : undefined,
+      secure: isProduction,
+      sameSite: isProduction ? ('none' as const) : ('lax' as const),
+    };
+
+    res.clearCookie('accessToken', clearOptions);
+    res.clearCookie('refreshToken', clearOptions);
+    res.clearCookie('sessionId', clearOptions);
   }
 }

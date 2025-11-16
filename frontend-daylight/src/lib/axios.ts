@@ -7,7 +7,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true, // CRITICAL untuk cookies cross-domain
 });
 
 let isRefreshing = false;
@@ -101,7 +101,7 @@ apiClient.interceptors.response.use(
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
-          { withCredentials: true }
+          { withCredentials: true } // CRITICAL
         );
 
         if (response.data.accessToken) {

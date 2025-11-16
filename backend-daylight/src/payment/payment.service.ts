@@ -1,10 +1,10 @@
-// backend-daylight/src/payment/payment.service.ts
 import {
   Injectable,
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,11 +34,20 @@ export class PaymentService {
     private paymentMethodsService: PaymentMethodsService,
     private paymentGateway: PaymentGateway,
   ) {
-    this.tripayApiKey = this.configService.get<string>('TRIPAY_API_KEY') || '';
-    this.tripayPrivateKey = this.configService.get<string>('TRIPAY_PRIVATE_KEY') || '';
-    this.tripayMerchantCode = this.configService.get<string>('TRIPAY_MERCHANT_CODE') || '';
-    this.tripayBaseUrl = this.configService.get<string>('TRIPAY_BASE_URL') || '';
-    this.tripayCallbackUrl = this.configService.get<string>('TRIPAY_CALLBACK_URL') || '';
+    this.tripayApiKey = this.getRequiredConfig('TRIPAY_API_KEY');
+    this.tripayPrivateKey = this.getRequiredConfig('TRIPAY_PRIVATE_KEY');
+    this.tripayMerchantCode = this.getRequiredConfig('TRIPAY_MERCHANT_CODE');
+    this.tripayBaseUrl = this.getRequiredConfig('TRIPAY_BASE_URL');
+    this.tripayCallbackUrl = this.getRequiredConfig('TRIPAY_CALLBACK_URL');
+  }
+
+  private getRequiredConfig(key: string): string {
+    const value = this.configService.get<string>(key);
+    if (!value) {
+      this.logger.error(`Missing configuration for ${key}`);
+      throw new InternalServerErrorException(`Server configuration missing: ${key}`);
+    }
+    return value;
   }
 
   /**
@@ -51,7 +60,7 @@ export class PaymentService {
   }
 
   /**
-   * Generate signature for Tripay
+   * Generate signature for Tripay request
    */
   private generateSignature(merchantRef: string, amount: number): string {
     const data = this.tripayMerchantCode + merchantRef + amount;
@@ -62,15 +71,26 @@ export class PaymentService {
   }
 
   /**
-   * Verify callback signature
+   * Verify callback signature from Tripay
    */
-  private verifyCallbackSignature(callbackData: any): boolean {
-    const signature = crypto
-      .createHmac('sha256', this.tripayPrivateKey)
-      .update(JSON.stringify(callbackData))
-      .digest('hex');
+  private verifyCallbackSignature(
+    callbackData: PaymentCallbackDto,
+    signature: string,
+  ): boolean {
+    try {
+      // Create JSON string from callback data (sort by key)
+      const json = JSON.stringify(callbackData);
 
-    return signature === callbackData.signature;
+      // Generate HMAC SHA256
+      const calculatedSignature = crypto
+        .createHmac('sha256', this.tripayPrivateKey)
+        .update(json)
+        .digest('hex');
+
+      return calculatedSignature === signature;
+    } catch (error) {
+      return false;
+    }
   }
 
   /**
@@ -78,7 +98,6 @@ export class PaymentService {
    */
   async getPaymentChannels() {
     try {
-      // Use payment methods service instead of direct Tripay call
       return this.paymentMethodsService.getActivePaymentMethods();
     } catch (error) {
       throw new InternalServerErrorException(
@@ -87,99 +106,97 @@ export class PaymentService {
     }
   }
 
-    /**
-     * Calculate payment fee - now uses database
-     */
-    async calculateFee(amount: number, code?: string) {
+  /**
+   * Calculate payment fee
+   */
+  async calculateFee(amount: number, code?: string) {
     if (code) {
-        // Get fee from database
-        return this.paymentMethodsService.calculateFee(code, amount);
+      return this.paymentMethodsService.calculateFee(code, amount);
     }
 
-    // Get all methods and calculate for each
     const methods = await this.paymentMethodsService.getActivePaymentMethods();
     const calculations = await Promise.all(
-        methods.flat.map(async (method) => {
+      methods.flat.map(async (method) => {
         try {
-            const result = await this.paymentMethodsService.calculateFee(
+          const result = await this.paymentMethodsService.calculateFee(
             method.code,
             amount,
-            );
-            return result.data;
+          );
+          return result.data;
         } catch (error) {
-            return null;
+          return null;
         }
-        }),
+      }),
     );
 
     return {
-        success: true,
-        data: calculations.filter((c) => c !== null),
+      success: true,
+      data: calculations.filter((c) => c !== null),
     };
-    }
+  }
 
-    /**
-     * Create payment transaction
-     */
-    async createPayment(userId: string, createPaymentDto: CreatePaymentDto) {
+  /**
+   * Create payment transaction
+   */
+  async createPayment(userId: string, createPaymentDto: CreatePaymentDto) {
     const {
-        eventId,
-        paymentMethod,
-        customerName,
-        customerEmail,
-        customerPhone,
-        quantity,
+      eventId,
+      paymentMethod,
+      customerName,
+      customerEmail,
+      customerPhone,
+      quantity,
     } = createPaymentDto;
 
     // Get event details
     const event = await this.prisma.event.findUnique({
-        where: { id: eventId },
+      where: { id: eventId },
     });
 
     if (!event) {
-        throw new NotFoundException('Event not found');
+      throw new NotFoundException('Event not found');
     }
 
     if (!event.isActive || event.status !== 'PUBLISHED') {
-        throw new BadRequestException('Event is not available');
+      throw new BadRequestException('Event is not available');
     }
 
     if (event.currentParticipants + quantity > event.maxParticipants) {
-        throw new BadRequestException('Not enough slots available');
+      throw new BadRequestException('Not enough slots available');
     }
 
     // Get user details
     const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: {
+      where: { id: userId },
+      select: {
         id: true,
         email: true,
         firstName: true,
         lastName: true,
-        },
+      },
     });
 
     if (!user) {
-        throw new NotFoundException('User not found');
+      throw new NotFoundException('User not found');
     }
 
-    // Validate payment method from database
+    // Validate payment method
     const methodData = await this.paymentMethodsService.getPaymentMethodByCode(
-        paymentMethod,
+      paymentMethod,
     );
 
     if (!methodData.data.isActive) {
-        throw new BadRequestException('Payment method is not available');
+      throw new BadRequestException('Payment method is not available');
     }
 
     // Calculate amount
     const amount = event.price * quantity;
     const merchantRef = this.generateMerchantRef();
-    
-    // Calculate fee using database method
+
+    // Calculate fee
     const feeCalculation = await this.paymentMethodsService.calculateFee(
-        paymentMethod,
-        amount,
+      paymentMethod,
+      amount,
     );
 
     const feeMerchant = feeCalculation.data.fee.merchant.total;
@@ -187,141 +204,178 @@ export class PaymentService {
     const totalFee = feeCalculation.data.fee.total;
     const finalAmount = feeCalculation.data.finalAmount;
 
-    // Generate signature for Tripay
+    // Generate signature
     const signature = this.generateSignature(merchantRef, finalAmount);
 
     // Prepare order items
     const orderItems = [
-        {
+      {
         sku: event.id,
         name: event.title,
         price: event.price,
         quantity: quantity,
         subtotal: amount,
         product_url: `${this.configService.get('FRONTEND_URL')}/events/${event.slug}`,
-        },
+      },
     ];
 
     // Create transaction with Tripay
     try {
-        const tripayResponse = await axios.post(
+      const tripayResponse = await axios.post(
         `${this.tripayBaseUrl}/transaction/create`,
         {
-            method: paymentMethod,
-            merchant_ref: merchantRef,
-            amount: finalAmount,
-            customer_name: customerName,
-            customer_email: customerEmail,
-            customer_phone: customerPhone || undefined,
-            order_items: orderItems,
-            callback_url: this.tripayCallbackUrl,
-            return_url: `${this.configService.get('FRONTEND_URL')}/my-events`,
-            expired_time: Math.floor(Date.now() / 1000) + 24 * 3600, // 24 hours
-            signature: signature,
+          method: paymentMethod,
+          merchant_ref: merchantRef,
+          amount: finalAmount,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone || undefined,
+          order_items: orderItems,
+          callback_url: this.tripayCallbackUrl,
+          return_url: `${this.configService.get('FRONTEND_URL')}/my-events`,
+          expired_time: Math.floor(Date.now() / 1000) + 24 * 3600,
+          signature: signature,
         },
         {
-            headers: {
+          headers: {
             Authorization: `Bearer ${this.tripayApiKey}`,
-            },
+          },
         },
-        );
+      );
 
-        const tripayData = tripayResponse.data.data;
+      const tripayData = tripayResponse.data.data;
 
-        // Save transaction to database
-        const transaction = await this.prisma.transaction.create({
+      // Save transaction
+      const transaction = await this.prisma.transaction.create({
         data: {
-            userId,
-            eventId,
-            tripayReference: tripayData.reference,
-            merchantRef: merchantRef,
-            paymentMethodCode: paymentMethod, // TAMBAHKAN INI
-            paymentMethod: tripayData.payment_method,
-            paymentName: tripayData.payment_name,
-            paymentStatus: PaymentStatus.PENDING,
-            amount: amount,
-            feeMerchant: feeMerchant,
-            feeCustomer: feeCustomer,
-            totalFee: totalFee,
-            amountReceived: tripayData.amount_received,
-            payCode: tripayData.pay_code,
-            payUrl: tripayData.pay_url,
-            checkoutUrl: tripayData.checkout_url,
-            qrString: tripayData.qr_string,
-            qrUrl: tripayData.qr_url,
-            customerName,
-            customerEmail,
-            customerPhone: customerPhone || undefined,
-            expiredAt: new Date(tripayData.expired_time * 1000),
-            instructions: tripayData.instructions,
-            orderItems: orderItems,
+          userId,
+          eventId,
+          tripayReference: tripayData.reference,
+          merchantRef: merchantRef,
+          paymentMethodCode: paymentMethod,
+          paymentMethod: tripayData.payment_method,
+          paymentName: tripayData.payment_name,
+          paymentStatus: PaymentStatus.PENDING,
+          amount: amount,
+          feeMerchant: feeMerchant,
+          feeCustomer: feeCustomer,
+          totalFee: totalFee,
+          amountReceived: tripayData.amount_received,
+          payCode: tripayData.pay_code,
+          payUrl: tripayData.pay_url,
+          checkoutUrl: tripayData.checkout_url,
+          qrString: tripayData.qr_string,
+          qrUrl: tripayData.qr_url,
+          customerName,
+          customerEmail,
+          customerPhone: customerPhone || undefined,
+          expiredAt: new Date(tripayData.expired_time * 1000),
+          instructions: tripayData.instructions,
+          orderItems: orderItems,
         },
         include: {
-            event: true,
+          event: true,
         },
+      });
+
+      // Emit WebSocket notification
+      try {
+        this.paymentGateway.emitPaymentUpdateToUser(userId, {
+          type: 'payment:created',
+          transaction: {
+            id: transaction.id,
+            status: transaction.paymentStatus,
+            amount: transaction.amount,
+            expiredAt: transaction.expiredAt,
+          },
+          message: 'Pembayaran berhasil dibuat',
         });
+      } catch (wsError) {
+        this.logger.error(`WebSocket error: ${wsError.message}`);
+      }
 
-        try {
-          this.paymentGateway.emitPaymentUpdateToUser(userId, {
-            type: 'payment:created',
-            transaction: {
-              id: transaction.id,
-              status: transaction.paymentStatus,
-              amount: transaction.amount,
-              expiredAt: transaction.expiredAt,
-            },
-            message: 'Pembayaran berhasil dibuat',
-          });
-        } catch (wsError) {
-          console.error('WebSocket notification error:', wsError);
-        }
+      // Send email
+      await this.emailService.sendPaymentCreatedEmail(
+        customerEmail,
+        customerName,
+        transaction,
+        event,
+      );
 
-        // Send payment created email
-        await this.emailService.sendPaymentCreatedEmail(
-          customerEmail,
-          customerName,
-          transaction,
-          event,
-        );
-
-        return {
-          success: true,
-          message: 'Payment created successfully',
-          data: transaction,
-        };
+      return {
+        success: true,
+        message: 'Payment created successfully',
+        data: transaction,
+      };
     } catch (error) {
-          console.error('Tripay API Error:', error.response?.data || error.message);
-          throw new InternalServerErrorException(
-          error.response?.data?.message || 'Failed to create payment',
-        );
+      this.logger.error('Tripay API Error:', error.response?.data || error.message);
+      throw new InternalServerErrorException(
+        error.response?.data?.message || 'Failed to create payment',
+      );
     }
-    }
+  }
 
   /**
    * Handle payment callback from Tripay
+   * CRITICAL: This is the main callback handler
    */
-  async handleCallback(callbackData: PaymentCallbackDto) {
+  async handleCallback(
+    callbackData: PaymentCallbackDto,
+    signature: string,
+  ) {
+    this.logger.log('=== CALLBACK RECEIVED ===');
+    this.logger.log(`Reference: ${callbackData.reference}`);
+    this.logger.log(`Merchant Ref: ${callbackData.merchant_ref}`);
+    this.logger.log(`Status: ${callbackData.status}`);
+    this.logger.log(`Signature: ${signature}`);
+
     // Verify signature
-    if (!this.verifyCallbackSignature(callbackData)) {
-      throw new BadRequestException('Invalid signature');
+    const isValid = this.verifyCallbackSignature(callbackData, signature);
+    if (!isValid) {
+      this.logger.error('Invalid callback signature');
+      throw new UnauthorizedException('Invalid signature');
     }
+
+    this.logger.log('✅ Signature verified');
 
     const { merchant_ref, reference, status, paid_at } = callbackData;
 
-    // Find transaction - FIXED: Include event relation
+    // Find transaction
     const transaction = await this.prisma.transaction.findUnique({
       where: { merchantRef: merchant_ref },
       include: { event: true, user: true },
     });
 
     if (!transaction) {
+      this.logger.error(`Transaction not found: ${merchant_ref}`);
       throw new NotFoundException('Transaction not found');
     }
 
-    // Update transaction status
-    const updateData: any = {
-      paymentStatus: status as PaymentStatus,
-      callbackData: callbackData,
+    this.logger.log(`Found transaction: ${transaction.id}`);
+
+    // Map Tripay status to our PaymentStatus enum
+    let mappedStatus: PaymentStatus;
+    switch (status) {
+      case 'PAID':
+        mappedStatus = PaymentStatus.PAID;
+        break;
+      case 'EXPIRED':
+        mappedStatus = PaymentStatus.EXPIRED;
+        break;
+      case 'FAILED':
+        mappedStatus = PaymentStatus.FAILED;
+        break;
+      case 'REFUND':
+        mappedStatus = PaymentStatus.REFUNDED;
+        break;
+      default:
+        mappedStatus = PaymentStatus.PENDING;
+    }
+
+    // Prepare update data
+    const updateData: Prisma.TransactionUpdateInput = {
+      paymentStatus: mappedStatus,
+      callbackData: callbackData as any,
       updatedAt: new Date(),
     };
 
@@ -329,31 +383,36 @@ export class PaymentService {
       updateData.paidAt = new Date(paid_at * 1000);
 
       // Update event participants
+      const orderItems = transaction.orderItems as any[];
       await this.prisma.event.update({
         where: { id: transaction.eventId },
         data: {
           currentParticipants: {
-            increment: JSON.parse(JSON.stringify(transaction.orderItems))[0]
-              .quantity,
+            increment: orderItems[0]?.quantity || 1,
           },
         },
       });
+
+      this.logger.log('✅ Event participants updated');
     }
 
+    // Update transaction
     const updatedTransaction = await this.prisma.transaction.update({
       where: { id: transaction.id },
       data: updateData,
       include: { event: true, user: true },
     });
 
-    // Emit WebSocket events based on status
+    this.logger.log('✅ Transaction updated');
+
+    // Emit WebSocket events
     try {
       if (status === 'PAID') {
         this.paymentGateway.emitPaymentSuccess(
           transaction.id,
           transaction.userId,
           {
-            event: updatedTransaction.event, 
+            event: updatedTransaction.event,
             amount: transaction.amount,
             paidAt: updatedTransaction.paidAt,
           },
@@ -371,18 +430,18 @@ export class PaymentService {
         );
       }
 
-      // Emit general status update
       this.paymentGateway.emitPaymentStatusUpdate(transaction.id, {
         status: updatedTransaction.paymentStatus,
         paidAt: updatedTransaction.paidAt,
         updatedAt: updatedTransaction.updatedAt,
       });
+
+      this.logger.log('✅ WebSocket events emitted');
     } catch (wsError) {
-      this.logger.error('WebSocket notification error:', wsError);
-      // Don't throw error, just log it
+      this.logger.error(`WebSocket error: ${wsError.message}`);
     }
 
-    // Send email notification based on status
+    // Send email notifications
     try {
       if (status === 'PAID') {
         await this.emailService.sendPaymentSuccessEmail(
@@ -407,14 +466,12 @@ export class PaymentService {
         );
       }
     } catch (emailError) {
-      console.error('Failed to send email notification:', emailError);
-      // Don't throw error, just log it
+      this.logger.error(`Email error: ${emailError.message}`);
     }
 
     return {
       success: true,
       message: 'Callback processed successfully',
-      data: updatedTransaction,
     };
   }
 
@@ -436,7 +493,6 @@ export class PaymentService {
       throw new NotFoundException('Transaction not found');
     }
 
-    // Get latest status from Tripay
     try {
       const response = await axios.get(
         `${this.tripayBaseUrl}/transaction/detail`,
@@ -452,7 +508,6 @@ export class PaymentService {
 
       const tripayData = response.data.data;
 
-      // Update if status changed
       if (tripayData.status !== transaction.paymentStatus) {
         await this.prisma.transaction.update({
           where: { id: transaction.id },
@@ -482,7 +537,7 @@ export class PaymentService {
   }
 
   /**
-   * Get user transactions with filters
+   * Get user transactions
    */
   async getUserTransactions(userId: string, queryDto: QueryTransactionsDto) {
     const { page = 1, limit = 10, search, status, eventId, sortOrder } = queryDto;
@@ -528,8 +583,6 @@ export class PaymentService {
     ]);
 
     const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
 
     return {
       data: transactions,
@@ -538,8 +591,8 @@ export class PaymentService {
         page,
         limit,
         totalPages,
-        hasNextPage,
-        hasPrevPage,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
     };
   }
@@ -643,7 +696,6 @@ export class PaymentService {
 
       const tripayData = response.data.data;
 
-      // Update transaction if status changed
       if (tripayData.status !== transaction.paymentStatus) {
         await this.prisma.transaction.update({
           where: { id: transaction.id },
@@ -658,11 +710,12 @@ export class PaymentService {
         try {
           this.paymentGateway.emitPaymentStatusUpdate(transaction.id, {
             status: tripayData.status,
-            paidAt: tripayData.paid_at ? new Date(tripayData.paid_at * 1000) : null,
+            paidAt: tripayData.paid_at
+              ? new Date(tripayData.paid_at * 1000)
+              : null,
             updatedAt: new Date(),
           });
 
-          // Emit specific event based on new status
           if (tripayData.status === PaymentStatus.PAID) {
             this.paymentGateway.emitPaymentSuccess(transaction.id, userId, {
               event: transaction.event,
@@ -671,20 +724,19 @@ export class PaymentService {
             });
           }
         } catch (wsError) {
-          console.error('WebSocket notification error:', wsError);
+          this.logger.error(`WebSocket error: ${wsError.message}`);
         }
 
-        // If paid, update event participants
         if (
           tripayData.status === 'PAID' &&
           transaction.paymentStatus !== 'PAID'
         ) {
-          const orderItems = JSON.parse(JSON.stringify(transaction.orderItems));
+          const orderItems = transaction.orderItems as any[];
           await this.prisma.event.update({
             where: { id: transaction.eventId },
             data: {
               currentParticipants: {
-                increment: orderItems[0].quantity,
+                increment: orderItems[0]?.quantity || 1,
               },
             },
           });

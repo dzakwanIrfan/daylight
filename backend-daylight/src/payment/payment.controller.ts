@@ -8,8 +8,10 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  Req,
+  Headers,
   RawBodyRequest,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -56,8 +58,22 @@ export class PaymentController {
   @Public()
   @Post('callback')
   @HttpCode(HttpStatus.OK)
-  async handleCallback(@Body() callbackData: PaymentCallbackDto) {
-    return this.paymentService.handleCallback(callbackData);
+  async handleCallback(
+    @Headers('x-callback-signature') signature: string,
+    @Headers('x-callback-event') event: string,
+    @Body() callbackData: PaymentCallbackDto,
+  ) {
+    // Validate required headers
+    if (!signature) {
+      throw new BadRequestException('Missing callback signature');
+    }
+
+    if (!event || event !== 'payment_status') {
+      throw new BadRequestException('Invalid callback event');
+    }
+
+    // Process callback
+    return this.paymentService.handleCallback(callbackData, signature);
   }
 
   // USER ENDPOINTS

@@ -35,7 +35,7 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
 
   useEffect(() => {
     if (!enabled || !isAuthenticated()) {
-      console.log('❌ Socket disabled (not authenticated or disabled)');
+      console.log('❌ Socket disabled (not authenticated or disabled)', { enabled, authenticated: isAuthenticated() });
       return;
     }
 

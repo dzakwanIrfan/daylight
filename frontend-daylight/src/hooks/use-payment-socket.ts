@@ -27,26 +27,16 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     enabled = true,
   } = options;
 
-  // Ambil user & isHydrated dari store (bukan function isAuthenticated lagi)
-  const user = useAuthStore((state) => state.user);
-  const isHydrated = useAuthStore((state) => state.isHydrated);
-
+  const { accessToken, isAuthenticated } = useAuthStore();
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const hasSetupRef = useRef(false);
 
-  // Setup / teardown socket
   useEffect(() => {
-    const authenticated = isHydrated && !!user;
-
-    if (!enabled || !authenticated) {
-      console.log('❌ Socket disabled (not authenticated or disabled)', {
-        enabled,
-        authenticated,
-        isHydrated,
-        hasUser: !!user,
-      });
+    // Don't setup if disabled or not authenticated
+    if (!enabled || !isAuthenticated() || !accessToken) {
+      console.log('❌ Socket disabled');
       return;
     }
 
@@ -59,15 +49,15 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     console.log('🔌 Setting up socket...');
     hasSetupRef.current = true;
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? '';
-
-    // Socket pakai cookie HttpOnly (withCredentials: true)
-    const socket = io(`${baseUrl}/payment`, {
-      withCredentials: true,
-      transports: ['websocket'],
-      reconnection: false,
-    });
+    // Create socket
+    const socket = io(
+      `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/payment`,
+      {
+        auth: { token: accessToken },
+        transports: ['websocket'],
+        reconnection: false, // IMPORTANT: Disable auto-reconnect
+      }
+    );
 
     // Connection handlers
     socket.on('connect', () => {
@@ -139,10 +129,9 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
       setIsConnected(false);
       setIsSubscribed(false);
     };
-    // effect akan re-run kalau user login/logout atau hydration selesai
-  }, [enabled, user, isHydrated, onPaymentUpdate, onPaymentSuccess, onPaymentFailed, onPaymentExpired, onCountdown]);
+  }, [enabled, accessToken, isAuthenticated]); // Minimal deps
 
-  // Handle subscription ke transactionId
+  // Handle subscription
   useEffect(() => {
     if (!transactionId || !isConnected || isSubscribed) {
       return;

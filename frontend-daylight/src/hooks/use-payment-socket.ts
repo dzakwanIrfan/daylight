@@ -27,15 +27,26 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     enabled = true,
   } = options;
 
-  const { isAuthenticated } = useAuthStore();
+  // Ambil user & isHydrated dari store (bukan function isAuthenticated lagi)
+  const user = useAuthStore((state) => state.user);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
+
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const hasSetupRef = useRef(false);
 
+  // Setup / teardown socket
   useEffect(() => {
-    if (!enabled || !isAuthenticated()) {
-      console.log('❌ Socket disabled (not authenticated or disabled)', { enabled, authenticated: isAuthenticated() });
+    const authenticated = isHydrated && !!user;
+
+    if (!enabled || !authenticated) {
+      console.log('❌ Socket disabled (not authenticated or disabled)', {
+        enabled,
+        authenticated,
+        isHydrated,
+        hasUser: !!user,
+      });
       return;
     }
 
@@ -51,11 +62,11 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? '';
 
-    // Socket pakai cookie HttpOnly
+    // Socket pakai cookie HttpOnly (withCredentials: true)
     const socket = io(`${baseUrl}/payment`, {
-      withCredentials: true,      
+      withCredentials: true,
       transports: ['websocket'],
-      reconnection: false,       
+      reconnection: false,
     });
 
     // Connection handlers
@@ -128,9 +139,10 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
       setIsConnected(false);
       setIsSubscribed(false);
     };
-  }, [enabled, isAuthenticated]);
+    // effect akan re-run kalau user login/logout atau hydration selesai
+  }, [enabled, user, isHydrated, onPaymentUpdate, onPaymentSuccess, onPaymentFailed, onPaymentExpired, onCountdown]);
 
-  // Handle subscription
+  // Handle subscription ke transactionId
   useEffect(() => {
     if (!transactionId || !isConnected || isSubscribed) {
       return;

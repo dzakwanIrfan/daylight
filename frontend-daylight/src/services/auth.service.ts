@@ -7,6 +7,21 @@ import {
   ResetPasswordDto 
 } from '@/types/auth.types';
 
+// Helper to clear all auth cookies on client
+const clearAuthCookies = () => {
+  if (typeof document !== 'undefined') {
+    const cookieOptions = '; path=/; domain=' + window.location.hostname.replace('www.', '.');
+    document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+    document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+    document.cookie = 'sessionId=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+    
+    // Also try without domain for localhost
+    document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+    document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+    document.cookie = 'sessionId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+  }
+};
+
 export const authService = {
   login: async (data: LoginDto) => {
     const response = await apiClient.post('/auth/login', data);
@@ -39,27 +54,57 @@ export const authService = {
   },
 
   logout: async () => {
-    const response = await apiClient.post('/auth/logout');
-    return response.data;
+    try {
+      const response = await apiClient.post('/auth/logout');
+      clearAuthCookies();
+      return response.data;
+    } catch (error: any) {
+      // Even if backend fails, clear cookies on client
+      clearAuthCookies();
+      
+      // If it's 401, it means token already invalid, so treat as success
+      if (error?.response?.status === 401) {
+        return { success: true, message: 'Logged out successfully' };
+      }
+      
+      throw error;
+    }
   },
 
   logoutAll: async () => {
-    const response = await apiClient.post('/auth/logout-all');
-    return response.data;
+    try {
+      const response = await apiClient.post('/auth/logout-all');
+      clearAuthCookies();
+      return response.data;
+    } catch (error: any) {
+      // Even if backend fails, clear cookies on client
+      clearAuthCookies();
+      
+      // If it's 401, it means token already invalid, so treat as success
+      if (error?.response?.status === 401) {
+        return { success: true, message: 'Logged out from all devices' };
+      }
+      
+      throw error;
+    }
   },
 
   /**
-   * Backend akan encode ke state parameter OAuth
+   * Force logout - clears everything without backend call
+   * Use this when backend is unreachable or tokens are completely invalid
    */
+  forceLogout: () => {
+    clearAuthCookies();
+    return { success: true, message: 'Logged out successfully' };
+  },
+
   googleLogin: (sessionId?: string) => {
     const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
     
     if (sessionId) {
-      // Registration flow - kirim sessionId
       const url = `${baseUrl}?sessionId=${encodeURIComponent(sessionId)}`;
       window.location.href = url;
     } else {
-      // Login flow - no sessionId
       window.location.href = baseUrl;
     }
   },

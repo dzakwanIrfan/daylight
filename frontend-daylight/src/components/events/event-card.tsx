@@ -11,6 +11,7 @@ import {
   HeartHandshake,
   Cloud,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface EventCardProps {
   event: Event;
@@ -51,62 +52,51 @@ export function EventCard({ event }: EventCardProps) {
   const CategoryIcon = categoryInfo.icon;
 
   return (
-    <Link href={`/events/${event.slug}`}>
-      <div className="bg-white rounded-xl border border-gray-200 p-5 hover:border-brand hover:shadow-md transition-all duration-200 cursor-pointer group">
-        <div className="flex items-start justify-between gap-4">
-          {/* Left Content */}
-          <div className="flex-1 min-w-0 space-y-3">
-            {/* Title & Category */}
-            <div>
-              <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-1 group-hover:text-brand transition-colors">
-                {event.title}
-              </h3>
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border ${categoryInfo.color}`}
-              >
-                <CategoryIcon className="w-3 h-3" />
-                {event.category}
-              </span>
-            </div>
-
-            {/* Info */}
-            <div className="flex flex-col gap-2 text-sm sm:flex-row text-gray-600">
-              {/* Date & Time */}
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <span>
-                  {formatDate(event.eventDate)} • {formatTime(event.startTime)}
-                </span>
-              </div>
-
-              {/* Location */}
-              <div className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                <span className="truncate">{event.city}</span>
-              </div>
-            </div>
+    <Link href={`/events/${event.slug}`} className="block">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 hover:border-brand hover:shadow-md transition-all duration-200 cursor-pointer group h-full">
+        <div className="space-y-3">
+          {/* Title */}
+          <div>
+            <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-brand transition-colors leading-snug">
+              {event.title}
+            </h3>
           </div>
 
-          {/* Right Content - Price & Status */}
-          <div className="text-right shrink-0">
-            <div className="text-xl font-bold">
-              {event.price === 0 ? (
-                'Free'
-              ) : (
-                <>
-                  {event.currency === 'IDR' ? 'Rp' : '$'}
-                  {new Intl.NumberFormat('id-ID', {
-                    notation: 'compact',
-                    compactDisplay: 'short',
-                  }).format(event.price)}
-                </>
-              )}
-            </div>
+          {/* Category & Status */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge
+              variant="outline"
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${categoryInfo.color}`}
+            >
+              <CategoryIcon className="w-3 h-3" />
+              {event.category}
+            </Badge>
+            
             {isFull && (
-              <span className="inline-block mt-2 px-2 py-0.5 bg-red-50 text-red-600 text-xs font-medium rounded-full">
+              <Badge 
+                variant="outline"
+                className="bg-red-50 text-red-600 border-red-200"
+              >
                 Full
-              </span>
+              </Badge>
             )}
+          </div>
+
+          {/* Date, Time & Location */}
+          <div className="space-y-2 text-sm text-gray-600">
+            {/* Date & Time */}
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className="truncate">
+                {formatDate(event.eventDate)} • {formatTime(event.startTime)}
+              </span>
+            </div>
+
+            {/* Location */}
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className="truncate">{event.city}</span>
+            </div>
           </div>
         </div>
       </div>

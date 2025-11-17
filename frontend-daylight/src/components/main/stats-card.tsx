@@ -1,4 +1,3 @@
-import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -10,6 +9,8 @@ interface StatsCardProps {
   iconBgColor?: string;
   iconColor?: string;
   isLoading?: boolean;
+  onClick?: () => void;
+  clickable?: boolean;
 }
 
 export function StatsCard({
@@ -20,6 +21,8 @@ export function StatsCard({
   iconBgColor = 'bg-brand/10',
   iconColor = 'text-brand',
   isLoading = false,
+  onClick,
+  clickable = false,
 }: StatsCardProps) {
   if (isLoading) {
     return (
@@ -36,8 +39,24 @@ export function StatsCard({
     );
   }
 
+  const baseClasses = "bg-white rounded-xl border border-gray-200 p-6 transition-all";
+  const interactiveClasses = clickable 
+    ? "cursor-pointer hover:border-brand/50 hover:shadow-md active:scale-[0.98]" 
+    : "hover:border-brand/30";
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-brand/30 transition-colors">
+    <div 
+      className={`${baseClasses} ${interactiveClasses}`}
+      onClick={clickable ? onClick : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      } : undefined}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
         <div className={`w-10 h-10 rounded-full ${iconBgColor} flex items-center justify-center`}>

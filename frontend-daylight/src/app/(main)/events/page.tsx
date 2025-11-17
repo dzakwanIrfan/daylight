@@ -3,12 +3,13 @@
 import { DashboardLayout } from '@/components/main/dashboard-layout';
 import { useAuthStore } from '@/store/auth-store';
 import { useEffect, useState } from 'react';
-import { Calendar, Loader2, Sparkles, Users, Heart, Crown } from 'lucide-react';
+import { Calendar, Loader2, Sparkles, Users, Heart } from 'lucide-react';
 import { CategoryCard } from '@/components/events/category-card';
 import { EventsList } from '@/components/events/events-list';
 import { useNextWeekEvents } from '@/hooks/use-public-events';
 import { useUserStats } from '@/hooks/use-user-stats';
 import { StatsCard } from '@/components/main/stats-card';
+import { PersonalityResultModal } from '@/components/profile/personality-result-modal';
 import {
   UtensilsCrossed,
   Bus,
@@ -51,6 +52,7 @@ const categories = [
 export default function HomePage() {
   const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [isPersonalityModalOpen, setIsPersonalityModalOpen] = useState(false);
 
   // Get user stats
   const { data: statsData, isLoading: isLoadingStats } = useUserStats();
@@ -71,10 +73,19 @@ export default function HomePage() {
   }
 
   const stats = statsData?.data;
+  const hasPersonalityType = Boolean(
+    stats?.personalityType && stats.personalityType !== 'Not Set'
+  );
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Personality Result Modal */}
+        <PersonalityResultModal
+          isOpen={isPersonalityModalOpen}
+          onClose={() => setIsPersonalityModalOpen(false)}
+        />
+
         {/* Welcome Header */}
         <div className="bg-linear-to-br from-brand/5 via-white to-brand/10 rounded-xl border border-brand/20 p-6 space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold">
@@ -117,9 +128,15 @@ export default function HomePage() {
           <StatsCard
             title="Personality Type"
             value={stats?.personalityType || 'Not Set'}
-            subtitle="Your archetype"
+            subtitle={hasPersonalityType ? 'Click to view your profile' : 'Your archetype'}
             icon={Sparkles}
             isLoading={isLoadingStats}
+            clickable={hasPersonalityType}
+            onClick={() => {
+              if (hasPersonalityType) {
+                setIsPersonalityModalOpen(true);
+              }
+            }}
           />
         </div>
 

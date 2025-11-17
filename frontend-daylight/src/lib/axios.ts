@@ -7,7 +7,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // CRITICAL untuk cookies cross-domain
+  withCredentials: true, // penting supaya cookie ikut terkirim
 });
 
 let isRefreshing = false;
@@ -24,30 +24,16 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Helper to get token from cookie
-function getTokenFromCookie(): string | null {
-  if (typeof window === 'undefined') return null;
-  const match = document.cookie.match(/accessToken=([^;]+)/);
-  return match ? match[1] : null;
-}
-
-// Request interceptor
+// REQUEST INTERCEPTOR
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token = useAuthStore.getState().accessToken;
-    
-    if (!token) {
-      token = getTokenFromCookie();
-      
-      if (token) {
-        useAuthStore.getState().setAccessToken(token);
-      }
-    }
-    
+    const token = useAuthStore.getState().accessToken;
+
+    // OPTIONAL: kalau backend masih baca Authorization header, kita bantu kirimkan.
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
@@ -55,29 +41,23 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// RESPONSE INTERCEPTOR
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest: any = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
-                            originalRequest.url?.includes('/auth/register') ||
-                            originalRequest.url?.includes('/auth/refresh') ||
-                            originalRequest.url?.includes('/auth/verify-email');
-      
-      if (isAuthEndpoint) {
-        return Promise.reject(parseApiError(error));
-      }
+      const url = originalRequest.url || '';
 
-      const hasRefreshToken = document.cookie.includes('refreshToken=');
-      
-      if (!hasRefreshToken) {
-        useAuthStore.getState().clearAuth();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login?session=expired';
-        }
+      const isAuthEndpoint =
+        url.includes('/auth/login') ||
+        url.includes('/auth/register') ||
+        url.includes('/auth/refresh') ||
+        url.includes('/auth/verify-email');
+
+      // Kalau error datang dari endpoint auth sendiri, langsung lempar
+      if (isAuthEndpoint) {
         return Promise.reject(parseApiError(error));
       }
 
@@ -86,7 +66,7 @@ apiClient.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            if (originalRequest.headers) {
+            if (token && originalRequest.headers) {
               originalRequest.headers.Authorization = `Bearer ${token}`;
             }
             return apiClient(originalRequest);
@@ -95,37 +75,53 @@ apiClient.interceptors.response.use(
       }
 
       originalRequest._retry = true;
-      isRefreshing = true;
+      isRefreshing = false;
 
       try {
+        isRefreshing = true;
+
+        // refresh pakai refreshToken di HttpOnly cookie
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
-          { withCredentials: true } // CRITICAL
+          { withCredentials: true }
         );
 
-        if (response.data.accessToken) {
-          useAuthStore.getState().setAccessToken(response.data.accessToken);
+        const newAccessToken = (response.data as any)?.accessToken || null;
+
+        if (newAccessToken) {
+          useAuthStore.getState().setAccessToken(newAccessToken);
 
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           }
 
-          processQueue(null, response.data.accessToken);
-          return apiClient(originalRequest);
+          processQueue(null, newAccessToken);
+        } else {
+          processQueue(null, null);
         }
+
+        // ulang request awal
+        return apiClient(originalRequest);
       } catch (refreshError: any) {
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
-        
+
         if (typeof window !== 'undefined') {
-          const publicPaths = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/personality-test'];
+          const publicPaths = [
+            '/auth/login',
+            '/auth/register',
+            '/auth/forgot-password',
+            '/auth/reset-password',
+            '/personality-test',
+          ];
           const currentPath = window.location.pathname;
-          
-          if (!publicPaths.some(path => currentPath.startsWith(path))) {
+
+          if (!publicPaths.some((path) => currentPath.startsWith(path))) {
             window.location.href = '/auth/login?session=expired';
           }
         }
+
         return Promise.reject(parseApiError(refreshError));
       } finally {
         isRefreshing = false;

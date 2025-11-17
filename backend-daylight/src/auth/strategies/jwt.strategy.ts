@@ -8,15 +8,15 @@ import { Request } from 'express';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private config: ConfigService,
-    private prisma: PrismaService,
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
   ) {
     const secret = config.get<string>('JWT_SECRET');
-    
+
     if (!secret) {
       throw new Error('JWT_SECRET is not defined in environment variables');
     }
-    
+
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         JwtStrategy.extractJWTFromCookie,
@@ -24,18 +24,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       secretOrKey: secret,
+      algorithms: ['HS256'],
     });
   }
 
   private static extractJWTFromCookie(req: Request): string | null {
     if (req.cookies && 'accessToken' in req.cookies) {
-      return req.cookies.accessToken;
+      return req.cookies.accessToken as string;
     }
     return null;
   }
 
   async validate(payload: any) {
-    // Fetch user dari database untuk memastikan data terbaru
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -49,12 +49,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    if (!user.isActive) {
-      throw new UnauthorizedException('Account is deactivated');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     return {
@@ -62,7 +58,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role, 
+      role: user.role,
       isEmailVerified: user.isEmailVerified,
     };
   }

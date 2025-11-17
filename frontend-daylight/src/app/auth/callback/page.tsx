@@ -11,18 +11,19 @@ export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
+
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('Processing authentication...');
-  
   const hasProcessed = useRef(false);
 
   useEffect(() => {
     if (hasProcessed.current) return;
+    if (!searchParams) return;
 
     const processAuth = async () => {
       try {
-        const success = searchParams?.get('success');
+        const success = searchParams.get('success');
 
         if (success !== 'true') {
           throw new Error('Authentication failed. Please try again.');
@@ -32,33 +33,23 @@ export default function AuthCallbackPage() {
 
         setMessage('Verifying session...');
 
-        // Tunggu sebentar agar cookies ter-set dengan benar dari redirect
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // beri waktu supaya Set-Cookie dari backend sudah settle
+        await new Promise((resolve) => setTimeout(resolve, 800));
 
         setMessage('Fetching your profile...');
 
-        // Fetch user profile (cookies sudah ada dari backend redirect)
+        // Cookie HttpOnly otomatis dikirim oleh browser via withCredentials
         const profile = await userService.getProfile();
         console.log('Fetched profile:', profile);
-        
-        // Get token from cookie untuk store
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('accessToken='))
-          ?.split('=')[1];
-        console.log('Retrieved token from cookie:', token);
 
         if (!profile) {
           throw new Error('Failed to retrieve user profile.');
         }
 
-        if (!token) {
-          throw new Error('No authentication token found. Please try logging in again.');
-        }
-
-        // Set auth in store
-        setAuth(profile, token);
-        console.log('User authenticated:', profile);
+        // SIMPAN USER DI STORE
+        // accessToken tidak diambil dari cookie lagi
+        setAuth(profile, null);
+        console.log('User authenticated with HttpOnly cookie:', profile);
 
         setMessage('Login successful! Redirecting...');
 
@@ -67,24 +58,23 @@ export default function AuthCallbackPage() {
           duration: 3000,
         });
 
-        // Clear URL parameters
+        // bersihkan query params
         window.history.replaceState({}, '', '/auth/callback');
 
-        // Redirect
         setTimeout(() => {
           router.push('/events');
           router.refresh();
         }, 1000);
-        
-      } catch (error: any) {
-        console.error('❌ Auth callback error:', error);
-        
-        const errorMessage = error?.response?.data?.message || 
-                           error?.message || 
-                           'Authentication failed. Please try again.';
-        
+      } catch (err: any) {
+        console.error('❌ Auth callback error:', err);
+
+        const errorMessage =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Authentication failed. Please try again.';
+
         setError(errorMessage);
-        
+
         toast.error('Authentication Failed', {
           description: errorMessage,
           duration: 5000,
@@ -98,9 +88,7 @@ export default function AuthCallbackPage() {
       }
     };
 
-    if (searchParams) {
-      processAuth();
-    }
+    processAuth();
   }, [searchParams, router, setAuth]);
 
   if (isProcessing) {
@@ -125,7 +113,9 @@ export default function AuthCallbackPage() {
             <XCircle className="h-10 w-10 text-red-600" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-gray-900">Authentication Failed</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Authentication Failed
+            </h2>
             <p className="text-sm text-gray-600">{error}</p>
           </div>
           <p className="text-xs text-gray-500">Redirecting to login...</p>

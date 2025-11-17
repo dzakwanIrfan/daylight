@@ -1,9 +1,29 @@
 'use client';
 
-import { MapPin, Globe, Settings, FileText, Shield, Users, Mail } from 'lucide-react';
+import { MapPin, Globe, Settings, FileText, Shield, Users, Mail, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { PersonalityResultView } from './personality-result-view';
+import { Button } from '@/components/ui/button';
 
 export function PreferencesSettings() {
+  const [showPersonalityResult, setShowPersonalityResult] = useState(false);
+
+  if (showPersonalityResult) {
+    return (
+      <div className="space-y-6">
+        <Button
+          variant="outline"
+          onClick={() => setShowPersonalityResult(false)}
+          className="border-2 border-black rounded-full hover:shadow-brutal-sm transition-all"
+        >
+          ← Back to Preferences
+        </Button>
+        <PersonalityResultView />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -14,6 +34,27 @@ export function PreferencesSettings() {
       </div>
 
       <div className="space-y-4">
+        {/* Personality Test Result */}
+        <div 
+          onClick={() => setShowPersonalityResult(true)}
+          className="border border-brand/30 bg-brand/5 rounded-lg p-4 hover:border-brand hover:bg-brand/10 transition-colors cursor-pointer"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-brand" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium mb-1 text-brand">My Personality Result</h4>
+              <p className="text-sm text-muted-foreground">
+                View your day archetype and personality profile
+              </p>
+            </div>
+            <span className="text-xs bg-brand text-white px-2 py-1 rounded-full font-bold">
+              View
+            </span>
+          </div>
+        </div>
+
         {/* Settings Preview */}
         <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 transition-colors cursor-not-allowed opacity-60">
           <div className="flex items-start gap-3">

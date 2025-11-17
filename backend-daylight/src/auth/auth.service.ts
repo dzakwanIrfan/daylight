@@ -176,7 +176,7 @@ export class AuthService {
       await this.emailService.sendWelcomeEmail(
         user.email,
         user.firstName || 'User',
-        personalityResult.archetype.toString(),
+        personalityResult.archetype.name,
       );
     }
 
@@ -371,7 +371,7 @@ export class AuthService {
     await this.emailService.sendWelcomeEmail(
       user.email,
       user.firstName || 'User',
-      personalityResult.archetype.toString(),
+      personalityResult.archetype.name,
     );
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);

@@ -17,21 +17,21 @@ import {
 const categories = [
   {
     label: 'DayBreak',
-    description: 'Start fresh. Meet new people.',
+    description: 'Drink and Dinner Activities.',
     icon: UtensilsCrossed,
     href: '/events/category/DAYBREAK',
     color: 'bg-orange-500',
   },
   {
     label: 'DayTrip',
-    description: 'Go out. Connect through adventure.',
+    description: 'Travel & Trip Activities.',
     icon: Bus,
     href: '/events/category/DAYTRIP',
     color: 'bg-blue-500',
   },
   {
     label: 'DayCare',
-    description: 'A safe space to support each other.',
+    description: 'Health & Wellness Activities.',
     icon: HeartHandshake,
     href: '/events/category/DAYCARE',
     color: 'bg-green-500',
@@ -42,6 +42,7 @@ const categories = [
     icon: Cloud,
     href: '/events/category/DAYDREAM',
     color: 'bg-purple-500',
+    disabled: true,
   },
 ];
 
@@ -136,7 +137,7 @@ export default function HomePage() {
 
         {/* Let's Get Started - Categories */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">Let's Get Started</h2>
+          <h2 className="text-lg font-semibold mb-4">Find Events</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {categories.map((category) => (
               <CategoryCard key={category.label} {...category} />

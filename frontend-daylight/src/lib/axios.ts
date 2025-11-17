@@ -7,7 +7,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // penting supaya cookie ikut terkirim
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -24,12 +24,47 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Helper function to clear all auth cookies
+const clearAuthCookies = () => {
+  if (typeof document !== 'undefined') {
+    const cookieOptions = '; path=/; domain=' + window.location.hostname.replace('www.', '.');
+    document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+    document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+    document.cookie = 'sessionId=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+    
+    // Also try without domain for localhost
+    document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+    document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+    document.cookie = 'sessionId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+  }
+};
+
+// Helper to handle complete logout
+const handleCompleteLogout = () => {
+  useAuthStore.getState().clearAuth();
+  clearAuthCookies();
+  
+  if (typeof window !== 'undefined') {
+    const publicPaths = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/forgot-password',
+      '/auth/reset-password',
+      '/personality-test',
+    ];
+    const currentPath = window.location.pathname;
+
+    if (!publicPaths.some((path) => currentPath.startsWith(path))) {
+      window.location.href = '/auth/login?session=expired';
+    }
+  }
+};
+
 // REQUEST INTERCEPTOR
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = useAuthStore.getState().accessToken;
 
-    // OPTIONAL: kalau backend masih baca Authorization header, kita bantu kirimkan.
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -56,8 +91,11 @@ apiClient.interceptors.response.use(
         url.includes('/auth/refresh') ||
         url.includes('/auth/verify-email');
 
-      // Kalau error datang dari endpoint auth sendiri, langsung lempar
+      // If error from auth endpoint, clear everything and reject
       if (isAuthEndpoint) {
+        if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
+          handleCompleteLogout();
+        }
         return Promise.reject(parseApiError(error));
       }
 
@@ -75,12 +113,9 @@ apiClient.interceptors.response.use(
       }
 
       originalRequest._retry = true;
-      isRefreshing = false;
+      isRefreshing = true;
 
       try {
-        isRefreshing = true;
-
-        // refresh pakai refreshToken di HttpOnly cookie
         const response = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
           {},
@@ -97,34 +132,19 @@ apiClient.interceptors.response.use(
           }
 
           processQueue(null, newAccessToken);
+          isRefreshing = false;
+          return apiClient(originalRequest);
         } else {
           processQueue(null, null);
+          isRefreshing = false;
+          handleCompleteLogout();
+          return Promise.reject(parseApiError(error));
         }
-
-        // ulang request awal
-        return apiClient(originalRequest);
       } catch (refreshError: any) {
         processQueue(refreshError, null);
-        useAuthStore.getState().clearAuth();
-
-        if (typeof window !== 'undefined') {
-          const publicPaths = [
-            '/auth/login',
-            '/auth/register',
-            '/auth/forgot-password',
-            '/auth/reset-password',
-            '/personality-test',
-          ];
-          const currentPath = window.location.pathname;
-
-          if (!publicPaths.some((path) => currentPath.startsWith(path))) {
-            window.location.href = '/auth/login?session=expired';
-          }
-        }
-
-        return Promise.reject(parseApiError(refreshError));
-      } finally {
         isRefreshing = false;
+        handleCompleteLogout();
+        return Promise.reject(parseApiError(refreshError));
       }
     }
 

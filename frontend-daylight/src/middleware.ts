@@ -32,6 +32,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Temporarily disable DayDream category page access
+  if (pathname.toLowerCase() === '/events/category/daydream') {
+    return NextResponse.redirect(new URL('/events', request.url));
+  }
+
   const isPublicRoute = publicRoutes.some(
     (route) => pathname === route || pathname.startsWith(route + '/')
   );

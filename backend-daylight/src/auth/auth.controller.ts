@@ -136,11 +136,8 @@ export class AuthController {
       const redirectUrl = new URL(`${frontendUrl}/auth/callback`);
       redirectUrl.searchParams.set('success', 'true');
 
-      console.log('🍪 Cookies set, redirecting to:', redirectUrl.toString());
-
       res.redirect(redirectUrl.toString());
     } catch (error) {
-      console.error('❌ Google auth error:', error);
       const frontendUrl = this.configService.get('FRONTEND_URL');
       const errorMessage = encodeURIComponent(error.message || 'Authentication failed');
       res.redirect(`${frontendUrl}/auth/error?message=${errorMessage}`);
@@ -172,10 +169,21 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = req.cookies?.refreshToken;
-    await this.authService.logout(user.userId, refreshToken);
-    this.clearAuthCookies(res);
-    return { success: true, message: 'Logged out successfully' };
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+      
+      // Clear cookies first (always do this)
+      this.clearAuthCookies(res);
+      
+      // Then try to invalidate tokens in DB
+      if (user?.userId) {
+        await this.authService.logout(user.userId, refreshToken);
+      }
+      
+      return { success: true, message: 'Logged out successfully' };
+    } catch (error) {
+      return { success: true, message: 'Logged out successfully' };
+    }
   }
 
   @Post('logout-all')
@@ -184,9 +192,19 @@ export class AuthController {
     @CurrentUser() user: any,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logoutAll(user.userId);
-    this.clearAuthCookies(res);
-    return { success: true, message: 'Logged out from all devices' };
+    try {
+      // Clear cookies first
+      this.clearAuthCookies(res);
+      
+      // Then try to invalidate all tokens
+      if (user?.userId) {
+        await this.authService.logoutAll(user.userId);
+      }
+      
+      return { success: true, message: 'Logged out from all devices' };
+    } catch (error) {
+      return { success: true, message: 'Logged out from all devices' };
+    }
   }
 
   private buildGoogleAuthUrl(state?: string): string {
@@ -242,15 +260,6 @@ export class AuthController {
       path: '/',
       domain: isProduction ? cookieDomain : undefined,
     };
-
-    console.log('🍪 Setting cookies with options:', {
-      isProduction,
-      domain: cookieOptions.domain,
-      secure: cookieOptions.secure,
-      sameSite: cookieOptions.sameSite,
-      accessMaxAge: `${accessMaxAge}ms`,
-      refreshMaxAge: `${refreshMaxAge}ms`,
-    });
 
     res.cookie('accessToken', accessToken, {
       ...cookieOptions,

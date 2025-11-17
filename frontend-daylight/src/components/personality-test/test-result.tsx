@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Loader2, Sparkles, Download, Share2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
+import Image, { StaticImageData } from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,18 +14,31 @@ import { usePersonalityTestStore } from '@/store/personality-test-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// Mapping archetype to image paths
-const archetypeImages: Record<string, string> = {
-  BRIGHT_MORNING: '/images/archetypes/bright-morning.png',
-  CALM_DAWN: '/images/archetypes/calm-dawn.png',
-  BOLD_NOON: '/images/archetypes/bold-noon.png',
-  GOLDEN_HOUR: '/images/archetypes/golden-hour.png',
-  QUIET_DUSK: '/images/archetypes/quiet-dusk.png',
-  CLOUDY_DAY: '/images/archetypes/cloudy-day.png',
-  SERENE_DRIZZLE: '/images/archetypes/serene-drizzle.png',
-  BLAZING_NOON: '/images/archetypes/blazing-noon.png',
-  STARRY_NIGHT: '/images/archetypes/starry-night.png',
-  PERFECT_DAY: '/images/archetypes/perfect-day.png',
+// Statically import images so Next.js can optimize and pre-generate blur placeholders
+import BRIGHT_MORNING_IMG from '../../../public/images/archetypes/bright-morning.png';
+import CALM_DAWN_IMG from '../../../public/images/archetypes/calm-dawn.png';
+import BOLD_NOON_IMG from '../../../public/images/archetypes/bold-noon.png';
+import GOLDEN_HOUR_IMG from '../../../public/images/archetypes/golden-hour.png';
+import QUIET_DUSK_IMG from '../../../public/images/archetypes/quiet-dusk.png';
+import CLOUDY_DAY_IMG from '../../../public/images/archetypes/cloudy-day.png';
+import SERENE_DRIZZLE_IMG from '../../../public/images/archetypes/serene-drizzle.png';
+import BLAZING_NOON_IMG from '../../../public/images/archetypes/blazing-noon.png';
+import STARRY_NIGHT_IMG from '../../../public/images/archetypes/starry-night.png';
+import PERFECT_DAY_IMG from '../../../public/images/archetypes/perfect-day.png';
+import DEFAULT_IMG from '../../../public/images/archetypes/default.png';
+
+// Mapping archetype to image data
+const archetypeImages: Record<string, StaticImageData> = {
+  BRIGHT_MORNING: BRIGHT_MORNING_IMG,
+  CALM_DAWN: CALM_DAWN_IMG,
+  BOLD_NOON: BOLD_NOON_IMG,
+  GOLDEN_HOUR: GOLDEN_HOUR_IMG,
+  QUIET_DUSK: QUIET_DUSK_IMG,
+  CLOUDY_DAY: CLOUDY_DAY_IMG,
+  SERENE_DRIZZLE: SERENE_DRIZZLE_IMG,
+  BLAZING_NOON: BLAZING_NOON_IMG,
+  STARRY_NIGHT: STARRY_NIGHT_IMG,
+  PERFECT_DAY: PERFECT_DAY_IMG,
 };
 
 // Personality dimensions with bipolar labels (like MBTI)
@@ -180,7 +193,7 @@ export function TestResult() {
   }
 
   const archetype = result.archetype;
-  const archetypeImage = archetypeImages[archetype.type] || '/images/archetypes/default.png';
+  const archetypeImage: StaticImageData = archetypeImages[archetype.type] || DEFAULT_IMG;
 
   return (
     <div className="min-h-screen bg-background py-8 md:py-12 px-4">
@@ -234,8 +247,12 @@ export function TestResult() {
               <div className="relative w-72 h-72 mx-auto">
                 <Image
                   src={archetypeImage}
-                  alt={archetype.name}
+                  alt={`${archetype.name} illustration`}
                   fill
+                  priority
+                  placeholder="blur"
+                  sizes="(min-width: 768px) 18rem, 16rem"
+                  quality={85}
                   className="object-contain"
                 />
               </div>

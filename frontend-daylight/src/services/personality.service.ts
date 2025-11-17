@@ -16,4 +16,10 @@ export const personalityService = {
     const response = await apiClient.get(`/personality/result?sessionId=${sessionId}`);
     return response.data;
   },
+
+  // NEW: Get current user's personality result
+  getMyResult: async () => {
+    const response = await apiClient.get('/personality/my-result');
+    return response.data;
+  },
 };

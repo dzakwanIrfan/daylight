@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 export function useAuth(requireAuth: boolean = true) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, setAuth, accessToken, isHydrated } = useAuthStore();
+  const { isAuthenticated, user, setAuth, accessToken, isHydrated, clearAuth } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,42 +28,50 @@ export function useAuth(requireAuth: boolean = true) {
           if (!pathname.startsWith('/auth')) {
             router.replace('/auth/login');
           }
+          setIsLoading(false);
+          setIsChecking(false);
           return;
         }
 
         // Sync profile if authenticated
         if (authenticated && accessToken) {
-          // Check if we have user data
-          if (!user) {
-            try {
-              const profile = await userService.getProfile();
-              setAuth(profile, accessToken);
-            } catch (error: any) {
-              if (error?.response?.status === 401) {
-                useAuthStore.getState().clearAuth();
-                if (requireAuth && !pathname.startsWith('/auth')) {
-                  router.replace('/auth/login?session=expired');
-                }
+          try {
+            // Try to fetch profile to validate token
+            const profile = await userService.getProfile();
+            
+            // Update store with fresh profile data
+            setAuth(profile, accessToken);
+          } catch (error: any) {
+            // Token is invalid
+            if (error?.response?.status === 401) {
+              console.error('❌ Token validation failed, clearing auth');
+              
+              // Clear auth state completely
+              clearAuth();
+              
+              // Clear cookies manually as well
+              if (typeof document !== 'undefined') {
+                const cookieOptions = '; path=/; domain=' + window.location.hostname.replace('www.', '.');
+                document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+                document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
+                
+                // Also try without domain
+                document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
               }
-            }
-          } else {
-            // We have user, just sync to check for updates
-            try {
-              const profile = await userService.getProfile();
-              if (profile && JSON.stringify(profile) !== JSON.stringify(user)) {
-                setAuth(profile, accessToken);
+              
+              // Redirect to login if on protected route
+              if (requireAuth && !pathname.startsWith('/auth')) {
+                router.replace('/auth/login?session=expired');
               }
-            } catch (error: any) {
-              if (error?.response?.status === 401) {
-                useAuthStore.getState().clearAuth();
-                if (requireAuth && !pathname.startsWith('/auth')) {
-                  router.replace('/auth/login?session=expired');
-                }
-              }
+            } else {
+              // Other errors, just log
+              console.error('Profile fetch error:', error);
             }
           }
         }
       } catch (error) {
+        console.error('Auth check error:', error);
         toast.error('Authentication check failed. Please try again.');
       } finally {
         setIsLoading(false);

@@ -18,135 +18,355 @@ export class EmailService {
     });
   }
 
+  private getEmailTemplate(content: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background-color: #f5f5f5;
+            padding: 20px;
+          }
+          .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+          .email-header {
+            background-color: #FF5005;
+            padding: 32px 40px;
+            text-align: center;
+          }
+          .logo {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0;
+          }
+          .email-body {
+            padding: 40px;
+          }
+          .greeting {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+          }
+          .text {
+            font-size: 15px;
+            color: #4a4a4a;
+            margin-bottom: 16px;
+            line-height: 1.6;
+          }
+          .button-container {
+            margin: 32px 0;
+            text-align: center;
+          }
+          .button {
+            display: inline-block;
+            background-color: #FF5005;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: background-color 0.2s;
+          }
+          .button:hover {
+            background-color: #e64804;
+          }
+          .link-fallback {
+            margin-top: 24px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            border: 1px solid #e5e5e5;
+          }
+          .link-fallback-text {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+          }
+          .link {
+            font-size: 13px;
+            color: #FF5005;
+            word-break: break-all;
+            text-decoration: none;
+          }
+          .info-box {
+            background-color: #f9f9f9;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            padding: 24px;
+            margin: 24px 0;
+          }
+          .info-box-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #FF5005;
+          }
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e5e5;
+          }
+          .info-row:last-child {
+            border-bottom: none;
+          }
+          .info-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+          }
+          .info-value {
+            font-size: 14px;
+            color: #1a1a1a;
+            font-weight: 600;
+            text-align: right;
+          }
+          .alert-box {
+            padding: 16px 20px;
+            border-radius: 6px;
+            margin: 24px 0;
+            font-size: 14px;
+          }
+          .alert-info {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            color: #1565c0;
+          }
+          .alert-warning {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+            color: #e65100;
+          }
+          .alert-success {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+          }
+          .alert-error {
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+          }
+          .payment-code-box {
+            background-color: #fff9e6;
+            border: 2px dashed #FF5005;
+            border-radius: 6px;
+            padding: 24px;
+            text-align: center;
+            margin: 24px 0;
+          }
+          .payment-code-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .payment-code {
+            font-size: 32px;
+            font-weight: 700;
+            color: #FF5005;
+            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
+          }
+          .list {
+            margin: 20px 0;
+            padding-left: 20px;
+          }
+          .list-item {
+            font-size: 14px;
+            color: #4a4a4a;
+            margin-bottom: 12px;
+            line-height: 1.6;
+          }
+          .divider {
+            height: 1px;
+            background-color: #e5e5e5;
+            margin: 32px 0;
+          }
+          .email-footer {
+            background-color: #f9f9f9;
+            padding: 32px 40px;
+            text-align: center;
+            border-top: 1px solid #e5e5e5;
+          }
+          .footer-text {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 8px;
+          }
+          .footer-link {
+            color: #FF5005;
+            text-decoration: none;
+            font-size: 13px;
+          }
+          @media only screen and (max-width: 600px) {
+            body {
+              padding: 0;
+            }
+            .email-header {
+              padding: 24px 20px;
+            }
+            .email-body {
+              padding: 24px 20px;
+            }
+            .email-footer {
+              padding: 24px 20px;
+            }
+            .info-row {
+              flex-direction: column;
+              gap: 4px;
+            }
+            .info-value {
+              text-align: left;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-wrapper">
+          <div class="email-header">
+            <h1 class="logo">DayLight</h1>
+          </div>
+          ${content}
+          <div class="email-footer">
+            <p class="footer-text">© 2025 DayLight. All rights reserved.</p>
+            <p class="footer-text">
+              Need help? Contact us at <a href="mailto:support@daylight.com" class="footer-link">support@daylight.com</a>
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   async sendVerificationEmail(email: string, token: string, name: string) {
     const verificationUrl = `${this.configService.get('FRONTEND_URL')}/auth/verify-email?token=${token}`;
     
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">Thank you for registering with DayLight. We're excited to have you join our community.</p>
+        <p class="text">To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
+        
+        <div class="button-container">
+          <a href="${verificationUrl}" class="button">Verify Email Address</a>
+        </div>
+
+        <div class="link-fallback">
+          <p class="link-fallback-text">If the button doesn't work, copy and paste this link into your browser:</p>
+          <a href="${verificationUrl}" class="link">${verificationUrl}</a>
+        </div>
+
+        <div class="alert-box alert-info">
+          <strong>Important:</strong> This verification link will expire in 24 hours for security purposes.
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text" style="font-size: 13px; color: #999;">If you didn't create an account with DayLight, please disregard this email.</p>
+      </div>
+    `;
+
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: email,
       subject: 'Verify Your DayLight Email Address',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF5005; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🌟 Welcome to DayLight!</h1>
-            </div>
-            <div class="content">
-              <h2>Hi ${name},</h2>
-              <p>Thank you for registering with DayLight! We're excited to have you join our community.</p>
-              <p>To complete your registration, please verify your email address by clicking the button below:</p>
-              <a href="${verificationUrl}" class="button">Verify Email Address</a>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #FF5005;">${verificationUrl}</p>
-              <p>This link will expire in 24 hours.</p>
-              <p>If you didn't create an account with DayLight, please ignore this email.</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DayLight. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      html: this.getEmailTemplate(content),
     });
   }
 
   async sendResetPasswordEmail(email: string, token: string, name: string) {
     const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/reset-password?token=${token}`;
     
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">We received a request to reset your password for your DayLight account.</p>
+        <p class="text">To create a new password, click the button below:</p>
+        
+        <div class="button-container">
+          <a href="${resetUrl}" class="button">Reset Password</a>
+        </div>
+
+        <div class="link-fallback">
+          <p class="link-fallback-text">If the button doesn't work, copy and paste this link into your browser:</p>
+          <a href="${resetUrl}" class="link">${resetUrl}</a>
+        </div>
+
+        <div class="alert-box alert-warning">
+          <strong>Security Notice:</strong> This password reset link will expire in 1 hour.
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text" style="font-size: 13px; color: #999;">If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
+      </div>
+    `;
+
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: email,
       subject: 'Reset Your DayLight Password',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF5005; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🌟 DayLight</h1>
-            </div>
-            <div class="content">
-              <h2>Hi ${name},</h2>
-              <p>We received a request to reset your password. Click the button below to create a new password:</p>
-              <a href="${resetUrl}" class="button">Reset Password</a>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #FF5005;">${resetUrl}</p>
-              <p>This link will expire in 1 hour.</p>
-              <p>If you didn't request this, please ignore this email.</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DayLight. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      html: this.getEmailTemplate(content),
     });
   }
 
   async sendWelcomeEmail(email: string, name: string, archetype: string) {
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Welcome to DayLight, ${name}!</h2>
+        <p class="text">Your email has been successfully verified. We're thrilled to have you as part of our community.</p>
+        
+        <div class="info-box">
+          <h3 class="info-box-title">Your Personality Profile</h3>
+          <div class="info-row">
+            <span class="info-label">Personality Type</span>
+            <span class="info-value">${archetype}</span>
+          </div>
+        </div>
+
+        <div class="alert-box alert-success">
+          <strong>Assessment Complete:</strong> You've completed your personality assessment. We'll use this to connect you with like-minded individuals at DayLight gatherings.
+        </div>
+
+        <p class="text">Get ready to experience meaningful connections and discover new friendships at your next DayLight event.</p>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/events" class="button">Explore Events</a>
+        </div>
+      </div>
+    `;
+
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: email,
-      subject: 'Welcome to DayLight! ☀️',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF5005; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .archetype-box { background-color: white; padding: 20px; border-left: 4px solid #FF5005; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🌟 Your Email is Verified!</h1>
-            </div>
-            <div class="content">
-              <h2>Hi ${name},</h2>
-              <p>Your email has been successfully verified! Welcome to DayLight! 🎉</p>
-              <div class="archetype-box">
-                <h3>Your Personality Type: ${archetype}</h3>
-                <p>You've completed your personality assessment, and we can't wait to connect you with like-minded people!</p>
-              </div>
-              <p>Get ready to experience meaningful connections at your next DayLight gathering.</p>
-              <p>See you soon! ☀️</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DayLight. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      subject: 'Welcome to DayLight',
+      html: this.getEmailTemplate(content),
     });
   }
 
@@ -173,99 +393,71 @@ export class EmailService {
       }).format(new Date(date));
     };
 
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">Thank you for booking <strong>${event.title}</strong>. Your payment is currently pending.</p>
+        
+        <div class="info-box">
+          <h3 class="info-box-title">Event Information</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date & Time</span>
+            <span class="info-value">${formatDate(event.eventDate)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location</span>
+            <span class="info-value">${event.venue}, ${event.city}</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Payment Details</h3>
+          <div class="info-row">
+            <span class="info-label">Invoice Number</span>
+            <span class="info-value">${transaction.merchantRef}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Payment Method</span>
+            <span class="info-value">${transaction.paymentName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Total Amount</span>
+            <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Payment Expires</span>
+            <span class="info-value">${formatDate(transaction.expiredAt)}</span>
+          </div>
+        </div>
+
+        ${transaction.payCode ? `
+        <div class="payment-code-box">
+          <p class="payment-code-label">Payment Code</p>
+          <div class="payment-code">${transaction.payCode}</div>
+        </div>
+        ` : ''}
+
+        <div class="alert-box alert-warning">
+          <strong>Action Required:</strong> Please complete your payment before ${formatDate(transaction.expiredAt)} to secure your spot at this event.
+        </div>
+
+        ${transaction.checkoutUrl ? `
+        <div class="button-container">
+          <a href="${transaction.checkoutUrl}" class="button">Complete Payment</a>
+        </div>
+        ` : ''}
+      </div>
+    `;
+
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: email,
       subject: `Payment Pending - ${event.title}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF5005; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .info-box { background-color: white; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #ddd; }
-            .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-            .info-label { font-weight: bold; color: #666; }
-            .info-value { text-align: right; }
-            .payment-code { background-color: #FFF3E0; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; color: #FF5005; margin: 20px 0; border-radius: 8px; }
-            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .warning { background-color: #FFF9C4; padding: 15px; border-left: 4px solid #FFC107; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>💳 Payment Pending</h1>
-            </div>
-            <div class="content">
-              <h2>Hi ${name},</h2>
-              <p>Thank you for booking <strong>${event.title}</strong>! Your payment is pending.</p>
-              
-              <div class="info-box">
-                <h3 style="margin-top: 0; color: #FF5005;">Event Details</h3>
-                <div class="info-row">
-                  <span class="info-label">Event:</span>
-                  <span class="info-value">${event.title}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Date:</span>
-                  <span class="info-value">${formatDate(event.eventDate)}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Venue:</span>
-                  <span class="info-value">${event.venue}, ${event.city}</span>
-                </div>
-              </div>
-
-              <div class="info-box">
-                <h3 style="margin-top: 0; color: #FF5005;">Payment Details</h3>
-                <div class="info-row">
-                  <span class="info-label">Invoice Number:</span>
-                  <span class="info-value">${transaction.merchantRef}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Payment Method:</span>
-                  <span class="info-value">${transaction.paymentName}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Amount:</span>
-                  <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Expires:</span>
-                  <span class="info-value">${formatDate(transaction.expiredAt)}</span>
-                </div>
-              </div>
-
-              ${transaction.payCode ? `
-              <div class="payment-code">
-                Payment Code: ${transaction.payCode}
-              </div>
-              ` : ''}
-
-              <div class="warning">
-                <strong>⏰ Important:</strong> Please complete your payment before ${formatDate(transaction.expiredAt)} to secure your spot!
-              </div>
-
-              ${transaction.checkoutUrl ? `
-              <div style="text-align: center;">
-                <a href="${transaction.checkoutUrl}" class="button">Complete Payment</a>
-              </div>
-              ` : ''}
-
-              <p>Need help? Contact us at support@daylight.com</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DayLight. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      html: this.getEmailTemplate(content),
     });
   }
 
@@ -290,100 +482,71 @@ export class EmailService {
       }).format(new Date(date));
     };
 
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">Great news! Your payment has been successfully processed. You're all set for <strong>${event.title}</strong>.</p>
+        
+        <div class="alert-box alert-success">
+          <strong>Registration Confirmed:</strong> Your spot at this event has been secured.
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Event Information</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date & Time</span>
+            <span class="info-value">${formatDate(event.eventDate)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location</span>
+            <span class="info-value">${event.venue}, ${event.city}</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Payment Summary</h3>
+          <div class="info-row">
+            <span class="info-label">Invoice Number</span>
+            <span class="info-value">${transaction.merchantRef}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Payment Method</span>
+            <span class="info-value">${transaction.paymentName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Amount Paid</span>
+            <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Payment Date</span>
+            <span class="info-value">${formatDate(transaction.paidAt)}</span>
+          </div>
+        </div>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/my-events" class="button">View My Events</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text"><strong>What's Next?</strong></p>
+        <ul class="list">
+          <li class="list-item">Mark your calendar for ${formatDate(event.eventDate)}</li>
+          <li class="list-item">You'll receive event details and reminders closer to the date</li>
+          <li class="list-item">Check your DayLight dashboard for updates and announcements</li>
+        </ul>
+      </div>
+    `;
+
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: email,
       subject: `Payment Successful - ${event.title}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .success-icon { font-size: 60px; text-align: center; margin: 20px 0; }
-            .info-box { background-color: white; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #ddd; }
-            .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-            .info-label { font-weight: bold; color: #666; }
-            .info-value { text-align: right; }
-            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .highlight { background-color: #E8F5E9; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>✅ Payment Successful!</h1>
-            </div>
-            <div class="content">
-              <div class="success-icon">🎉</div>
-              
-              <h2>Hi ${name},</h2>
-              <p>Great news! Your payment has been confirmed. You're all set for <strong>${event.title}</strong>!</p>
-              
-              <div class="highlight">
-                <strong>🎫 Your spot is confirmed!</strong> We can't wait to see you at the event.
-              </div>
-
-              <div class="info-box">
-                <h3 style="margin-top: 0; color: #4CAF50;">Event Details</h3>
-                <div class="info-row">
-                  <span class="info-label">Event:</span>
-                  <span class="info-value">${event.title}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Date:</span>
-                  <span class="info-value">${formatDate(event.eventDate)}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Venue:</span>
-                  <span class="info-value">${event.venue}, ${event.city}</span>
-                </div>
-              </div>
-
-              <div class="info-box">
-                <h3 style="margin-top: 0; color: #4CAF50;">Payment Summary</h3>
-                <div class="info-row">
-                  <span class="info-label">Invoice Number:</span>
-                  <span class="info-value">${transaction.merchantRef}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Payment Method:</span>
-                  <span class="info-value">${transaction.paymentName}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Amount Paid:</span>
-                  <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Payment Date:</span>
-                  <span class="info-value">${formatDate(transaction.paidAt)}</span>
-                </div>
-              </div>
-
-              <div style="text-align: center;">
-                <a href="${this.configService.get('FRONTEND_URL')}/my-events" class="button">View My Events</a>
-              </div>
-
-              <p><strong>What's Next?</strong></p>
-              <ul>
-                <li>Mark your calendar for ${formatDate(event.eventDate)}</li>
-                <li>You'll receive event details and reminders closer to the date</li>
-                <li>Check your DayLight dashboard for updates</li>
-              </ul>
-
-              <p>Questions? Contact us at support@daylight.com</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DayLight. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      html: this.getEmailTemplate(content),
     });
   }
 
@@ -393,52 +556,32 @@ export class EmailService {
     transaction: any,
     event: any,
   ) {
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">Your payment for <strong>${event.title}</strong> has expired.</p>
+        
+        <div class="alert-box alert-warning">
+          <strong>Payment Expired:</strong> Invoice #${transaction.merchantRef} is no longer valid and cannot be processed.
+        </div>
+
+        <p class="text">Don't worry! You can still attend this event by creating a new booking. Simply visit the event page and complete a new registration.</p>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">Book Again</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text" style="font-size: 13px; color: #999;">If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>
+      </div>
+    `;
+
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: email,
       subject: `Payment Expired - ${event.title}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #FF9800; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .warning { background-color: #FFF9C4; padding: 15px; border-left: 4px solid #FF9800; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>⏰ Payment Expired</h1>
-            </div>
-            <div class="content">
-              <h2>Hi ${name},</h2>
-              <p>Unfortunately, your payment for <strong>${event.title}</strong> has expired.</p>
-              
-              <div class="warning">
-                <strong>Invoice #${transaction.merchantRef}</strong> has expired and is no longer valid.
-              </div>
-
-              <p>Don't worry! You can still join this event by creating a new booking:</p>
-
-              <div style="text-align: center;">
-                <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">Book Again</a>
-              </div>
-
-              <p>Need help? Contact us at support@daylight.com</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DayLight. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      html: this.getEmailTemplate(content),
     });
   }
 
@@ -448,57 +591,38 @@ export class EmailService {
     transaction: any,
     event: any,
   ) {
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">We're sorry, but your payment for <strong>${event.title}</strong> could not be processed.</p>
+        
+        <div class="alert-box alert-error">
+          <strong>Payment Failed:</strong> Invoice #${transaction.merchantRef} was not successfully processed.
+        </div>
+
+        <p class="text"><strong>What You Can Do:</strong></p>
+        <ul class="list">
+          <li class="list-item">Verify your payment method details and try again</li>
+          <li class="list-item">Try using a different payment method</li>
+          <li class="list-item">Contact your bank if the issue persists</li>
+          <li class="list-item">Reach out to our support team for assistance</li>
+        </ul>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">Try Again</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text" style="font-size: 13px; color: #999;">We're here to help. If you continue experiencing issues, please contact our support team and we'll assist you with your booking.</p>
+      </div>
+    `;
+
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: email,
       subject: `Payment Failed - ${event.title}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #F44336; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-            .button { display: inline-block; background-color: #FF5005; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .error { background-color: #FFEBEE; padding: 15px; border-left: 4px solid #F44336; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>❌ Payment Failed</h1>
-            </div>
-            <div class="content">
-              <h2>Hi ${name},</h2>
-              <p>We're sorry, but your payment for <strong>${event.title}</strong> has failed.</p>
-              
-              <div class="error">
-                <strong>Invoice #${transaction.merchantRef}</strong> could not be processed.
-              </div>
-
-              <p><strong>What can you do?</strong></p>
-              <ul>
-                <li>Check your payment method and try again</li>
-                <li>Use a different payment method</li>
-                <li>Contact your bank if the issue persists</li>
-              </ul>
-
-              <div style="text-align: center;">
-                <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">Try Again</a>
-              </div>
-
-              <p>Need help? Contact us at support@daylight.com</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DayLight. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      html: this.getEmailTemplate(content),
     });
   }
 }

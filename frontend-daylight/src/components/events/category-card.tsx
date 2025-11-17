@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { LucideIcon } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 interface CategoryCardProps {
   label: string;
@@ -9,6 +10,7 @@ interface CategoryCardProps {
   icon: LucideIcon;
   href: string;
   color: string;
+  disabled?: boolean;
 }
 
 export function CategoryCard({
@@ -17,22 +19,46 @@ export function CategoryCard({
   icon: Icon,
   href,
   color,
+  disabled = false,
 }: CategoryCardProps) {
-  return (
-    <Link href={href}>
-      <div className="group flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-brand hover:shadow-md transition-all cursor-pointer hover:bg-linear-to-br from-brand/5 via-white to-brand/10">
-        <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${color} group-hover:scale-110 transition-transform`}
-        >
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-gray-900 group-hover:text-brand transition-colors">
-            {label}
-          </h4>
-          <p className="text-sm text-gray-600 line-clamp-1">{description}</p>
-        </div>
+  const content = (
+    <div
+      className={`group flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl transition-all  ${
+        disabled
+          ? 'opacity-60'
+          : 'hover:border-brand hover:shadow-md cursor-pointer hover:bg-linear-to-br from-brand/5 via-white to-brand/10'
+      }`}
+      aria-disabled={disabled}
+    >
+      <div
+        className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${color} ${
+          disabled ? '' : 'group-hover:scale-110 transition-transform'
+        }`}
+      >
+        <Icon className="w-6 h-6 text-white" />
       </div>
-    </Link>
+      <div className="flex-1 min-w-0">
+        <h4
+          className={`font-semibold text-gray-900 ${
+            disabled ? '' : 'group-hover:text-brand transition-colors'
+          }`}
+        >
+          {label}
+        </h4>
+        <p className="text-sm text-gray-600 line-clamp-1">{description}</p>
+      </div>
+    </div>
   );
+
+  if (disabled) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent>
+          <p>Coming Soon!</p>
+        </TooltipContent>
+      </Tooltip>
+    ) 
+  } 
+  return <Link href={href}>{content}</Link>;
 }

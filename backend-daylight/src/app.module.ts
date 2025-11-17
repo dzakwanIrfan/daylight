@@ -16,6 +16,8 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { UserEventsModule } from './user-events/user-events.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { UserStatsModule } from './user-stats/user-stats.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     UserEventsModule,
     TransactionsModule,
     SubscriptionsModule,
+    DashboardModule,
+    UserStatsModule,
   ],
   providers: [
     {

@@ -7,6 +7,9 @@ import { Calendar, Loader2, Sparkles, Users, Heart } from 'lucide-react';
 import { CategoryCard } from '@/components/events/category-card';
 import { EventsList } from '@/components/events/events-list';
 import { useNextWeekEvents } from '@/hooks/use-public-events';
+import { useUserStats } from '@/hooks/use-user-stats';
+import { StatsCard } from '@/components/main/stats-card';
+import { PersonalityResultModal } from '@/components/profile/personality-result-modal';
 import {
   UtensilsCrossed,
   Bus,
@@ -49,7 +52,11 @@ const categories = [
 export default function HomePage() {
   const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [isPersonalityModalOpen, setIsPersonalityModalOpen] = useState(false);
 
+  // Get user stats
+  const { data: statsData, isLoading: isLoadingStats } = useUserStats();
+  
   // Get events for next week using dedicated endpoint
   const { data: nextWeekData, isLoading: isLoadingNextWeek } = useNextWeekEvents();
 
@@ -65,9 +72,20 @@ export default function HomePage() {
     );
   }
 
+  const stats = statsData?.data;
+  const hasPersonalityType = Boolean(
+    stats?.personalityType && stats.personalityType !== 'Not Set'
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Personality Result Modal */}
+        <PersonalityResultModal
+          isOpen={isPersonalityModalOpen}
+          onClose={() => setIsPersonalityModalOpen(false)}
+        />
+
         {/* Welcome Header */}
         <div className="bg-linear-to-br from-brand/5 via-white to-brand/10 rounded-xl border border-brand/20 p-6 space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold">
@@ -80,59 +98,46 @@ export default function HomePage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Events */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-brand/30 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Events Attended
-              </h3>
-              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-brand" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">
-                No events attended yet
-              </p>
-            </div>
-          </div>
+          {/* Events Attended */}
+          <StatsCard
+            title="Events Attended"
+            value={stats?.eventsAttended || 0}
+            subtitle={
+              stats?.eventsAttended === 0
+                ? 'No events attended yet'
+                : `${stats?.eventsAttended} event${stats?.eventsAttended === 1 ? '' : 's'} completed`
+            }
+            icon={Calendar}
+            isLoading={isLoadingStats}
+          />
 
           {/* Connections */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-brand/30 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Connections
-              </h3>
-              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-brand" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">
-                Start meeting people
-              </p>
-            </div>
-          </div>
+          <StatsCard
+            title="Connections"
+            value={stats?.connections || 0}
+            subtitle={
+              stats?.connections === 0
+                ? 'Start meeting people'
+                : `${stats?.connections} connection${stats?.connections === 1 ? '' : 's'} made`
+            }
+            icon={Users}
+            isLoading={isLoadingStats}
+          />
 
           {/* Personality Type */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-brand/30 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Personality Type
-              </h3>
-              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-brand" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xl font-bold">
-                {user?.personalityType || 'Not Set'}
-              </div>
-              <p className="text-xs text-muted-foreground">Your archetype</p>
-            </div>
-          </div>
+          <StatsCard
+            title="Personality Type"
+            value={stats?.personalityType || 'Not Set'}
+            subtitle={hasPersonalityType ? 'Click to view your profile' : 'Your archetype'}
+            icon={Sparkles}
+            isLoading={isLoadingStats}
+            clickable={hasPersonalityType}
+            onClick={() => {
+              if (hasPersonalityType) {
+                setIsPersonalityModalOpen(true);
+              }
+            }}
+          />
         </div>
 
         {/* Let's Get Started - Categories */}

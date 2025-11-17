@@ -27,14 +27,15 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     enabled = true,
   } = options;
 
-  const { isAuthenticated } = useAuthStore();
+  const { user, isHydrated } = useAuthStore();
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const hasSetupRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled || !isAuthenticated()) {
+    // Tunggu hydrate + user ada. Jangan jalan kalau disabled.
+    if (!enabled || !isHydrated || !user) {
       console.log('❌ Socket disabled');
       return;
     }
@@ -48,15 +49,22 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     console.log('🔌 Setting up socket...');
     hasSetupRef.current = true;
 
+    // Build origin aman dari env; fallback ke origin halaman
+    const apiEnv = process.env.NEXT_PUBLIC_API_URL;
+    let origin: string;
+    try {
+      origin = apiEnv ? new URL(apiEnv).origin : window.location.origin;
+    } catch {
+      origin = window.location.origin;
+    }
+    const namespaceUrl = `${origin}/payment`;
+
     // Create socket
-    const socket = io(
-      `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/payment`,
-      {
-        withCredentials: true,
-        transports: ['websocket'],
-        reconnection: true,
-      }
-    );
+    const socket = io(namespaceUrl, {
+      withCredentials: true,
+      transports: ['websocket'],
+      reconnection: true,
+    });
 
     // Connection handlers
     socket.on('connect', () => {
@@ -128,7 +136,7 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
       setIsConnected(false);
       setIsSubscribed(false);
     };
-  }, [enabled, isAuthenticated]);
+  }, [enabled, isHydrated, user?.id]);
 
   // Handle subscription
   useEffect(() => {

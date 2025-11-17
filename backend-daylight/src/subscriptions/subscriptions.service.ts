@@ -20,6 +20,8 @@ import {
 import { CreateSubscriptionDto } from './dto/subscribe.dto';
 import { QueryUserSubscriptionsDto } from './dto/query-subscriptions.dto';
 import { addMonths, isAfter, isBefore } from 'date-fns';
+import { QueryAdminSubscriptionsDto, SortOrder } from './dto/query-admin-subscriptions.dto';
+import { BulkSubscriptionActionDto, BulkSubscriptionActionType } from './dto/bulk-subscription-action.dto';
 
 @Injectable()
 export class SubscriptionsService {
@@ -28,9 +30,7 @@ export class SubscriptionsService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * ========================================
    * SUBSCRIPTION PLANS (ADMIN)
-   * ========================================
    */
 
   async getActivePlans() {
@@ -128,9 +128,261 @@ export class SubscriptionsService {
   }
 
   /**
-   * ========================================
+   * Get all subscriptions with advanced filtering (Admin)
+   */
+  async getAdminSubscriptions(queryDto: QueryAdminSubscriptionsDto) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = SortOrder.DESC,
+      status,
+      userId,
+      planId,
+      dateFrom,
+      dateTo,
+    } = queryDto;
+
+    // Build where clause
+    const where: Prisma.UserSubscriptionWhereInput = {};
+
+    // Search across user email and name
+    if (search) {
+      where.OR = [
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { user: { firstName: { contains: search, mode: 'insensitive' } } },
+        { user: { lastName: { contains: search, mode: 'insensitive' } } },
+        { plan: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Filter by status
+    if (status) {
+      where.status = status;
+    }
+
+    // Filter by user
+    if (userId) {
+      where.userId = userId;
+    }
+
+    // Filter by plan
+    if (planId) {
+      where.planId = planId;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        where.createdAt.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        where.createdAt.lte = new Date(dateTo);
+      }
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    // Execute queries
+    const [subscriptions, total] = await Promise.all([
+      this.prisma.userSubscription.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          plan: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              price: true,
+              durationInMonths: true,
+            },
+          },
+          transaction: {
+            select: {
+              id: true,
+              merchantRef: true,
+              amount: true,
+              paymentStatus: true,
+              paidAt: true,
+            },
+          },
+        },
+      }),
+      this.prisma.userSubscription.count({ where }),
+    ]);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return {
+      success: true,
+      data: subscriptions,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+      },
+      filters: {
+        search,
+        status,
+        userId,
+        planId,
+        dateFrom,
+        dateTo,
+      },
+      sorting: {
+        sortBy,
+        sortOrder,
+      },
+    };
+  }
+
+  /**
+   * Bulk actions on subscriptions (Admin)
+   */
+  async bulkSubscriptionAction(bulkActionDto: BulkSubscriptionActionDto) {
+    const { subscriptionIds, action } = bulkActionDto;
+
+    // Validate subscription IDs
+    const subscriptions = await this.prisma.userSubscription.findMany({
+      where: { id: { in: subscriptionIds } },
+      select: { id: true, status: true },
+    });
+
+    if (subscriptions.length !== subscriptionIds.length) {
+      throw new BadRequestException('Some subscription IDs are invalid');
+    }
+
+    let result;
+
+    switch (action) {
+      case BulkSubscriptionActionType.CANCEL:
+        result = await this.prisma.userSubscription.updateMany({
+          where: { id: { in: subscriptionIds } },
+          data: { 
+            status: SubscriptionStatus.CANCELLED,
+            cancelledAt: new Date(),
+          },
+        });
+        this.logger.log(`Bulk cancelled ${result.count} subscriptions`);
+        break;
+
+      case BulkSubscriptionActionType.ACTIVATE:
+        // Only activate PENDING subscriptions
+        const pendingIds = subscriptions
+          .filter(s => s.status === SubscriptionStatus.PENDING)
+          .map(s => s.id);
+        
+        if (pendingIds.length === 0) {
+          throw new BadRequestException('No pending subscriptions to activate');
+        }
+
+        // Activate each one properly with dates
+        for (const id of pendingIds) {
+          await this.activateSubscription(id);
+        }
+        
+        result = { count: pendingIds.length };
+        this.logger.log(`Bulk activated ${result.count} subscriptions`);
+        break;
+
+      default:
+        throw new BadRequestException('Invalid bulk action');
+    }
+
+    return {
+      success: true,
+      message: `Bulk action ${action} completed successfully`,
+      affectedCount: result.count,
+    };
+  }
+
+  /**
+   * Export subscriptions data (Admin)
+   */
+  async exportSubscriptions(queryDto: QueryAdminSubscriptionsDto) {
+    const { search, status, userId, planId, dateFrom, dateTo } = queryDto;
+
+    // Build where clause (without pagination)
+    const where: Prisma.UserSubscriptionWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { user: { firstName: { contains: search, mode: 'insensitive' } } },
+        { user: { lastName: { contains: search, mode: 'insensitive' } } },
+        { plan: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (status) where.status = status;
+    if (userId) where.userId = userId;
+    if (planId) where.planId = planId;
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) where.createdAt.lte = new Date(dateTo);
+    }
+
+    const subscriptions = await this.prisma.userSubscription.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            price: true,
+            durationInMonths: true,
+          },
+        },
+        transaction: {
+          select: {
+            id: true,
+            merchantRef: true,
+            amount: true,
+            paymentStatus: true,
+            paidAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return subscriptions;
+  }
+
+  /**
    * USER SUBSCRIPTIONS
-   * ========================================
    */
 
   /**
@@ -262,10 +514,8 @@ export class SubscriptionsService {
   }
 
   /**
-   * ========================================
    * SUBSCRIPTION PURCHASE (handled by PaymentService)
    * But we need helper methods here
-   * ========================================
    */
 
   /**
@@ -399,9 +649,7 @@ export class SubscriptionsService {
   }
 
   /**
-   * ========================================
    * CRON JOBS / BACKGROUND TASKS
-   * ========================================
    */
 
   /**
@@ -439,9 +687,7 @@ export class SubscriptionsService {
   }
 
   /**
-   * ========================================
    * ADMIN QUERIES
-   * ========================================
    */
 
   async getAllSubscriptions(queryDto: any) {

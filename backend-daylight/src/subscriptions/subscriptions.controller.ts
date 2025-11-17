@@ -24,14 +24,14 @@ import {
 } from './dto/subscription-plan.dto';
 import { CancelSubscriptionDto } from './dto/subscribe.dto';
 import { QueryUserSubscriptionsDto } from './dto/query-subscriptions.dto';
+import { QueryAdminSubscriptionsDto } from './dto/query-admin-subscriptions.dto';
+import { BulkSubscriptionActionDto } from './dto/bulk-subscription-action.dto';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
   constructor(private subscriptionsService: SubscriptionsService) {}
 
-  // ========================================
   // PUBLIC ENDPOINTS
-  // ========================================
 
   /**
    * Get all active subscription plans
@@ -51,9 +51,7 @@ export class SubscriptionsController {
     return this.subscriptionsService.getPlanById(id);
   }
 
-  // ========================================
   // USER ENDPOINTS
-  // ========================================
 
   /**
    * Get user's active subscription
@@ -106,9 +104,7 @@ export class SubscriptionsController {
     );
   }
 
-  // ========================================
   // ADMIN ENDPOINTS
-  // ========================================
 
   /**
    * Get all plans (Admin)
@@ -174,5 +170,36 @@ export class SubscriptionsController {
   @Get('admin/stats')
   async getSubscriptionStats() {
     return this.subscriptionsService.getSubscriptionStats();
+  }
+
+  /**
+   * Get all subscriptions with advanced filters (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin/subscriptions')
+  async getAdminSubscriptions(@Query() queryDto: QueryAdminSubscriptionsDto) {
+    return this.subscriptionsService.getAdminSubscriptions(queryDto);
+  }
+
+  /**
+   * Bulk actions on subscriptions (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('admin/subscriptions/bulk')
+  @HttpCode(HttpStatus.OK)
+  async bulkSubscriptionAction(@Body() bulkActionDto: BulkSubscriptionActionDto) {
+    return this.subscriptionsService.bulkSubscriptionAction(bulkActionDto);
+  }
+
+  /**
+   * Export subscriptions (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin/subscriptions/export')
+  async exportSubscriptions(@Query() queryDto: QueryAdminSubscriptionsDto) {
+    return this.subscriptionsService.exportSubscriptions(queryDto);
   }
 }

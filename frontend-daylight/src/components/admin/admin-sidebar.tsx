@@ -1,8 +1,7 @@
-// src/components/admin/admin-sidebar.tsx
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { X, LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, FileText } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -26,6 +25,16 @@ const menuItems = [
     title: 'Events',
     href: '/admin/events',
     icon: Calendar,
+  },
+  {
+    title: 'Subscriptions',
+    href: '/admin/subscriptions',
+    icon: Crown, 
+  },
+  {
+    title: 'Subscription Plans',
+    href: '/admin/subscription-plans',
+    icon: Settings,
   },
   { 
     title: 'Transactions', 

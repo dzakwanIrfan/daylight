@@ -11,6 +11,10 @@ const publicRoutes = [
   '/auth/error',
   '/personality-test',
   '/subscriptions',
+  '/terms',
+  '/privacy',
+  '/community-guidelines',
+  '/contact',
 ];
 
 const authRoutes = ['/auth/login', '/auth/register'];

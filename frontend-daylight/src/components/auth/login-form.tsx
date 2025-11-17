@@ -210,6 +210,26 @@ export function LoginForm() {
           Take the personality test
         </Link>
       </p>
+      
+      <div className="mt-8 pt-6 border-t border-gray-200">
+        <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
+          <Link href="/terms" className="hover:text-brand transition-colors">
+            Terms & Conditions
+          </Link>
+          <span>•</span>
+          <Link href="/privacy" className="hover:text-brand transition-colors">
+            Privacy Policy
+          </Link>
+          <span>•</span>
+          <Link href="/community-guidelines" className="hover:text-brand transition-colors">
+            Community Guidelines
+          </Link>
+          <span>•</span>
+          <Link href="/contact" className="hover:text-brand transition-colors">
+            Contact
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

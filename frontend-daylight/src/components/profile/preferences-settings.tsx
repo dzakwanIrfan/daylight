@@ -1,6 +1,7 @@
 'use client';
 
-import { MapPin, Globe, Settings } from 'lucide-react';
+import { MapPin, Globe, Settings, FileText, Shield, Users, Mail } from 'lucide-react';
+import Link from 'next/link';
 
 export function PreferencesSettings() {
   return (
@@ -68,9 +69,79 @@ export function PreferencesSettings() {
         </div>
       </div>
 
+      {/* Legal & Support Section */}
+      <div className="border-t border-gray-200 pt-6 mt-6">
+        <h4 className="font-semibold text-gray-900 mb-4">Legal & Support</h4>
+        <div className="space-y-3">
+          <Link href="/terms" target="_blank">
+            <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-brand" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium">Terms & Conditions</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Read our terms of service
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/privacy" target="_blank">
+            <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                  <Shield className="w-5 h-5 text-brand" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium">Privacy Policy</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Learn how we protect your data
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/community-guidelines" target="_blank">
+            <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-brand" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium">Community Guidelines</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Our rules for a safe community
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/contact" target="_blank">
+            <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                  <Mail className="w-5 h-5 text-brand" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium">Contact Us</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Get in touch with our team
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
+
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
         <p className="text-sm text-muted-foreground text-center">
-          These features are currently in development and will be available soon. Stay tuned! 🚀
+          App settings features are currently in development and will be available soon. Stay tuned! 🚀
         </p>
       </div>
     </div>

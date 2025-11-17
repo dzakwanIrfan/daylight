@@ -208,11 +208,26 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   private extractToken(client: Socket): string | null {
-    return (
+    // 1) Prefer explicit auth token or Authorization header
+    const authToken =
       client.handshake.auth?.token ||
-      client.handshake.headers?.authorization?.replace('Bearer ', '') ||
-      null
-    );
+      client.handshake.headers?.authorization?.replace('Bearer ', '');
+    if (authToken) return authToken;
+
+    // 2) Fallback: read HttpOnly cookies sent with the handshake
+    const cookieHeader = client.handshake.headers?.cookie;
+    if (cookieHeader) {
+      const cookies = Object.fromEntries(
+        cookieHeader.split(';').map((c) => {
+          const [k, ...v] = c.trim().split('=');
+          return [decodeURIComponent(k), decodeURIComponent(v.join('='))];
+        })
+      );
+      if (cookies['accessToken']) return cookies['accessToken'];
+      if (cookies['refreshToken']) return cookies['refreshToken'];
+    }
+
+    return null;
   }
 
   private async verifyToken(token: string): Promise<any> {

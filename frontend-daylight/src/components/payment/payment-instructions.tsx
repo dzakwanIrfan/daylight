@@ -106,7 +106,10 @@ export function PaymentInstructions({
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand/10 text-brand font-semibold text-xs shrink-0 mt-0.5">
                       {stepIndex + 1}
                     </span>
-                    <span className="flex-1">{step}</span>
+                    <span 
+                      className="flex-1"
+                      dangerouslySetInnerHTML={{ __html: step }}
+                    />
                   </li>
                 ))}
               </ol>

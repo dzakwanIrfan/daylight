@@ -382,7 +382,7 @@ export default function EventDetailPage() {
         </div>
 
         {/* Participants */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
+        {/* <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-brand" />
@@ -405,7 +405,7 @@ export default function EventDetailPage() {
               }}
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Description */}
         <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">

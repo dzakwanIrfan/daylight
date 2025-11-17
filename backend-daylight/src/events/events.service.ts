@@ -5,7 +5,7 @@ import {
   ConflictException 
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, EventStatus, PaymentStatus, TransactionType } from '@prisma/client';
+import { Prisma, EventStatus, PaymentStatus, TransactionType, EventCategory } from '@prisma/client';
 import { QueryEventsDto, SortOrder } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -151,7 +151,9 @@ export class EventsService {
       dateTo,
     } = queryDto;
 
-    const where: Prisma.EventWhereInput = {};
+    const where: Prisma.EventWhereInput = {
+      NOT: { category: EventCategory.DAYDREAM }
+    };
 
     // Search
     if (search) {

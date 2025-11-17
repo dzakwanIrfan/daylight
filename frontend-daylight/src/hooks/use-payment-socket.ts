@@ -27,15 +27,16 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     enabled = true,
   } = options;
 
-  const { isAuthenticated } = useAuthStore();
+  const { accessToken, isAuthenticated } = useAuthStore();
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const hasSetupRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled || !isAuthenticated()) {
-      console.log('❌ Socket disabled (not authenticated or disabled)', { enabled, authenticated: isAuthenticated() });
+    // Don't setup if disabled or not authenticated
+    if (!enabled || !isAuthenticated() || !accessToken) {
+      console.log('❌ Socket disabled');
       return;
     }
 
@@ -48,15 +49,15 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
     console.log('🔌 Setting up socket...');
     hasSetupRef.current = true;
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? '';
-
-    // Socket pakai cookie HttpOnly
-    const socket = io(`${baseUrl}/payment`, {
-      withCredentials: true,      
-      transports: ['websocket'],
-      reconnection: false,       
-    });
+    // Create socket
+    const socket = io(
+      `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/payment`,
+      {
+        auth: { token: accessToken },
+        transports: ['websocket'],
+        reconnection: false, // IMPORTANT: Disable auto-reconnect
+      }
+    );
 
     // Connection handlers
     socket.on('connect', () => {
@@ -128,7 +129,7 @@ export function usePaymentSocket(options: UsePaymentSocketOptions = {}) {
       setIsConnected(false);
       setIsSubscribed(false);
     };
-  }, [enabled, isAuthenticated]);
+  }, [enabled, accessToken, isAuthenticated]); // Minimal deps
 
   // Handle subscription
   useEffect(() => {

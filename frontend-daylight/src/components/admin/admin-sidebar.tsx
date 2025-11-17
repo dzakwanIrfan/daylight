@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -40,6 +40,11 @@ const menuItems = [
     title: 'Transactions', 
     href: '/admin/transactions', 
     icon: FileText 
+  },
+  {
+    title: 'Payment Methods',
+    href: '/admin/payment-methods',
+    icon: CreditCard,
   },
 ];
 

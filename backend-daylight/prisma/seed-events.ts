@@ -53,7 +53,7 @@ const eventTemplates = {
       tags: ['running', 'fitness', 'beach', 'outdoor'],
       requirements: ['Wear running shoes', 'Bring water bottle', 'Sunscreen recommended'],
       highlights: ['Scenic beach route', 'Professional running coach', 'Post-run stretching session'],
-      price: 0,
+      price: 100000,
       maxParticipants: 50,
     },
     {
@@ -366,10 +366,8 @@ async function main() {
         else if (statusRandom < 0.95) status = EventStatus.COMPLETED;
         else status = EventStatus.CANCELLED;
 
-        // Random participants (0-80% of max)
-        const currentParticipants = Math.floor(
-          Math.random() * template.maxParticipants * 0.8
-        );
+        // Current participants set to 0
+        const currentParticipants = 0;
 
         // Determine if active based on status
         const isActive = status === EventStatus.PUBLISHED || status === EventStatus.DRAFT;

@@ -1,6 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { QueryPaymentMethodsDto, SortOrder } from './dto/query-payment-methods.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { BulkActionDto, BulkActionType } from './dto/bulk-action.dto';
 
 @Injectable()
 export class PaymentMethodsService {
@@ -124,7 +127,92 @@ export class PaymentMethodsService {
   }
 
   /**
-   * Get all payment methods (Admin)
+   * Get all payment methods with filtering, sorting, and pagination (Admin)
+   */
+  async getPaymentMethods(queryDto: QueryPaymentMethodsDto) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy = 'sortOrder',
+      sortOrder = SortOrder.ASC,
+      group,
+      type,
+      isActive,
+    } = queryDto;
+
+    // Build where clause
+    const where: Prisma.PaymentMethodWhereInput = {};
+
+    // Search across multiple fields
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { group: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Filter by group
+    if (group) {
+      where.group = group;
+    }
+
+    // Filter by type
+    if (type) {
+      where.type = type;
+    }
+
+    // Filter by active status
+    if (typeof isActive === 'boolean') {
+      where.isActive = isActive;
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    // Execute queries
+    const [methods, total] = await Promise.all([
+      this.prisma.paymentMethod.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { [sortBy]: sortOrder },
+      }),
+      this.prisma.paymentMethod.count({ where }),
+    ]);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return {
+      data: methods,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+      },
+      filters: {
+        search,
+        group,
+        type,
+        isActive,
+      },
+      sorting: {
+        sortBy,
+        sortOrder,
+      },
+    };
+  }
+
+  /**
+   * Get all payment methods (Admin) - for export
    */
   async getAllPaymentMethods(isActive?: boolean) {
     const where: Prisma.PaymentMethodWhereInput = {};
@@ -146,7 +234,15 @@ export class PaymentMethodsService {
   /**
    * Update payment method (Admin)
    */
-  async updatePaymentMethod(code: string, data: Prisma.PaymentMethodUpdateInput) {
+  async updatePaymentMethod(code: string, data: UpdatePaymentMethodDto) {
+    const existingMethod = await this.prisma.paymentMethod.findUnique({
+      where: { code },
+    });
+
+    if (!existingMethod) {
+      throw new NotFoundException('Payment method not found');
+    }
+
     const method = await this.prisma.paymentMethod.update({
       where: { code },
       data,
@@ -180,6 +276,94 @@ export class PaymentMethodsService {
       success: true,
       message: `Payment method ${updated.isActive ? 'activated' : 'deactivated'}`,
       data: updated,
+    };
+  }
+
+  /**
+   * Bulk actions on payment methods (Admin)
+   */
+  async bulkAction(bulkActionDto: BulkActionDto) {
+    const { codes, action } = bulkActionDto;
+
+    // Validate payment method codes
+    const methods = await this.prisma.paymentMethod.findMany({
+      where: { code: { in: codes } },
+      select: { code: true },
+    });
+
+    if (methods.length !== codes.length) {
+      throw new BadRequestException('Some payment method codes are invalid');
+    }
+
+    let result;
+
+    switch (action) {
+      case BulkActionType.ACTIVATE:
+        result = await this.prisma.paymentMethod.updateMany({
+          where: { code: { in: codes } },
+          data: { isActive: true },
+        });
+        break;
+
+      case BulkActionType.DEACTIVATE:
+        result = await this.prisma.paymentMethod.updateMany({
+          where: { code: { in: codes } },
+          data: { isActive: false },
+        });
+        break;
+
+      default:
+        throw new BadRequestException('Invalid bulk action');
+    }
+
+    return {
+      message: `Bulk action ${action} completed successfully`,
+      affectedCount: result.count,
+    };
+  }
+
+  /**
+   * Export payment methods data (Admin)
+   */
+  async exportPaymentMethods(queryDto: QueryPaymentMethodsDto) {
+    const { search, group, type, isActive } = queryDto;
+
+    // Build where clause (without pagination)
+    const where: Prisma.PaymentMethodWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { group: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (group) where.group = group;
+    if (type) where.type = type;
+    if (typeof isActive === 'boolean') where.isActive = isActive;
+
+    const methods = await this.prisma.paymentMethod.findMany({
+      where,
+      orderBy: [{ group: 'asc' }, { sortOrder: 'asc' }],
+    });
+
+    return methods;
+  }
+
+  /**
+   * Get unique groups (Admin)
+   */
+  async getUniqueGroups() {
+    const methods = await this.prisma.paymentMethod.findMany({
+      select: { group: true },
+      distinct: ['group'],
+      orderBy: { group: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: methods.map((m) => m.group),
     };
   }
 

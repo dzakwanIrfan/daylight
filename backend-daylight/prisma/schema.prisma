@@ -136,6 +136,21 @@ model PersonalityResult {
   @@index([userId])
 }
 
+model ArchetypeDetail {
+  id          String                @id @default(uuid())
+  archetype   PersonalityArchetype  @unique
+  symbol      String
+  name        String
+  traits      String[]
+  description String                @db.Text
+  imageKey    String
+  
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  
+  @@index([archetype])
+}
+
 model Question {
   id                    String                @id @default(uuid())
   questionNumber        Int                   @unique

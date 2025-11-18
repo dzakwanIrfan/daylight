@@ -153,7 +153,7 @@ export function PersonalityResultView() {
         </div>
         <h3 className="text-lg font-semibold mb-2">No Persona Test Results</h3>
         <p className="text-muted-foreground max-w-md mx-auto mb-6">
-          You haven't completed the persona test yet. Take the test to discover your day archetype and get better event recommendations!
+          You haven't completed the persona test yet. Take the test to discover your Light Archetype and get better event recommendations!
         </p>
         <Button
           onClick={() => window.open('/personality-test', '_blank')}
@@ -213,7 +213,7 @@ export function PersonalityResultView() {
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
             className="flex justify-center"
           >
-            <div className="relative w-56 h-56 mx-auto">
+            <div className="relative w-56 h-56 mx-auto bg-brand/10 border-2 border-brand rounded-full">
               <Image
                 src={archetypeImage}
                 alt={`${archetype.name} illustration`}
@@ -235,19 +235,19 @@ export function PersonalityResultView() {
             className="text-center space-y-3"
           >
             <div className="inline-flex items-center justify-center px-6 py-2 rounded-full bg-brand/10 border-2 border-brand">
-              <span className="text-2xl mr-2">{archetype.symbol}</span>
+              <span className="md:text-2xl text-xl mr-2">{archetype.symbol}</span>
               <span className="text-sm font-bold text-brand uppercase tracking-wide">
-                Your Day Archetype
+                Your Light Archetype
               </span>
             </div>
 
-            <h2 className="text-5xl font-heading font-black leading-none">
+            <h2 className="md:text-5xl text-4xl font-heading font-black leading-none">
               <span className="text-brand">
                 {archetype.name}
               </span>
             </h2>
 
-            <p className="text-xl text-foreground/80 max-w-2xl mx-auto font-medium leading-relaxed">
+            <p className="md:text-xl text-lg text-foreground/80 max-w-2xl mx-auto font-medium leading-relaxed">
               {archetype.description}
             </p>
 

@@ -46,7 +46,7 @@ export function PreferencesSettings() {
             <div className="flex-1">
               <h4 className="font-medium mb-1 text-brand">My Persona Result</h4>
               <p className="text-sm text-muted-foreground">
-                View your day archetype and persona profile
+                View your Light Archetype and persona profile
               </p>
             </div>
             <span className="text-xs bg-brand text-white px-2 py-1 rounded-full font-bold">

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard, Sparkle } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard, Sparkle, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { title } from 'process';
@@ -50,6 +50,11 @@ const menuItems = [
   {
     title: 'Persona Questions',
     href: '/admin/persona-questions',
+    icon: Sparkles,
+  },
+  {
+    title: 'Archetype Details',
+    href: '/admin/archetype-details',
     icon: Sparkle,
   }
 ];

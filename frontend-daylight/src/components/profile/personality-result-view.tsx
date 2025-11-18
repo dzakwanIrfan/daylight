@@ -38,7 +38,7 @@ const archetypeImages: Record<string, StaticImageData> = {
   PERFECT_DAY: PERFECT_DAY_IMG,
 };
 
-// Personality dimensions
+// Persona dimensions
 const personalityDimensions = [
   {
     key: 'energy',
@@ -139,7 +139,7 @@ export function PersonalityResultView() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 animate-spin text-brand mx-auto" />
-          <p className="text-muted-foreground font-medium">Loading your personality result...</p>
+          <p className="text-muted-foreground font-medium">Loading your persona result...</p>
         </div>
       </div>
     );
@@ -174,7 +174,7 @@ export function PersonalityResultView() {
       {/* Header with Share Button */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold mb-1">Your Personality Result</h3>
+          <h3 className="text-lg font-semibold mb-1">Your Persona Result</h3>
           <p className="text-sm text-muted-foreground">
             Taken on {new Date(result.createdAt).toLocaleDateString('en-US', { 
               year: 'numeric', 
@@ -269,7 +269,7 @@ export function PersonalityResultView() {
         </div>
       </motion.div>
 
-      {/* Personality Profile */}
+      {/* Persona Profile */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -280,7 +280,7 @@ export function PersonalityResultView() {
             <div className="space-y-2">
               <h3 className="text-2xl font-black flex items-center gap-2">
                 <Sparkles className="w-6 h-6 text-brand" />
-                Your Personality Profile
+                Your Persona Profile
               </h3>
               <p className="text-base text-muted-foreground">
                 Understanding your unique characteristics and preferences
@@ -422,7 +422,7 @@ export function PersonalityResultView() {
                 <div className="space-y-1">
                   <h4 className="font-bold text-brand text-base">What This Means</h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Your personality profile helps us match you with people who complement your style. 
+                    Your persona profile helps us match you with people who complement your style. 
                     There's no "better" or "worse" — every profile brings unique value to connections and conversations.
                   </p>
                 </div>

@@ -80,7 +80,7 @@ export default function HomePage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Personality Result Modal */}
+        {/* Persona Result Modal */}
         <PersonalityResultModal
           isOpen={isPersonalityModalOpen}
           onClose={() => setIsPersonalityModalOpen(false)}
@@ -124,9 +124,9 @@ export default function HomePage() {
             isLoading={isLoadingStats}
           />
 
-          {/* Personality Type */}
+          {/* Persona Type */}
           <StatsCard
-            title="Personality Type"
+            title="Persona Type"
             value={stats?.personalityType || 'Not Set'}
             subtitle={hasPersonalityType ? 'Click to view your profile' : 'Your archetype'}
             icon={Sparkles}

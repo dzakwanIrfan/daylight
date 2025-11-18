@@ -99,12 +99,12 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
             </div>
           </div>
 
-          {/* Personality Result */}
+          {/* Persona Result */}
           {user.personalityResult && (
             <>
               <Separator />
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-2">Personality Profile</p>
+                <p className="text-sm font-medium text-gray-500 mb-2">Persona Profile</p>
                 <div className="flex items-center justify-between p-3 bg-brand/5 rounded-lg">
                   <span className="text-sm font-medium text-gray-900">
                     {user.personalityResult.archetype}

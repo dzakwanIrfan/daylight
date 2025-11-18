@@ -16,7 +16,7 @@ export function PersonalityResultModal({ isOpen, onClose }: PersonalityResultMod
         {/* Header dengan tombol close */}
         <DialogHeader className="sticky top-0 z-50 bg-white border-b-2 border-black p-6">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold">Your Personality Profile</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Your Persona Profile</DialogTitle>
             <button
               onClick={onClose}
               className="rounded-full p-2 hover:bg-gray-100 transition-colors"

@@ -13,25 +13,25 @@ const categoryInfo = {
     title: 'DayBreak Events',
     description: 'Drink and Dinner Activities.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/daybreak.png',
+    src: '/images/categories/DayBreak.png',
   },
   DAYTRIP: {
     title: 'DayTrip Events',
     description: 'Travel & Trip Activities.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/daytrip.png',
+    src: '/images/categories/DayTrip.png',
   },
   DAYCARE: {
     title: 'DayCare Events',
     description: 'Health & Wellness Activities.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/daycare.png',
+    src: '/images/categories/DayCare.png',
   },
   DAYDREAM: {
     title: 'DayDream Events',
     description: 'Share ideas. Inspire together through creativity.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/daydream.png',
+    src: '/images/categories/DayDream.png',
   },
 };
 

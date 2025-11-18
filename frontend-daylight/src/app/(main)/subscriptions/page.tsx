@@ -16,9 +16,11 @@ import {
   Star,
   Sparkles,
   AlertCircle,
+  RefreshCcw,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function SubscriptionsPage() {
   const { user } = useAuth();
@@ -38,22 +40,27 @@ export default function SubscriptionsPage() {
     router.push(`/subscriptions/${planId}/checkout`);
   };
 
+  const handleOneTime = () => {
+    router.push('/events');
+    toast.success('Explore events and pay per event you join!');
+  }
+
   const planConfig = {
     MONTHLY_1: {
       icon: Zap,
       gradient: 'from-orange-500 to-orange-600',
-      badge: null,
+      badge: 'Popular',
     },
     MONTHLY_3: {
       icon: Star,
       gradient: 'from-purple-500 to-purple-600',
-      badge: 'Popular',
+      badge: null,
     },
-    MONTHLY_6: {
-      icon: Sparkles,
-      gradient: 'from-pink-500 to-orange-500',
-      badge: 'Best Value',
-    },
+    // MONTHLY_6: {
+    //   icon: Sparkles,
+    //   gradient: 'from-pink-500 to-orange-500',
+    //   badge: 'Best Value',
+    // },
   };
 
   if (isLoading) {
@@ -163,6 +170,73 @@ export default function SubscriptionsPage() {
 
         {/* Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="relative bg-white rounded-lg border-2 transition-all hover:shadow-lg border-gray-200 hover:black">
+            <div className="p-6 space-y-5">
+              {/* Icon */}
+              <div className={`w-12 h-12 rounded-lg bg-black flex items-center justify-center`}>
+                <RefreshCcw className="w-6 h-6 text-white" />
+              </div>
+
+              {/* Plan Name */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">
+                  One Time Payment
+                </h3>
+                  <p className="text-sm text-gray-600">Pay for every event you join</p>
+              </div>
+
+              {/* Price */}
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-gray-900">
+                    Rp100.000
+                  </span>
+                </div>
+              </div>
+
+              {/* Features */}
+              <div className="pt-4 border-t border-gray-200 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-700 leading-relaxed">
+                    No subscription required
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-700 leading-relaxed">
+                    Join any public & regular events
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-700 leading-relaxed">
+                    No unlimited access
+                  </span>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <button
+                onClick={() => handleOneTime()}
+                disabled={hasActiveSubscription}
+                className={`w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                  hasActiveSubscription
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-md'
+                }`}
+              >
+                {hasActiveSubscription ? (
+                  'Already Subscribed'
+                ) : (
+                  <>
+                    Explore Events
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
           {plans.map((plan) => {
             const config = planConfig[plan.type] || planConfig.MONTHLY_1;
             const PlanIcon = config.icon;
@@ -237,13 +311,7 @@ export default function SubscriptionsPage() {
                   <button
                     onClick={() => handleSelectPlan(plan.id)}
                     disabled={hasActiveSubscription}
-                    className={`w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                      hasActiveSubscription
-                        ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                        : hasBadge
-                        ? 'bg-linear-to-r from-brand to-orange-600 text-white hover:shadow-lg hover:scale-[1.02]'
-                        : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-md'
-                    }`}
+                    className="w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 bg-gray-900 text-white hover:bg-gray-800 hover:shadow-md bg-linear-to-r from-brand to-orange-600 hover:scale-[1.02]"
                   >
                     {hasActiveSubscription ? (
                       'Already Subscribed'

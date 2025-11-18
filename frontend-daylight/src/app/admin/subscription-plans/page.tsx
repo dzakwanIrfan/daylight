@@ -131,7 +131,7 @@ export default function AdminSubscriptionPlansPage() {
                   options: [
                     { label: '1 Month', value: 'MONTHLY_1' },
                     { label: '3 Months', value: 'MONTHLY_3' },
-                    { label: '6 Months', value: 'MONTHLY_6' },
+                    // { label: '6 Months', value: 'MONTHLY_6' },
                   ],
                 },
                 {

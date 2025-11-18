@@ -143,9 +143,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
                     <SelectItem value={SubscriptionPlanType.MONTHLY_3}>
                       3 Months Plan
                     </SelectItem>
-                    <SelectItem value={SubscriptionPlanType.MONTHLY_6}>
+                    {/* <SelectItem value={SubscriptionPlanType.MONTHLY_6}>
                       6 Months Plan
-                    </SelectItem>
+                    </SelectItem> */}
                   </SelectContent>
                 </Select>
               )}

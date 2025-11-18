@@ -18,6 +18,7 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UserStatsModule } from './user-stats/user-stats.module';
+import { PersonaQuestionModule } from './persona-question/persona-question.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { UserStatsModule } from './user-stats/user-stats.module';
     SubscriptionsModule,
     DashboardModule,
     UserStatsModule,
+    PersonaQuestionModule,
   ],
   providers: [
     {

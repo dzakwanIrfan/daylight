@@ -39,14 +39,14 @@ const categories = [
     href: '/events/category/DAYCARE',
     color: 'bg-green-500',
   },
-  {
-    label: 'DayDream',
-    description: 'Share ideas. Inspire together.',
-    icon: Cloud,
-    href: '/events/category/DAYDREAM',
-    color: 'bg-purple-500',
-    disabled: true,
-  },
+  // {
+  //   label: 'DayDream',
+  //   description: 'Share ideas. Inspire together.',
+  //   icon: Cloud,
+  //   href: '/events/category/DAYDREAM',
+  //   color: 'bg-purple-500',
+  //   disabled: true,
+  // },
 ];
 
 export default function HomePage() {

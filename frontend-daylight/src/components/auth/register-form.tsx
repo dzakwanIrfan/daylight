@@ -51,8 +51,8 @@ export function RegisterForm() {
     if (registrationSuccess) return;
     
     if (!sessionId) {
-      toast.error('Please complete the personality test first', {
-        description: 'You need to take the personality test before registering.',
+      toast.error('Please complete the persona test first', {
+        description: 'You need to take the persona test before registering.',
         duration: 5000,
       });
     }
@@ -141,7 +141,7 @@ export function RegisterForm() {
   const onSubmit = (data: RegisterFormData) => {
     if (!sessionId) {
       toast.error('Session expired', {
-        description: 'Please take the personality test again before registering.',
+        description: 'Please take the persona test again before registering.',
         duration: 6000,
         action: {
           label: 'Take Test',
@@ -169,8 +169,8 @@ export function RegisterForm() {
    */
   const handleGoogleRegister = () => {
     if (!sessionId) {
-      toast.error('Please complete the personality test first', {
-        description: 'You need to take the personality test before registering.',
+      toast.error('Please complete the persona test first', {
+        description: 'You need to take the persona test before registering.',
         duration: 6000,
         action: {
           label: 'Take Test',
@@ -252,7 +252,7 @@ export function RegisterForm() {
         <h2 className="text-2xl font-semibold mb-2">Create Your Account</h2>
         <p className="text-muted-foreground">One last step to start your journey</p>
         {sessionId && (
-          <p className="text-xs text-green-600 mt-2">Personality test completed</p>
+          <p className="text-xs text-green-600 mt-2">Persona test completed</p>
         )}
       </div>
 
@@ -428,7 +428,7 @@ export function RegisterForm() {
       {!sessionId && (
         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800 text-center">
-            ⚠️ Please complete the personality test first before registering
+            ⚠️ Please complete the persona test first before registering
           </p>
         </div>
       )}

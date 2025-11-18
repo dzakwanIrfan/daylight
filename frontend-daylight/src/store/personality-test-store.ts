@@ -75,7 +75,7 @@ export const usePersonalityTestStore = create<PersonalityTestState>()(
       name: 'personality-test-storage',
       onRehydrateStorage: () => (state) => {
         if (state?.sessionId) {
-          toast.success('Resumed your personality test session.');
+          toast.success('Resumed your persona test session.');
         }
       },
     }

@@ -34,7 +34,7 @@ export const AuthErrorMessages = {
   INVALID_REFRESH_TOKEN: 'Invalid or expired refresh token',
   EMAIL_ALREADY_VERIFIED: 'Email is already verified',
   PROVIDER_MISMATCH: 'This account uses a different login method',
-  PERSONALITY_TEST_REQUIRED: 'Please complete the personality test first',
+  PERSONALITY_TEST_REQUIRED: 'Please complete the persona test first',
   SESSION_EXPIRED: 'Session expired. Please login again',
 } as const;
 
@@ -107,7 +107,7 @@ export class AuthService {
         throw new ConflictException(AuthErrorMessages.EMAIL_ALREADY_EXISTS);
       }
 
-      // Verify personality test was completed
+      // Verify persona test was completed
       const personalityResult = await this.personalityService.getResultBySession(sessionId);
       if (!personalityResult) {
         throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
@@ -302,7 +302,7 @@ export class AuthService {
           await this.usersService.updateGoogleId(user.id, profile.id);
         }
       } else {
-        // User doesn't exist - require personality test for registration
+        // User doesn't exist - require persona test for registration
         throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
       }
     }
@@ -333,7 +333,7 @@ export class AuthService {
   }
 
   async registerWithGoogle(sessionId: string, profile: any) {
-    // Verify personality test was completed
+    // Verify persona test was completed
     const personalityResult = await this.personalityService.getResultBySession(sessionId);
 
     if (!personalityResult) {

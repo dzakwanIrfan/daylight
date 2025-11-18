@@ -151,15 +151,15 @@ export function PersonalityResultView() {
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
           <Eye className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">No Personality Test Results</h3>
+        <h3 className="text-lg font-semibold mb-2">No Persona Test Results</h3>
         <p className="text-muted-foreground max-w-md mx-auto mb-6">
-          You haven't completed the personality test yet. Take the test to discover your day archetype and get better event recommendations!
+          You haven't completed the persona test yet. Take the test to discover your day archetype and get better event recommendations!
         </p>
         <Button
           onClick={() => window.open('/personality-test', '_blank')}
           className="bg-brand hover:bg-brand/90 shadow-brutal hover:shadow-brutal-sm border-2 border-black rounded-full font-bold text-white"
         >
-          Take Personality Test
+          Take Persona Test
           <ArrowRight className="ml-2 w-4 h-4" />
         </Button>
       </div>

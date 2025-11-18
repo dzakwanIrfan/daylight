@@ -118,7 +118,7 @@ export function getUserFriendlyErrorMessage(error: ApiError): string {
     'Invalid or expired token': 'This link has expired or is invalid. Please request a new one.',
     'User not found': 'We couldn\'t find an account with that information.',
     'Email is already verified': 'Your email is already verified. You can login now.',
-    'Please complete the personality test first': 'Please complete the personality test before registering.',
+    'Please complete the persona test first': 'Please complete the persona test before registering.',
     'Session expired. Please login again': 'Your session has expired. Please login again.',
     'An account with this email already exists': 'This email is already registered. Please login with your password.',
   };

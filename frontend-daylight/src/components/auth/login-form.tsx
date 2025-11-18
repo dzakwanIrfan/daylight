@@ -207,7 +207,7 @@ export function LoginForm() {
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{' '}
         <Link href="/personality-test" className="text-brand hover:underline font-medium">
-          Take the personality test
+          Take the persona test
         </Link>
       </p>
       

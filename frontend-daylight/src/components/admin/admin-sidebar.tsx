@@ -1,9 +1,10 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard, Sparkle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { title } from 'process';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -46,6 +47,11 @@ const menuItems = [
     href: '/admin/payment-methods',
     icon: CreditCard,
   },
+  {
+    title: 'Persona Questions',
+    href: '/admin/persona-questions',
+    icon: Sparkle,
+  }
 ];
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {

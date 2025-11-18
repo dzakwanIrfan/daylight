@@ -37,7 +37,7 @@ export class QueryPersonaQuestionDto {
 
     @IsOptional()
     @IsEnum(SortOrder)
-    sortOrder?: SortOrder = SortOrder.DESC;
+    sortOrder?: SortOrder = SortOrder.ASC;
 
     @IsOptional()
     @Type(() => Number)

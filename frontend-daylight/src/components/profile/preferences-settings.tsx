@@ -46,7 +46,7 @@ export function PreferencesSettings() {
             <div className="flex-1">
               <h4 className="font-medium mb-1 text-brand">My Persona Result</h4>
               <p className="text-sm text-muted-foreground">
-                View your day archetype and persona profile
+                View your Light Archetype and persona profile
               </p>
             </div>
             <span className="text-xs bg-brand text-white px-2 py-1 rounded-full font-bold">
@@ -113,7 +113,7 @@ export function PreferencesSettings() {
       {/* Legal & Support Section */}
       <div className="border-t border-gray-200 pt-6 mt-6">
         <h4 className="font-semibold text-gray-900 mb-4">Legal & Support</h4>
-        <div className="space-y-3">
+        <div className="flex flex-col space-y-3 justify-center items-stretch">
           <Link href="/terms" target="_blank">
             <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer">
               <div className="flex items-center gap-3">

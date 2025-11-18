@@ -6,27 +6,32 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { EventsList } from '@/components/events/events-list';
 import { usePublicEvents } from '@/hooks/use-public-events';
 import { EventCategory, EventStatus } from '@/types/event.types';
+import Image from 'next/image';
 
 const categoryInfo = {
   DAYBREAK: {
     title: 'DayBreak Events',
-    description: 'Start fresh. Meet new people over meals and conversations.',
+    description: 'Drink and Dinner Activities.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
+    src: '/images/categories/daybreak.png',
   },
   DAYTRIP: {
     title: 'DayTrip Events',
-    description: 'Go out. Connect through adventure and exploration.',
-    color: 'bg-linear-to-br from-blue-500/15 via-white to-blue-500/20 border border-blue-500/20',
+    description: 'Travel & Trip Activities.',
+    color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
+    src: '/images/categories/daytrip.png',
   },
   DAYCARE: {
     title: 'DayCare Events',
-    description: 'A safe space to support each other and share experiences.',
-    color: 'bg-linear-to-br from-green-500/15 via-white to-green-500/20 border border-green-500/20',
+    description: 'Health & Wellness Activities.',
+    color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
+    src: '/images/categories/daycare.png',
   },
   DAYDREAM: {
     title: 'DayDream Events',
     description: 'Share ideas. Inspire together through creativity.',
-    color: 'bg-linear-to-br from-purple-500/15 via-white to-purple-500/20 border border-purple-500/20',
+    color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
+    src: '/images/categories/daydream.png',
   },
 };
 
@@ -76,10 +81,13 @@ export default function CategoryPage() {
 
         {/* Header */}
         <div
-          className={`${info.color} rounded-xl p-6 space-y-2`}
+          className={`${info.color} rounded-xl p-6 space-x-4 flex items-center`}
         >
-          <h1 className="text-2xl md:text-3xl font-bold">{info.title}</h1>
-          <p>{info.description}</p>
+          <Image src={info.src} alt={info.title} width={64} height={64} className='rounded-full' />
+          <div className="flex flex-col gap-0 md:gap-1">
+            <h1 className="text-2xl md:text-3xl font-bold">{info.title}</h1>
+            <p className='text-sm md:text-base'>{info.description}</p>
+          </div>
         </div>
 
         {/* Events List */}

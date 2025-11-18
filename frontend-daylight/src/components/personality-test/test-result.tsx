@@ -236,7 +236,7 @@ export function TestResult() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,80,5,0.3),transparent_50%)]" />
           </div>
 
-          <div className="relative z-10 p-6 md:p-12 space-y-6 md:space-y-8">
+          <div className="relative w-56 h-56 mx-auto bg-brand/10 border-2 border-brand rounded-full">
             {/* Archetype Image */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -266,19 +266,19 @@ export function TestResult() {
               className="text-center space-y-3 md:space-y-4"
             >
               <div className="inline-flex items-center justify-center px-4 md:px-6 py-2 rounded-full bg-brand/10 border-2 border-brand">
-                <span className="text-2xl md:text-3xl mr-2">{archetype.symbol}</span>
+                <span className="md:text-2xl text-xl mr-2">{archetype.symbol}</span>
                 <span className="text-xs md:text-sm font-bold text-brand uppercase tracking-wide">
-                  Your Day Archetype
+                  Your Light Archetype
                 </span>
               </div>
 
-              <h1 className="text-4xl md:text-7xl font-heading font-black leading-none">
+              <h1 className="md:text-5xl text-4xl font-heading font-black leading-none">
                 <span className="text-brand">
                   {archetype.name}
                 </span>
               </h1>
 
-              <p className="text-lg md:text-2xl text-foreground/80 max-w-2xl mx-auto font-medium leading-relaxed px-4">
+              <p className="md:text-xl text-lg text-foreground/80 max-w-2xl mx-auto font-medium leading-relaxed">
                 {archetype.description}
               </p>
 
@@ -290,7 +290,7 @@ export function TestResult() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 + index * 0.1 }}
-                    className="px-4 md:px-6 py-2 md:py-3 rounded-full bg-brand text-white font-bold text-sm md:text-lg border-2 border-black shadow-brutal-sm hover:shadow-none transition-all"
+                    className="px-5 py-2 rounded-full bg-brand text-white font-bold text-base border-2 border-black shadow-brutal-sm hover:shadow-none transition-all"
                   >
                     {trait}
                   </motion.span>

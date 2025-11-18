@@ -19,6 +19,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UserStatsModule } from './user-stats/user-stats.module';
 import { PersonaQuestionModule } from './persona-question/persona-question.module';
+import { ArchetypeDetailModule } from './archetype-detail/archetype-detail.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PersonaQuestionModule } from './persona-question/persona-question.modul
     DashboardModule,
     UserStatsModule,
     PersonaQuestionModule,
+    ArchetypeDetailModule,
   ],
   providers: [
     {

@@ -24,6 +24,7 @@ const categories = [
     icon: UtensilsCrossed,
     href: '/events/category/DAYBREAK',
     color: 'bg-orange-500',
+    src: '/images/categories/DayBreak.png'
   },
   {
     label: 'DayTrip',
@@ -31,6 +32,7 @@ const categories = [
     icon: Bus,
     href: '/events/category/DAYTRIP',
     color: 'bg-blue-500',
+    src: '/images/categories/DayTrip.png'
   },
   {
     label: 'DayCare',
@@ -38,6 +40,7 @@ const categories = [
     icon: HeartHandshake,
     href: '/events/category/DAYCARE',
     color: 'bg-green-500',
+    src: '/images/categories/DayCare.png'
   },
   // {
   //   label: 'DayDream',

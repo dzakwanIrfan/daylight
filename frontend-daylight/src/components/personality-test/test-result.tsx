@@ -41,7 +41,7 @@ const archetypeImages: Record<string, StaticImageData> = {
   PERFECT_DAY: PERFECT_DAY_IMG,
 };
 
-// Personality dimensions with bipolar labels (like MBTI)
+// Persona dimensions with bipolar labels (like MBTI)
 const personalityDimensions = [
   {
     key: 'energy',
@@ -300,7 +300,7 @@ export function TestResult() {
           </div>
         </motion.div>
 
-        {/* Personality Profile - MBTI Style */}
+        {/* Persona Profile - MBTI Style */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -311,7 +311,7 @@ export function TestResult() {
               <div className="space-y-2">
                 <h3 className="text-xl md:text-2xl font-black flex items-center gap-2">
                   <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-brand" />
-                  Your Personality Profile
+                  Your Persona Profile
                 </h3>
                 <p className="text-sm md:text-base text-muted-foreground">
                   Understanding your unique characteristics and preferences
@@ -453,7 +453,7 @@ export function TestResult() {
                   <div className="space-y-1">
                     <h4 className="font-bold text-brand text-sm md:text-base">What This Means</h4>
                     <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-                      Your personality profile helps us match you with people who complement your style. 
+                      Your persona profile helps us match you with people who complement your style. 
                       There's no "better" or "worse" — every profile brings unique value to connections and conversations.
                     </p>
                   </div>

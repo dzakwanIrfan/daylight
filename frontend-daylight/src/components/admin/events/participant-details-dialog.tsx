@@ -250,13 +250,13 @@ export function ParticipantDetailsDialog({
             </div>
           </div>
 
-          {/* Personality Profile (if available) */}
+          {/* Persona Profile (if available) */}
           {user.personalityResult && (
             <>
               <Separator />
               <div>
                 <h4 className="font-semibold text-sm text-gray-700 mb-3">
-                  Personality Profile
+                  Persona Profile
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-purple-50 rounded-lg">

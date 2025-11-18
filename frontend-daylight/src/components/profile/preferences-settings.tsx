@@ -44,9 +44,9 @@ export function PreferencesSettings() {
               <Sparkles className="w-5 h-5 text-brand" />
             </div>
             <div className="flex-1">
-              <h4 className="font-medium mb-1 text-brand">My Personality Result</h4>
+              <h4 className="font-medium mb-1 text-brand">My Persona Result</h4>
               <p className="text-sm text-muted-foreground">
-                View your day archetype and personality profile
+                View your day archetype and persona profile
               </p>
             </div>
             <span className="text-xs bg-brand text-white px-2 py-1 rounded-full font-bold">

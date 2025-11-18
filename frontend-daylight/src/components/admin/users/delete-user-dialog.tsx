@@ -77,7 +77,7 @@ export function DeleteUserDialog({ user, open, onOpenChange }: DeleteUserDialogP
           {hardDelete && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-xs text-yellow-800">
-                ⚠️ Warning: This will permanently remove all user data including personality results and cannot be recovered.
+                ⚠️ Warning: This will permanently remove all user data including persona results and cannot be recovered.
               </p>
             </div>
           )}

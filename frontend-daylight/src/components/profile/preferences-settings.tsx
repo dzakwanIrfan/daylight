@@ -34,7 +34,7 @@ export function PreferencesSettings() {
       </div>
 
       <div className="space-y-4">
-        {/* Personality Test Result */}
+        {/* Persona Test Result */}
         <div 
           onClick={() => setShowPersonalityResult(true)}
           className="border border-brand/30 bg-brand/5 rounded-lg p-4 hover:border-brand hover:bg-brand/10 transition-colors cursor-pointer"

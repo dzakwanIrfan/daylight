@@ -1,10 +1,9 @@
 export interface AdminPersonaOptions {
     id: string;
     questionId: string;
-    question: AdminPersonaQuestion[];
     optionKey: string;
     text: string;
-    traitImpacts: JSON;
+    traitImpacts: any;
     createdAt: string;
     updatedAt: string;
 }
@@ -35,6 +34,12 @@ export enum SortOrder {
     DESC = 'desc',
 }
 
+export enum PersonaQuestionBulkActionType {
+    ACTIVATE = 'activate',
+    DEACTIVATE = 'deactivate',
+    DELETE = 'delete',
+}
+
 export interface QueryAdminPersonaQuestionParams {
     page?: number;
     limit?: number;
@@ -60,4 +65,43 @@ export interface QueryAdminPersonaQuestionResponse {
         sortBy: string;
         sortOrder: string;
     };
+}
+
+export interface CreatePersonaQuestionPayload {
+    questionNumber: number;
+    section: string;
+    prompt: string;
+    type: string;
+    isActive?: boolean;
+    order: number;
+    options: {
+        optionKey: string;
+        text: string;
+        traitImpacts?: any; // bisa string atau object
+    }[];
+}
+
+export interface UpdatePersonaQuestionPayload {
+    questionNumber?: number;
+    section?: string;
+    prompt?: string;
+    type?: string;
+    isActive?: boolean;
+    order?: number;
+    options?: {
+        id?: string;
+        optionKey: string;
+        text: string;
+        traitImpacts?: any;
+    }[];
+}
+
+export interface BulkActionPersonaQuestionPayload {
+    questionIds: string[];
+    action: PersonaQuestionBulkActionType;
+}
+
+export interface BulkActionPersonaQuestionResponse {
+    message: string;
+    affectedCount: number;
 }

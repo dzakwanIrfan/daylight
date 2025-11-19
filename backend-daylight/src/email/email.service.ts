@@ -343,15 +343,15 @@ export class EmailService {
         <p class="text">Your email has been successfully verified. We're thrilled to have you as part of our community.</p>
         
         <div class="info-box">
-          <h3 class="info-box-title">Your Personality Profile</h3>
+          <h3 class="info-box-title">Your Persona Profile</h3>
           <div class="info-row">
-            <span class="info-label">Personality Type</span>
+            <span class="info-label">Persona Type: </span>
             <span class="info-value">${archetype}</span>
           </div>
         </div>
 
         <div class="alert-box alert-success">
-          <strong>Assessment Complete:</strong> You've completed your personality assessment. We'll use this to connect you with like-minded individuals at DayLight gatherings.
+          <strong>Assessment Complete:</strong> You've completed your persona assessment. We'll use this to connect you with like-minded individuals at DayLight gatherings.
         </div>
 
         <p class="text">Get ready to experience meaningful connections and discover new friendships at your next DayLight event.</p>
@@ -401,15 +401,15 @@ export class EmailService {
         <div class="info-box">
           <h3 class="info-box-title">Event Information</h3>
           <div class="info-row">
-            <span class="info-label">Event Name</span>
+            <span class="info-label">Event Name: </span>
             <span class="info-value">${event.title}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Date & Time</span>
+            <span class="info-label">Date & Time: </span>
             <span class="info-value">${formatDate(event.eventDate)}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Location</span>
+            <span class="info-label">Location: </span>
             <span class="info-value">${event.venue}, ${event.city}</span>
           </div>
         </div>
@@ -417,19 +417,19 @@ export class EmailService {
         <div class="info-box">
           <h3 class="info-box-title">Payment Details</h3>
           <div class="info-row">
-            <span class="info-label">Invoice Number</span>
+            <span class="info-label">Invoice Number: </span>
             <span class="info-value">${transaction.merchantRef}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Payment Method</span>
+            <span class="info-label">Payment Method: </span>
             <span class="info-value">${transaction.paymentName}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Total Amount</span>
+            <span class="info-label">Total Amount: </span>
             <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Payment Expires</span>
+            <span class="info-label">Payment Expires: </span>
             <span class="info-value">${formatDate(transaction.expiredAt)}</span>
           </div>
         </div>
@@ -494,15 +494,15 @@ export class EmailService {
         <div class="info-box">
           <h3 class="info-box-title">Event Information</h3>
           <div class="info-row">
-            <span class="info-label">Event Name</span>
+            <span class="info-label">Event Name: </span>
             <span class="info-value">${event.title}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Date & Time</span>
+            <span class="info-label">Date & Time: </span>
             <span class="info-value">${formatDate(event.eventDate)}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Location</span>
+            <span class="info-label">Location: </span>
             <span class="info-value">${event.venue}, ${event.city}</span>
           </div>
         </div>
@@ -510,19 +510,19 @@ export class EmailService {
         <div class="info-box">
           <h3 class="info-box-title">Payment Summary</h3>
           <div class="info-row">
-            <span class="info-label">Invoice Number</span>
+            <span class="info-label">Invoice Number: </span>
             <span class="info-value">${transaction.merchantRef}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Payment Method</span>
+            <span class="info-label">Payment Method: </span>
             <span class="info-value">${transaction.paymentName}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Amount Paid</span>
+            <span class="info-label">Amount Paid: </span>
             <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Payment Date</span>
+            <span class="info-label">Payment Date: </span>
             <span class="info-value">${formatDate(transaction.paidAt)}</span>
           </div>
         </div>

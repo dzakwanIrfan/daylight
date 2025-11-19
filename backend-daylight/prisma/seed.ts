@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting enhanced seed...');
+  console.log('🌱 Starting ENHANCED seed with bias-free scoring...');
 
   // Clear existing data
   await prisma.questionOption.deleteMany();
@@ -11,7 +11,7 @@ async function main() {
 
   // Section 1: Core Personality & Social Energy (Q1-Q5)
   
-  // Q1: Energy - Meeting new people
+  // Q1: Energy - Meeting new people (E trait)
   await prisma.question.create({
     data: {
       questionNumber: 1,
@@ -37,7 +37,7 @@ async function main() {
     },
   });
 
-  // Q2: Energy - Recharge style
+  // Q2: Energy - Recharge style (E trait)
   await prisma.question.create({
     data: {
       questionNumber: 2,
@@ -63,7 +63,7 @@ async function main() {
     },
   });
 
-  // Q3: Openness - Conversation type (FIXED: deep=Openness, light=less open)
+  // Q3: Openness - Conversation depth (O trait)
   await prisma.question.create({
     data: {
       questionNumber: 3,
@@ -89,7 +89,7 @@ async function main() {
     },
   });
 
-  // Q4: Structure - Plan changes
+  // Q4: Structure - Plan flexibility (S trait)
   await prisma.question.create({
     data: {
       questionNumber: 4,
@@ -102,7 +102,7 @@ async function main() {
         create: [
           {
             optionKey: 'A',
-            text: 'Love it — I enjoy surprises.',
+            text: 'Love it, I enjoy surprises.',
             traitImpacts: { S: 10 },
           },
           {
@@ -115,7 +115,7 @@ async function main() {
     },
   });
 
-  // Q5: Affect - Problem response
+  // Q5: Affect - Problem response (A trait)
   await prisma.question.create({
     data: {
       questionNumber: 5,
@@ -141,12 +141,9 @@ async function main() {
     },
   });
 
-  // Section 2: Relationship & Life Context (Q6-Q8)
-  // These are context questions, moved to separate flow
-
-  // Section 3: Lifestyle & Social Comfort (Q9-Q12)
+  // Section 2: Lifestyle & Social Comfort (Q6-Q9)
   
-  // Q6: Lifestyle tier (was Q9)
+  // Q6: Lifestyle tier (L trait) - FIXED: Direct value assignment
   await prisma.question.create({
     data: {
       questionNumber: 6,
@@ -177,7 +174,7 @@ async function main() {
     },
   });
 
-  // Q7: Weekend activity (was Q10)
+  // Q7: Weekend activity (E + O traits)
   await prisma.question.create({
     data: {
       questionNumber: 7,
@@ -206,14 +203,14 @@ async function main() {
           {
             optionKey: 'D',
             text: 'Workout or yoga session',
-            traitImpacts: { E: 0, O: -2 },
+            traitImpacts: { E: 0, S: -3 },
           },
         ],
       },
     },
   });
 
-  // Q8: Music vibe (was Q11)
+  // Q8: Music vibe (O trait)
   await prisma.question.create({
     data: {
       questionNumber: 8,
@@ -242,14 +239,14 @@ async function main() {
           {
             optionKey: 'D',
             text: 'EDM / Dance',
-            traitImpacts: { O: -2 },
+            traitImpacts: { E: 3, O: -2 },
           },
         ],
       },
     },
   });
 
-  // Q9: Movie genre (was Q12)
+  // Q9: Movie genre (A trait)
   await prisma.question.create({
     data: {
       questionNumber: 9,
@@ -268,26 +265,26 @@ async function main() {
           {
             optionKey: 'B',
             text: 'Comedy',
-            traitImpacts: { A: 2 },
+            traitImpacts: { A: 2, E: 2 },
           },
           {
             optionKey: 'C',
             text: 'Thriller / Mystery',
-            traitImpacts: { A: -2 },
+            traitImpacts: { A: -2, O: 3 },
           },
           {
             optionKey: 'D',
             text: 'Documentary / Biopic',
-            traitImpacts: { A: -6 },
+            traitImpacts: { A: -4, O: 6 },
           },
         ],
       },
     },
   });
 
-  // Section 4: Openness & Social Behavior (Q13-Q15)
+  // Section 3: Openness & Social Behavior (Q10-Q12)
   
-  // Q10: Meet strangers (was Q13)
+  // Q10: Comfort with strangers (C trait)
   await prisma.question.create({
     data: {
       questionNumber: 10,
@@ -300,7 +297,7 @@ async function main() {
         create: [
           {
             optionKey: 'A',
-            text: 'Excited — I love new people.',
+            text: 'Excited, I love new people.',
             traitImpacts: { C: 10 },
           },
           {
@@ -318,7 +315,7 @@ async function main() {
     },
   });
 
-  // Q11: Communication style (was Q14)
+  // Q11: Communication style (E trait)
   await prisma.question.create({
     data: {
       questionNumber: 11,
@@ -336,8 +333,8 @@ async function main() {
           },
           {
             optionKey: 'B',
-            text: 'Balanced — I talk and listen equally',
-            traitImpacts: { E: 4 },
+            text: 'Balanced, I talk and listen equally',
+            traitImpacts: { E: 0 },
           },
           {
             optionKey: 'C',
@@ -349,7 +346,7 @@ async function main() {
     },
   });
 
-  // Q12: Ideal connection (was Q15)
+  // Q12: Ideal connection (A + O traits)
   await prisma.question.create({
     data: {
       questionNumber: 12,
@@ -363,7 +360,7 @@ async function main() {
           {
             optionKey: 'A',
             text: 'Playful and fun',
-            traitImpacts: { A: 3, O: -2 },
+            traitImpacts: { A: 3, E: 3, O: -2 },
           },
           {
             optionKey: 'B',
@@ -373,12 +370,12 @@ async function main() {
           {
             optionKey: 'C',
             text: 'Inspiring and intellectual',
-            traitImpacts: { A: 4, O: 8 },
+            traitImpacts: { A: 2, O: 8 },
           },
           {
             optionKey: 'D',
             text: 'Calm and comfortable',
-            traitImpacts: { A: 6, O: 2 },
+            traitImpacts: { A: 6, S: -3 },
           },
         ],
       },
@@ -386,7 +383,9 @@ async function main() {
   });
 
   console.log('✅ Enhanced seed completed successfully!');
-  console.log(`Created 12 core questions + 3 context questions (separate flow)`);
+  console.log(`📊 Created 12 core questions with balanced trait impacts`);
+  console.log(`🎯 Fixed Lifestyle tier (L) to use direct values`);
+  console.log(`⚖️  Improved scoring to prevent bias`);
 }
 
 main()

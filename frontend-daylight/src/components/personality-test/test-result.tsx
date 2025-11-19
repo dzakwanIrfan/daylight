@@ -236,7 +236,7 @@ export function TestResult() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,80,5,0.3),transparent_50%)]" />
           </div>
 
-          <div className="relative w-56 h-56 mx-auto bg-brand/10 border-2 border-brand rounded-full">
+          <div className="relative z-10 p-8 space-y-6">
             {/* Archetype Image */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -244,7 +244,7 @@ export function TestResult() {
               transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               className="flex justify-center"
             >
-              <div className="relative w-72 h-72 mx-auto">
+              <div className="relative w-56 h-56 mx-auto bg-brand/10 border-2 border-brand rounded-full">
                 <Image
                   src={archetypeImage}
                   alt={`${archetype.name} illustration`}
@@ -311,7 +311,7 @@ export function TestResult() {
               <div className="space-y-2">
                 <h3 className="text-xl md:text-2xl font-black flex items-center gap-2">
                   <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-brand" />
-                  Your Persona Profile
+                  Your Persona Profile test
                 </h3>
                 <p className="text-sm md:text-base text-muted-foreground">
                   Understanding your unique characteristics and preferences

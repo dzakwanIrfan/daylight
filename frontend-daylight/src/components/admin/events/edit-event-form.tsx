@@ -60,7 +60,6 @@ export function EditEventForm({ event }: EditEventFormProps) {
       longitude: event.longitude,
       price: event.price,
       currency: event.currency,
-      maxParticipants: event.maxParticipants,
       status: event.status,
       isActive: event.isActive,
       isFeatured: event.isFeatured,
@@ -356,25 +355,11 @@ export function EditEventForm({ event }: EditEventFormProps) {
               {...register('currency')}
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="maxParticipants">Max Participants *</Label>
-            <Input
-              id="maxParticipants"
-              type="number"
-              min="1"
-              placeholder="50"
-              {...register('maxParticipants', { required: 'Max participants is required', min: 1, valueAsNumber: true })}
-            />
-            {errors.maxParticipants && (
-              <p className="text-xs text-red-600">{errors.maxParticipants.message}</p>
-            )}
-          </div>
         </div>
 
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-800">
-            Current participants: <strong>{event.currentParticipants}</strong> / {event.maxParticipants}
+            Current participants: <strong>{event.currentParticipants}</strong>
           </p>
         </div>
       </div>

@@ -105,7 +105,7 @@ export function EventDetailsDialog({ event, open, onOpenChange }: EventDetailsDi
                 <span className="font-medium">Participants</span>
               </div>
               <p className="text-sm text-gray-900 ml-6">
-                {event.currentParticipants} / {event.maxParticipants}
+                {event.currentParticipants}
               </p>
             </div>
 

@@ -55,7 +55,6 @@ export default function AdminEventsPage() {
           `"${event.venue}"`,
           event.price,
           event.currentParticipants,
-          event.maxParticipants,
           new Date(event.createdAt).toLocaleDateString(),
         ].join(','))
       ].join('\n');

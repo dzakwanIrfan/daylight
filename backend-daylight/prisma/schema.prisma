@@ -224,7 +224,6 @@ model Event {
   // Pricing & Capacity
   price           Float
   currency        String        @default("IDR")
-  maxParticipants Int
   currentParticipants Int      @default(0)
   
   // Status

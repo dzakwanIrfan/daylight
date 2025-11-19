@@ -318,7 +318,7 @@ export default function AdminDashboardPage() {
                         {formatEventTime(event.eventDate, event.startTime)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {event.currentParticipants}/{event.maxParticipants} participants
+                        {event.currentParticipants} participants
                       </p>
                     </div>
                   </div>

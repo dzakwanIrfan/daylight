@@ -115,9 +115,6 @@ export default function CreatePaymentPage() {
     }
   };
 
-  const spotsLeft = event.maxParticipants - event.currentParticipants;
-  const isFull = spotsLeft <= 0;
-
   // Check if we have valid channels data
   const hasValidChannels = channelsData?.success && 
     channelsData.flat && 
@@ -269,7 +266,7 @@ export default function CreatePaymentPage() {
                   flatMethods={channelsData.flat}
                   selectedMethod={selectedMethod?.code || null}
                   onSelect={setSelectedMethod}
-                  disabled={isFull || createPaymentMutation.isPending}
+                  disabled={createPaymentMutation.isPending}
                 />
               ) : (
                 <div className="text-center py-8 text-gray-600">
@@ -312,7 +309,6 @@ export default function CreatePaymentPage() {
                   !selectedMethod ||
                   !customerName ||
                   !customerEmail ||
-                  isFull ||
                   createPaymentMutation.isPending ||
                   !hasValidChannels
                 }
@@ -320,7 +316,6 @@ export default function CreatePaymentPage() {
                   !selectedMethod ||
                   !customerName ||
                   !customerEmail ||
-                  isFull ||
                   createPaymentMutation.isPending ||
                   !hasValidChannels
                     ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
@@ -332,8 +327,6 @@ export default function CreatePaymentPage() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Processing...
                   </span>
-                ) : isFull ? (
-                  'Event Full'
                 ) : !hasValidChannels ? (
                   'No Payment Methods'
                 ) : (

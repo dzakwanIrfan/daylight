@@ -44,7 +44,6 @@ export function CreateEventForm() {
       status: EventStatus.DRAFT,
       currency: 'IDR',
       price: 0,
-      maxParticipants: 1,
       isActive: true,
       isFeatured: false,
     },
@@ -333,20 +332,6 @@ export function CreateEventForm() {
               placeholder="IDR"
               {...register('currency')}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="maxParticipants">Max Participants *</Label>
-            <Input
-              id="maxParticipants"
-              type="number"
-              min="1"
-              placeholder="50"
-              {...register('maxParticipants', { required: 'Max participants is required', min: 1, valueAsNumber: true })}
-            />
-            {errors.maxParticipants && (
-              <p className="text-xs text-red-600">{errors.maxParticipants.message}</p>
-            )}
           </div>
         </div>
       </div>

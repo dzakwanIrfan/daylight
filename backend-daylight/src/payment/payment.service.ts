@@ -20,6 +20,7 @@ import { PaymentMethodsService } from 'src/payment-methods/payment-methods.servi
 import { PaymentGateway } from './payment.gateway';
 import { CreateSubscriptionPaymentDto } from './dto/create-subscription-payment.dto';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
+import { EventsService } from 'src/events/events.service';
 
 @Injectable()
 export class PaymentService {
@@ -37,6 +38,7 @@ export class PaymentService {
     private paymentMethodsService: PaymentMethodsService,
     private paymentGateway: PaymentGateway,
     private subscriptionsService: SubscriptionsService,
+    private eventService: EventsService,
   ) {
     this.tripayApiKey = this.getRequiredConfig('TRIPAY_API_KEY');
     this.tripayPrivateKey = this.getRequiredConfig('TRIPAY_PRIVATE_KEY');
@@ -163,10 +165,6 @@ export class PaymentService {
 
     if (!event.isActive || event.status !== 'PUBLISHED') {
       throw new BadRequestException('Event is not available');
-    }
-
-    if (event.currentParticipants + quantity > event.maxParticipants) {
-      throw new BadRequestException('Not enough slots available');
     }
 
     // Get user details
@@ -305,6 +303,8 @@ export class PaymentService {
         transaction,
         event,
       );
+
+      await this.eventService.updateCurrentParticipants(eventId, 1);
 
       return {
         success: true,

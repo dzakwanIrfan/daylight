@@ -38,7 +38,6 @@ export interface Event {
   longitude?: number;
   price: number;
   currency: string;
-  maxParticipants: number;
   currentParticipants: number;
   status: EventStatus;
   isActive: boolean;
@@ -83,7 +82,6 @@ export interface CreateEventInput {
   longitude?: number;
   price: number;
   currency?: string;
-  maxParticipants: number;
   status?: EventStatus;
   isActive?: boolean;
   isFeatured?: boolean;
@@ -152,7 +150,6 @@ export interface EventDashboardStats {
     eventDate: string;
     status: EventStatus;
     currentParticipants: number;
-    maxParticipants: number;
     createdAt: string;
   }>;
 }

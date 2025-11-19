@@ -126,11 +126,6 @@ export class UserEventsService {
       throw new BadRequestException('Event is not available');
     }
 
-    // Check if event is full
-    if (event.currentParticipants >= event.maxParticipants) {
-      throw new BadRequestException('Event is full');
-    }
-
     // Check if user already registered
     const existingRegistration = await this.prisma.transaction.findFirst({
       where: {

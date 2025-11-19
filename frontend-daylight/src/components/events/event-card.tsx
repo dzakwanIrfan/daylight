@@ -45,9 +45,6 @@ export function EventCard({ event }: EventCardProps) {
     return format(new Date(time), 'HH:mm', { locale: idLocale });
   };
 
-  const spotsLeft = event.maxParticipants - event.currentParticipants;
-  const isFull = spotsLeft <= 0;
-
   const categoryInfo = categoryConfig[event.category];
   const CategoryIcon = categoryInfo.icon;
 
@@ -71,15 +68,6 @@ export function EventCard({ event }: EventCardProps) {
               <CategoryIcon className="w-3 h-3" />
               {event.category}
             </Badge>
-            
-            {isFull && (
-              <Badge 
-                variant="outline"
-                className="bg-red-50 text-red-600 border-red-200"
-              >
-                Full
-              </Badge>
-            )}
           </div>
 
           {/* Date, Time & Location */}

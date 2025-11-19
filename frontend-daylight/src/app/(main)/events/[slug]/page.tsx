@@ -77,10 +77,6 @@ export default function EventDetailPage() {
     return format(new Date(time), 'HH:mm', { locale: idLocale });
   };
 
-  const spotsLeft = event.maxParticipants - event.currentParticipants;
-  const isFull = spotsLeft <= 0;
-  const isAlmostFull = spotsLeft <= 5 && spotsLeft > 0;
-
   // Purchase Status
   const hasPurchased = purchaseStatus?.hasPurchased ?? false;
   const canPurchase = purchaseStatus?.canPurchase ?? true;
@@ -89,12 +85,9 @@ export default function EventDetailPage() {
   const subscriptionAccess = purchaseStatus?.subscriptionAccess ?? false;
 
   // Determine button state
-  const isButtonDisabled = 
-    isFull || 
-    (hasPurchased && !canPurchase && !subscriptionAccess);
+  const isButtonDisabled = (hasPurchased && !canPurchase && !subscriptionAccess);
 
   const getButtonText = () => {
-    if (isFull) return 'Event Full';
     if (isPurchaseStatusLoading) return 'Checking...';
     
     // If has subscription access
@@ -277,16 +270,6 @@ export default function EventDetailPage() {
                   FREE ACCESS
                 </span>
               )}
-              {isFull && (
-                <span className="inline-block px-3 py-1 bg-red-500 rounded-full text-xs sm:text-sm font-medium">
-                  Event Full
-                </span>
-              )}
-              {isAlmostFull && (
-                <span className="inline-block px-3 py-1 bg-yellow-500 rounded-full text-xs sm:text-sm font-medium">
-                  Only {spotsLeft} spots left!
-                </span>
-              )}
             </div>
           </div>
 
@@ -381,32 +364,6 @@ export default function EventDetailPage() {
           </div>
         </div>
 
-        {/* Participants */}
-        {/* <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-brand" />
-              <span className="font-semibold text-base sm:text-lg">
-                {event.currentParticipants} / {event.maxParticipants}
-              </span>
-              <span className="text-sm text-gray-600">participants</span>
-            </div>
-            <span className="text-sm text-gray-600">
-              {spotsLeft > 0 ? `${spotsLeft} spots left` : 'Full'}
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-3">
-            <div
-              className="bg-brand h-2.5 sm:h-3 rounded-full transition-all"
-              style={{
-                width: `${
-                  (event.currentParticipants / event.maxParticipants) * 100
-                }%`,
-              }}
-            />
-          </div>
-        </div> */}
-
         {/* Description */}
         <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">About This Event</h2>
@@ -476,14 +433,14 @@ export default function EventDetailPage() {
                   : 'bg-brand text-white hover:bg-brand/90 hover:shadow-md active:scale-[0.98]'
               }`}
             >
-              {subscriptionAccess && !isFull && !isPurchaseStatusLoading && (
+              {subscriptionAccess && !isPurchaseStatusLoading && (
                 <Gift className="w-5 h-5" />
               )}
               {getButtonText()}
             </button>
             
             {/* Helper text */}
-            {subscriptionAccess && !isFull && (
+            {subscriptionAccess && (
               <p className="text-xs text-center text-gray-600 mt-2">
                 Premium members can join for free
               </p>

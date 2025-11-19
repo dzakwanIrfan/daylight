@@ -20,6 +20,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { UserStatsModule } from './user-stats/user-stats.module';
 import { PersonaQuestionModule } from './persona-question/persona-question.module';
 import { ArchetypeDetailModule } from './archetype-detail/archetype-detail.module';
+import { MatchingModule } from './matching/matching.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ArchetypeDetailModule } from './archetype-detail/archetype-detail.modul
     UserStatsModule,
     PersonaQuestionModule,
     ArchetypeDetailModule,
+    MatchingModule
   ],
   providers: [
     {

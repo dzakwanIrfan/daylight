@@ -27,7 +27,6 @@ export interface UpcomingEvent {
   startTime: string;
   category: string;
   currentParticipants: number;
-  maxParticipants: number;
 }
 
 export const dashboardService = {

@@ -72,10 +72,6 @@ export class CreateEventDto {
   @IsString()
   currency?: string;
 
-  @IsNumber()
-  @Min(1)
-  maxParticipants: number;
-
   @IsOptional()
   @IsEnum(EventStatus)
   status?: EventStatus;

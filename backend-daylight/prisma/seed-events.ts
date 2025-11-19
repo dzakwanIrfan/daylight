@@ -28,7 +28,6 @@ const eventTemplates = {
       requirements: ['Bring your own yoga mat', 'Wear comfortable clothing', 'Arrive 10 minutes early'],
       highlights: ['Certified yoga instructor', 'Complimentary herbal tea', 'Peaceful atmosphere'],
       price: 150000,
-      maxParticipants: 20,
     },
     {
       title: 'Healthy Breakfast & Networking',
@@ -41,7 +40,6 @@ const eventTemplates = {
       requirements: ['RSVP required', 'Business casual attire'],
       highlights: ['Organic breakfast buffet', 'Coffee and fresh juices', 'Meet new friends'],
       price: 200000,
-      maxParticipants: 30,
     },
     {
       title: 'Sunrise Beach Run',
@@ -54,7 +52,6 @@ const eventTemplates = {
       requirements: ['Wear running shoes', 'Bring water bottle', 'Sunscreen recommended'],
       highlights: ['Scenic beach route', 'Professional running coach', 'Post-run stretching session'],
       price: 100000,
-      maxParticipants: 50,
     },
     {
       title: 'Mindful Morning Coffee Workshop',
@@ -67,7 +64,6 @@ const eventTemplates = {
       requirements: ['No prior coffee knowledge needed', 'Bring curiosity and enthusiasm'],
       highlights: ['Expert barista instruction', 'Taste 5 different coffee varieties', 'Take home coffee samples'],
       price: 250000,
-      maxParticipants: 15,
     },
     {
       title: 'Morning Journaling Circle',
@@ -80,7 +76,6 @@ const eventTemplates = {
       requirements: ['Bring your own journal and pen', 'Open mind and heart'],
       highlights: ['Guided prompts and exercises', 'Supportive community', 'Tea and light snacks included'],
       price: 100000,
-      maxParticipants: 12,
     },
   ],
   DAYTRIP: [
@@ -95,7 +90,6 @@ const eventTemplates = {
       requirements: ['Comfortable walking shoes', 'Hat and sunscreen', 'Modest clothing (no shorts)'],
       highlights: ['UNESCO World Heritage Site', 'Expert local guide', 'Lunch included', 'Small group experience'],
       price: 850000,
-      maxParticipants: 25,
     },
     {
       title: 'Bali Rice Terrace Cycling Adventure',
@@ -108,7 +102,6 @@ const eventTemplates = {
       requirements: ['Basic cycling ability', 'Comfortable clothes', 'Closed-toe shoes'],
       highlights: ['Quality mountain bikes provided', 'Traditional Balinese lunch', 'Visit to local temple', 'Professional guide'],
       price: 650000,
-      maxParticipants: 15,
     },
     {
       title: 'Komodo National Park Day Trip',
@@ -121,7 +114,6 @@ const eventTemplates = {
       requirements: ['Moderate fitness level', 'Swimming ability for snorkeling', 'Bring sun protection'],
       highlights: ['See Komodo dragons up close', 'Snorkeling equipment included', 'Visit Pink Beach', 'Boat transportation provided'],
       price: 1500000,
-      maxParticipants: 20,
     },
     {
       title: 'Mount Bromo Sunrise Trek',
@@ -134,7 +126,6 @@ const eventTemplates = {
       requirements: ['Warm jacket (very cold at sunrise)', 'Sturdy shoes', 'Flashlight recommended'],
       highlights: ['Stunning sunrise views', '4x4 jeep transportation', 'Experienced trekking guide', 'Hot breakfast included'],
       price: 750000,
-      maxParticipants: 30,
     },
     {
       title: 'Thousand Islands Snorkeling Getaway',
@@ -147,7 +138,6 @@ const eventTemplates = {
       requirements: ['Swimming ability', 'Bring change of clothes', 'Waterproof bag recommended'],
       highlights: ['Visit 3 islands', 'Snorkeling equipment provided', 'Fresh seafood lunch', 'Underwater photography opportunity'],
       price: 550000,
-      maxParticipants: 35,
     },
     {
       title: 'Bandung City Food Tour',
@@ -160,7 +150,6 @@ const eventTemplates = {
       requirements: ['Come hungry!', 'Comfortable walking shoes', 'Adventurous palate'],
       highlights: ['Visit 6-8 food spots', 'Sample 10+ dishes', 'Expert food guide', 'Learn about local culture'],
       price: 400000,
-      maxParticipants: 12,
     },
   ],
   DAYCARE: [
@@ -175,7 +164,6 @@ const eventTemplates = {
       requirements: ['No prior experience needed', 'Open to sharing in a safe space'],
       highlights: ['Licensed psychologist facilitator', 'Take-home wellness toolkit', 'Small group setting', 'Refreshments provided'],
       price: 350000,
-      maxParticipants: 15,
     },
     {
       title: 'Financial Planning 101',
@@ -188,7 +176,6 @@ const eventTemplates = {
       requirements: ['Bring notepad and pen', 'Calculator (or phone)'],
       highlights: ['Certified financial planner', 'Personal finance workbook', 'Q&A session', 'Networking opportunity'],
       price: 500000,
-      maxParticipants: 25,
     },
     {
       title: 'Holistic Health Consultation Day',
@@ -201,7 +188,6 @@ const eventTemplates = {
       requirements: ['Fasting 8 hours before (for accurate measurements)', 'Comfortable clothing'],
       highlights: ['Body composition analysis', 'Multiple expert consultations', 'Personalized wellness plan', 'Healthy lunch included'],
       price: 800000,
-      maxParticipants: 20,
     },
     {
       title: 'Career Development Bootcamp',
@@ -214,7 +200,6 @@ const eventTemplates = {
       requirements: ['Bring updated resume', 'LinkedIn profile recommended', 'Professional attire'],
       highlights: ['Industry expert speakers', 'Mock interview sessions', 'Resume review', 'Networking lunch'],
       price: 750000,
-      maxParticipants: 30,
     },
     {
       title: 'Art Therapy Workshop',
@@ -227,7 +212,6 @@ const eventTemplates = {
       requirements: ['No art experience needed', 'Wear clothes that can get messy', 'Open mind'],
       highlights: ['Certified art therapist', 'All art materials provided', 'Take home your artwork', 'Small group setting'],
       price: 400000,
-      maxParticipants: 10,
     },
     {
       title: 'Digital Detox & Mindfulness Retreat',
@@ -240,7 +224,6 @@ const eventTemplates = {
       requirements: ['Leave all devices at check-in', 'Comfortable outdoor clothing', 'Open to disconnecting'],
       highlights: ['Phone-free environment', 'Guided meditation sessions', 'Nature immersion', 'Organic meals included'],
       price: 600000,
-      maxParticipants: 20,
     },
   ],
   DAYDREAM: [
@@ -255,7 +238,6 @@ const eventTemplates = {
       requirements: ['Warm clothing (cold at night)', 'Arrive at sunset', 'Clear weather dependent'],
       highlights: ['Professional telescopes', 'Expert astronomer guide', 'Hot chocolate included', 'Astrophotography tips'],
       price: 450000,
-      maxParticipants: 25,
     },
     {
       title: 'Lucid Dreaming Workshop',
@@ -268,7 +250,6 @@ const eventTemplates = {
       requirements: ['Keep dream journal for 1 week before', 'Bring notebook', 'Open mindset'],
       highlights: ['Certified dream researcher', 'Dream journal provided', 'Guided meditation session', 'Take-home practice materials'],
       price: 550000,
-      maxParticipants: 15,
     },
     {
       title: 'Creative Writing Retreat',
@@ -281,7 +262,6 @@ const eventTemplates = {
       requirements: ['Bring laptop or notebook', 'Willingness to share work (optional)', 'Any writing level welcome'],
       highlights: ['Published author facilitator', 'Individual feedback sessions', 'Inspiring natural setting', 'Lunch and refreshments'],
       price: 700000,
-      maxParticipants: 12,
     },
     {
       title: 'Vision Board Creation Workshop',
@@ -294,7 +274,6 @@ const eventTemplates = {
       requirements: ['Bring 2-3 magazines (if you have)', 'Photos you love (optional)', 'Clear intention'],
       highlights: ['All craft materials provided', 'Goal-setting worksheet', 'Manifestation guide', 'Inspiring group energy'],
       price: 350000,
-      maxParticipants: 18,
     },
     {
       title: 'Sound Healing Journey',
@@ -307,7 +286,6 @@ const eventTemplates = {
       requirements: ['Wear comfortable clothes', 'Bring yoga mat and blanket', 'Empty stomach (light meal 2 hours before)'],
       highlights: ['Certified sound healer', 'Crystal singing bowls', 'Guided meditation', 'Herbal tea included'],
       price: 300000,
-      maxParticipants: 20,
     },
     {
       title: 'Photography & Mindfulness Walk',
@@ -320,7 +298,6 @@ const eventTemplates = {
       requirements: ['Any camera (phone is fine)', 'Comfortable walking shoes', 'Fully charged device'],
       highlights: ['Professional photographer guide', 'Mindfulness exercises', 'Photo critique session', 'Best photo wins prize'],
       price: 400000,
-      maxParticipants: 15,
     },
   ],
 };
@@ -414,8 +391,6 @@ async function main() {
               longitude: cityCoords.lng,
               price: template.price,
               currency: 'IDR',
-              maxParticipants: template.maxParticipants,
-              currentParticipants,
               status,
               isActive,
               isFeatured,

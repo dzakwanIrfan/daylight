@@ -37,6 +37,10 @@ export function PersonalityTest() {
     queryFn: personalityService.getQuestions,
   });
 
+  useEffect(() => {
+    console.log('questions from query:', questions);
+  }, [questions]);
+
   // ENHANCED: Filter only core questions (not context questions)
   const coreQuestions = questions?.filter((q: any) => q.questionNumber <= 12) || [];
   const totalQuestions = coreQuestions.length;

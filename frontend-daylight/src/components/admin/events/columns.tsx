@@ -127,23 +127,15 @@ export const columns: ColumnDef<Event>[] = [
     ),
     cell: ({ row }) => {
       const current = row.original.currentParticipants;
-      const max = row.original.maxParticipants;
-      const percentage = (current / max) * 100;
       
       let colorClass = 'text-gray-600';
-      if (percentage >= 80) colorClass = 'text-red-600';
-      else if (percentage >= 50) colorClass = 'text-orange-600';
-      else if (percentage > 0) colorClass = 'text-green-600';
 
       return (
         <div className="flex items-center gap-2">
           <Users className={`h-4 w-4 ${colorClass}`} />
           <div className="flex flex-col">
             <span className="font-medium text-gray-900">
-              {current}/{max}
-            </span>
-            <span className={`text-xs ${colorClass}`}>
-              {percentage.toFixed(0)}% full
+              {current}
             </span>
           </div>
         </div>

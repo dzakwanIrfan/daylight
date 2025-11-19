@@ -90,11 +90,11 @@ export default function HomePage() {
         />
 
         {/* Welcome Header */}
-        <div className="bg-linear-to-br from-brand/25 via-white to-brand/30 rounded-xl border border-brand p-6 space-y-2">
+        <div className="bg-brand rounded-xl border border-brand p-6 space-y-2 text-white">
           <h1 className="text-2xl md:text-3xl font-bold">
             Welcome back, {user?.firstName}! 👋
           </h1>
-          <p className="text-muted-foreground">
+          <p>
             Here's what's happening with your connections
           </p>
         </div>

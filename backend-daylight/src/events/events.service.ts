@@ -511,7 +511,6 @@ export class EventsService {
           eventDate: true,
           status: true,
           currentParticipants: true,
-          maxParticipants: true,
           createdAt: true,
         },
       }),
@@ -859,6 +858,23 @@ export class EventsService {
         ...transaction,
         quantity,
       };
+    });
+  }
+
+  async updateCurrentParticipants(eventId: string, delta: number) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { currentParticipants: true },
+    });
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    const updatedParticipants = (event.currentParticipants || 0) + delta;
+
+    await this.prisma.event.update({
+      where: { id: eventId },
+      data: { currentParticipants: updatedParticipants },
     });
   }
 }

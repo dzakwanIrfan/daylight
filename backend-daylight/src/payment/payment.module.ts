@@ -10,6 +10,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
+import { EventsService } from 'src/events/events.service';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
     PaymentService,
     PaymentGateway,
     PaymentCountdownService,
+    EventsService,
   ],
   exports: [PaymentService, PaymentGateway],
 })

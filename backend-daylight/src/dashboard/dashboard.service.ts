@@ -150,7 +150,6 @@ export class DashboardService {
         startTime: true,
         category: true,
         currentParticipants: true,
-        maxParticipants: true,
       },
     });
 

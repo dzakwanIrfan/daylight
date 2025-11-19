@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo, use } from 'react';
+import { useState, use } from 'react';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import { DataTable } from '@/components/data-table/data-table';
 import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton';
 import { participantsColumns } from '@/components/admin/events/participants-columns';
 import { Card } from '@/components/ui/card';
-import { Users, CheckCircle, Clock, TrendingUp, Download, ArrowLeft } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, CheckCircle, Clock, TrendingUp, Download, ArrowLeft, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useEventParticipants } from '@/hooks/use-event-participants';
@@ -15,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { PaymentStatus } from '@/types/event.types';
 import { participantService } from '@/services/participant.service';
 import { format } from 'date-fns';
+import { MatchingTab } from '@/components/admin/matching/matching-tab';
 
 interface PageProps {
   params: Promise<{
@@ -28,6 +30,7 @@ export default function EventParticipantsPage({ params }: PageProps) {
   const eventId = resolvedParams.id;
   
   const [isExporting, setIsExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState('participants');
 
   const { data: event, isLoading: eventLoading } = useAdminEvent(eventId);
   const { data: participantsResponse, isLoading: participantsLoading } =
@@ -151,7 +154,7 @@ export default function EventParticipantsPage({ params }: PageProps) {
           </Button>
 
           <h1 className="text-2xl md:text-3xl font-headline font-bold text-gray-900">
-            Event Participants
+            Event Management
           </h1>
           <p className="text-gray-600 mt-1">
             {event?.title || 'Loading...'}
@@ -180,50 +183,71 @@ export default function EventParticipantsPage({ params }: PageProps) {
           })}
         </div>
 
-        {/* Participants Table */}
-        <Card className="p-6 bg-white">
-          <DataTable
-            columns={participantsColumns}
-            data={participants}
-            searchableColumns={[
-              {
-                id: 'customerName',
-                title: 'participants',
-              },
-            ]}
-            filterableColumns={[
-              {
-                id: 'paymentStatus',
-                title: 'Status',
-                options: Object.values(PaymentStatus).map((status) => ({
-                  label: status,
-                  value: status,
-                })),
-              },
-            ]}
-            newRowAction={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                disabled={isExporting}
-                className="h-10"
-              >
-                {isExporting ? (
-                  <>
-                    <Download className="mr-2 h-4 w-4 animate-pulse" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export CSV
-                  </>
-                )}
-              </Button>
-            }
-          />
-        </Card>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-white border">
+            <TabsTrigger value="participants" className="gap-2">
+              <Users className="h-4 w-4" />
+              Participants
+            </TabsTrigger>
+            <TabsTrigger value="matching" className="gap-2">
+              <GitBranch className="h-4 w-4" />
+              Matching Groups
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Participants Tab */}
+          <TabsContent value="participants" className="space-y-6">
+            <Card className="p-6 bg-white">
+              <DataTable
+                columns={participantsColumns}
+                data={participants}
+                searchableColumns={[
+                  {
+                    id: 'customerName',
+                    title: 'participants',
+                  },
+                ]}
+                filterableColumns={[
+                  {
+                    id: 'paymentStatus',
+                    title: 'Status',
+                    options: Object.values(PaymentStatus).map((status) => ({
+                      label: status,
+                      value: status,
+                    })),
+                  },
+                ]}
+                newRowAction={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className="h-10"
+                  >
+                    {isExporting ? (
+                      <>
+                        <Download className="mr-2 h-4 w-4 animate-pulse" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                      </>
+                    )}
+                  </Button>
+                }
+              />
+            </Card>
+          </TabsContent>
+
+          {/* Matching Tab */}
+          <TabsContent value="matching">
+            <MatchingTab eventId={eventId} />
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );

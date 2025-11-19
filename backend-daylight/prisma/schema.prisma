@@ -72,6 +72,7 @@ model User {
   subscriptions                UserSubscription[]
   personalityResult            PersonalityResult?
   refreshTokens                RefreshToken[]
+  matchingMembers   MatchingMember[]
   
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -241,6 +242,8 @@ model Event {
   organizerContact String?
 
   transactions                  Transaction[]
+  matchingGroups    MatchingGroup[]
+  matchingAttempts  MatchingAttempt[]
   
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -341,6 +344,8 @@ model Transaction {
   customerName          String
   customerEmail         String
   customerPhone         String?
+
+  matchingMember    MatchingMember?
   
   // Timestamps
   expiredAt             DateTime?
@@ -452,4 +457,103 @@ model UserSubscription {
   @@index([startDate])
   @@index([endDate])
   @@index([transactionId])
+}
+
+enum MatchingStatus {
+  PENDING
+  MATCHED
+  PARTIALLY_MATCHED
+  NO_MATCH
+  CONFIRMED
+  CANCELLED
+}
+
+model MatchingGroup {
+  id                String          @id @default(uuid())
+  eventId           String
+  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  groupNumber       Int             // Group 1, 2, 3, etc.
+  status            MatchingStatus  @default(PENDING)
+  
+  // Matching metadata
+  averageMatchScore Float           // Average compatibility score of the group
+  minMatchScore     Float           // Minimum score in the group
+  groupSize         Int
+  thresholdUsed     Float           // What threshold was used (70, 65, 60, etc.)
+  
+  // Group members
+  members           MatchingMember[]
+  
+  // Table assignment (optional)
+  tableNumber       String?
+  venueName         String?
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  @@unique([eventId, groupNumber])
+  @@index([eventId])
+  @@index([status])
+}
+
+model MatchingMember {
+  id                String          @id @default(uuid())
+  
+  groupId           String
+  group             MatchingGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  transactionId     String          @unique
+  transaction       Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  // Individual match scores with other members
+  matchScores       Json            // { "userId": score }
+  
+  // Personality snapshot at time of matching
+  personalitySnapshot Json
+  
+  isConfirmed       Boolean         @default(false)
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  @@index([groupId])
+  @@index([userId])
+  @@index([transactionId])
+}
+
+// NEW: Store matching attempts history
+model MatchingAttempt {
+  id                String          @id @default(uuid())
+  eventId           String
+  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  attemptNumber     Int             // 1st attempt, 2nd attempt, etc.
+  status            MatchingStatus
+  
+  // Statistics
+  totalParticipants Int
+  matchedCount      Int
+  unmatchedCount    Int
+  groupsFormed      Int
+  averageMatchScore Float?
+  highestThreshold  Float           // Highest threshold that worked
+  lowestThreshold   Float           // Lowest threshold needed
+  
+  // Detailed results
+  matchingResult    Json            // Store full result for transparency
+  unmatchedUsers    Json            // Users who couldn't be matched
+  
+  // Metadata
+  executedBy        String?         // Admin user ID
+  executionTime     Float           // Time taken in seconds
+  
+  createdAt         DateTime        @default(now())
+  
+  @@index([eventId])
+  @@index([attemptNumber])
+  @@index([createdAt])
 }

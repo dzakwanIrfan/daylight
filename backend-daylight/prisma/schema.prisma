@@ -467,35 +467,6 @@ enum MatchingStatus {
   CANCELLED
 }
 
-model MatchingGroup {
-  id                String          @id @default(uuid())
-  eventId           String
-  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
-  groupNumber       Int             // Group 1, 2, 3, etc.
-  status            MatchingStatus  @default(PENDING)
-  
-  // Matching metadata
-  averageMatchScore Float           // Average compatibility score of the group
-  minMatchScore     Float           // Minimum score in the group
-  groupSize         Int
-  thresholdUsed     Float           // What threshold was used (70, 65, 60, etc.)
-  
-  // Group members
-  members           MatchingMember[]
-  
-  // Table assignment (optional)
-  tableNumber       String?
-  venueName         String?
-  
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  
-  @@unique([eventId, groupNumber])
-  @@index([eventId])
-  @@index([status])
-}
-
 model MatchingMember {
   id                String          @id @default(uuid())
   
@@ -516,12 +487,54 @@ model MatchingMember {
   
   isConfirmed       Boolean         @default(false)
   
+  // Manual assignment tracking
+  isManuallyAssigned Boolean        @default(false)
+  assignedBy        String?         // Admin user ID who manually assigned
+  assignedAt        DateTime?       // When manually assigned
+  previousGroupId   String?         // Track if moved from another group
+  assignmentNote    String?         // Optional note from admin
+  
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   
   @@index([groupId])
   @@index([userId])
   @@index([transactionId])
+  @@index([isManuallyAssigned])
+}
+
+model MatchingGroup {
+  id                String          @id @default(uuid())
+  eventId           String
+  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  groupNumber       Int             // Group 1, 2, 3, etc.
+  status            MatchingStatus  @default(PENDING)
+  
+  // Matching metadata
+  averageMatchScore Float           // Average compatibility score of the group
+  minMatchScore     Float           // Minimum score in the group
+  groupSize         Int
+  thresholdUsed     Float           // What threshold was used (70, 65, 60, etc.)
+  
+  // NEW: Manual modification tracking
+  hasManualChanges  Boolean         @default(false)
+  lastModifiedBy    String?         // Admin user ID
+  lastModifiedAt    DateTime?       // Last manual modification time
+  
+  // Group members
+  members           MatchingMember[]
+  
+  // Table assignment (optional)
+  tableNumber       String?
+  venueName         String?
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  @@unique([eventId, groupNumber])
+  @@index([eventId])
+  @@index([status])
 }
 
 // NEW: Store matching attempts history

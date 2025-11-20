@@ -13,6 +13,7 @@ import {
   PersonalityVector,
   MatchingStatus,
 } from './types/matching.types';
+import { AssignUserToGroupDto, BulkAssignUsersDto, CreateManualGroupDto, MoveUserBetweenGroupsDto, RemoveUserFromGroupDto } from './dto/manual-assignment.dto';
 
 @Injectable()
 export class MatchingService {
@@ -23,6 +24,717 @@ export class MatchingService {
   private readonly MAX_GROUP_SIZE = 5;
 
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Get unassigned participants for manual assignment
+   */
+  async getUnassignedParticipants(eventId: string) {
+    // Get all paid participants
+    const allParticipants = await this.getEligibleParticipants(eventId);
+
+    // Get already assigned user IDs
+    const assignedMembers = await this.prisma.matchingMember.findMany({
+      where: {
+        group: {
+          eventId,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    const assignedUserIds = new Set(assignedMembers.map((m) => m.userId));
+
+    // Filter unassigned
+    const unassigned = allParticipants.filter(
+      (p) => !assignedUserIds.has(p.userId),
+    );
+
+    return {
+      total: unassigned.length,
+      participants: unassigned.map((p) => ({
+        userId: p.userId,
+        transactionId: p.transactionId,
+        name: p.name,
+        email: p.email,
+        personalitySnapshot: {
+          energyScore: p.energyScore,
+          opennessScore: p.opennessScore,
+          structureScore: p.structureScore,
+          affectScore: p.affectScore,
+          comfortScore: p.comfortScore,
+          lifestyleScore: p.lifestyleScore,
+        },
+      })),
+    };
+  }
+
+  /**
+   * Manually assign user to specific group
+   */
+  async assignUserToGroup(
+    eventId: string,
+    dto: AssignUserToGroupDto,
+    adminUserId: string,
+  ) {
+    // 1. Validate user has paid for this event
+    const transaction = await this.prisma.transaction.findFirst({
+      where: {
+        id: dto.transactionId,
+        userId: dto.userId,
+        eventId,
+        paymentStatus: PaymentStatus.PAID,
+      },
+      include: {
+        user: {
+          include: {
+            personalityResult: true,
+          },
+        },
+      },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException(
+        'User has not purchased this event or payment not confirmed',
+      );
+    }
+
+    if (!transaction.user.personalityResult) {
+      throw new BadRequestException(
+        'User does not have personality result',
+      );
+    }
+
+    // 2. Check if user already assigned
+    const existingMember = await this.prisma.matchingMember.findFirst({
+      where: {
+        userId: dto.userId,
+        group: {
+          eventId,
+        },
+      },
+      include: {
+        group: true,
+      },
+    });
+
+    if (existingMember) {
+      throw new BadRequestException(
+        `User is already assigned to Group ${existingMember.group.groupNumber}`,
+      );
+    }
+
+    // 3. Find or create target group
+    let targetGroup = await this.prisma.matchingGroup.findFirst({
+      where: {
+        eventId,
+        groupNumber: dto.targetGroupNumber,
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              include: {
+                personalityResult: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Create group if doesn't exist
+    if (!targetGroup) {
+      targetGroup = await this.prisma.matchingGroup.create({
+        data: {
+          eventId,
+          groupNumber: dto.targetGroupNumber,
+          status: MatchingStatus.MATCHED,
+          averageMatchScore: 0,
+          minMatchScore: 0,
+          groupSize: 0,
+          thresholdUsed: 0,
+          hasManualChanges: true,
+          lastModifiedBy: adminUserId,
+          lastModifiedAt: new Date(),
+        },
+        include: {
+          members: {
+            include: {
+              user: {
+                include: {
+                  personalityResult: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    // 4. Check group size constraint
+    if (targetGroup.members.length >= this.MAX_GROUP_SIZE) {
+      throw new BadRequestException(
+        `Group ${dto.targetGroupNumber} is already full (max ${this.MAX_GROUP_SIZE} members)`,
+      );
+    }
+
+    // 5. Create user profile for score calculation
+    const pr = transaction.user.personalityResult!;
+    const userProfile: UserMatchingProfile = {
+      userId: dto.userId,
+      transactionId: dto.transactionId,
+      email: transaction.user.email,
+      name: `${transaction.user.firstName || ''} ${transaction.user.lastName || ''}`.trim(),
+      energyScore: pr.energyScore,
+      opennessScore: pr.opennessScore,
+      structureScore: pr.structureScore,
+      affectScore: pr.affectScore,
+      comfortScore: pr.comfortScore,
+      lifestyleScore: pr.lifestyleScore,
+      rawScores: {
+        E: pr.energyRaw,
+        O: pr.opennessRaw,
+        S: pr.structureRaw,
+        A: pr.affectRaw,
+        L: pr.lifestyleRaw,
+        C: pr.comfortRaw,
+      },
+      relationshipStatus: pr.relationshipStatus,
+      genderMixComfort: pr.genderMixComfort,
+      intentOnDaylight: (pr.intentOnDaylight as string[]) || [],
+    };
+
+    // 6. Calculate match scores with existing members
+    const matchScores: Record<string, number> = {};
+    const existingProfiles: UserMatchingProfile[] = targetGroup.members.map(
+      (m) => {
+        const mpr = m.user.personalityResult!;
+        return {
+          userId: m.userId,
+          transactionId: m.transactionId,
+          email: m.user.email,
+          name: `${m.user.firstName || ''} ${m.user.lastName || ''}`.trim(),
+          energyScore: mpr.energyScore,
+          opennessScore: mpr.opennessScore,
+          structureScore: mpr.structureScore,
+          affectScore: mpr.affectScore,
+          comfortScore: mpr.comfortScore,
+          lifestyleScore: mpr.lifestyleScore,
+          rawScores: {
+            E: mpr.energyRaw,
+            O: mpr.opennessRaw,
+            S: mpr.structureRaw,
+            A: mpr.affectRaw,
+            L: mpr.lifestyleRaw,
+            C: mpr.comfortRaw,
+          },
+          relationshipStatus: mpr.relationshipStatus,
+          genderMixComfort: mpr.genderMixComfort,
+          intentOnDaylight: (mpr.intentOnDaylight as string[]) || [],
+        };
+      },
+    );
+
+    for (const existingProfile of existingProfiles) {
+      const score = this.calculateMatchScore(userProfile, existingProfile);
+      matchScores[existingProfile.userId] = score.score;
+    }
+
+    // 7. Add user to group
+    const newMember = await this.prisma.matchingMember.create({
+      data: {
+        groupId: targetGroup.id,
+        userId: dto.userId,
+        transactionId: dto.transactionId,
+        matchScores,
+        personalitySnapshot: {
+          energyScore: userProfile.energyScore,
+          opennessScore: userProfile.opennessScore,
+          structureScore: userProfile.structureScore,
+          affectScore: userProfile.affectScore,
+          comfortScore: userProfile.comfortScore,
+          lifestyleScore: userProfile.lifestyleScore,
+          rawScores: userProfile.rawScores,
+        },
+        isManuallyAssigned: true,
+        assignedBy: adminUserId,
+        assignedAt: new Date(),
+        assignmentNote: dto.note,
+      },
+    });
+
+    // 8. Update existing members' match scores
+    for (const member of targetGroup.members) {
+      const existingScores = (member.matchScores as Record<string, number>) || {};
+      existingScores[dto.userId] = matchScores[member.userId];
+
+      await this.prisma.matchingMember.update({
+        where: { id: member.id },
+        data: {
+          matchScores: existingScores,
+        },
+      });
+    }
+
+    // 9. Recalculate group statistics
+    await this.recalculateGroupStatistics(targetGroup.id, adminUserId);
+
+    // 10. Get updated group
+    const updatedGroup = await this.prisma.matchingGroup.findUnique({
+      where: { id: targetGroup.id },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                profilePicture: true,
+                personalityResult: {
+                  select: {
+                    archetype: true,
+                    profileScore: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'User successfully assigned to group',
+      group: updatedGroup,
+      member: newMember,
+    };
+  }
+
+  /**
+   * Move user between groups
+   */
+  async moveUserBetweenGroups(
+    eventId: string,
+    dto: MoveUserBetweenGroupsDto,
+    adminUserId: string,
+  ) {
+    // 1. Validate groups exist
+    const [fromGroup, toGroup] = await Promise.all([
+      this.prisma.matchingGroup.findUnique({
+        where: { id: dto.fromGroupId },
+        include: { members: true },
+      }),
+      this.prisma.matchingGroup.findUnique({
+        where: { id: dto.toGroupId },
+        include: {
+          members: {
+            include: {
+              user: {
+                include: {
+                  personalityResult: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    if (!fromGroup || !toGroup) {
+      throw new NotFoundException('One or both groups not found');
+    }
+
+    if (fromGroup.eventId !== eventId || toGroup.eventId !== eventId) {
+      throw new BadRequestException('Groups must belong to the same event');
+    }
+
+    // 2. Check target group size
+    if (toGroup.members.length >= this.MAX_GROUP_SIZE) {
+      throw new BadRequestException(
+        `Target group is full (max ${this.MAX_GROUP_SIZE} members)`,
+      );
+    }
+
+    // 3. Find member in from group
+    const member = await this.prisma.matchingMember.findFirst({
+      where: {
+        userId: dto.userId,
+        groupId: dto.fromGroupId,
+      },
+      include: {
+        user: {
+          include: {
+            personalityResult: true,
+          },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('User not found in source group');
+    }
+
+    // 4. Calculate new match scores with target group members
+    const pr = member.user.personalityResult!;
+    const userProfile: UserMatchingProfile = {
+      userId: member.userId,
+      transactionId: member.transactionId,
+      email: member.user.email,
+      name: `${member.user.firstName || ''} ${member.user.lastName || ''}`.trim(),
+      energyScore: pr.energyScore,
+      opennessScore: pr.opennessScore,
+      structureScore: pr.structureScore,
+      affectScore: pr.affectScore,
+      comfortScore: pr.comfortScore,
+      lifestyleScore: pr.lifestyleScore,
+      rawScores: {
+        E: pr.energyRaw,
+        O: pr.opennessRaw,
+        S: pr.structureRaw,
+        A: pr.affectRaw,
+        L: pr.lifestyleRaw,
+        C: pr.comfortRaw,
+      },
+      relationshipStatus: pr.relationshipStatus,
+      genderMixComfort: pr.genderMixComfort,
+      intentOnDaylight: (pr.intentOnDaylight as string[]) || [],
+    };
+
+    const newMatchScores: Record<string, number> = {};
+    for (const targetMember of toGroup.members) {
+      const targetPr = targetMember.user.personalityResult!;
+      const targetProfile: UserMatchingProfile = {
+        userId: targetMember.userId,
+        transactionId: targetMember.transactionId,
+        email: targetMember.user.email,
+        name: `${targetMember.user.firstName || ''} ${targetMember.user.lastName || ''}`.trim(),
+        energyScore: targetPr.energyScore,
+        opennessScore: targetPr.opennessScore,
+        structureScore: targetPr.structureScore,
+        affectScore: targetPr.affectScore,
+        comfortScore: targetPr.comfortScore,
+        lifestyleScore: targetPr.lifestyleScore,
+        rawScores: {
+          E: targetPr.energyRaw,
+          O: targetPr.opennessRaw,
+          S: targetPr.structureRaw,
+          A: targetPr.affectRaw,
+          L: targetPr.lifestyleRaw,
+          C: targetPr.comfortRaw,
+        },
+        relationshipStatus: targetPr.relationshipStatus,
+        genderMixComfort: targetPr.genderMixComfort,
+        intentOnDaylight: (targetPr.intentOnDaylight as string[]) || [],
+      };
+
+      const score = this.calculateMatchScore(userProfile, targetProfile);
+      newMatchScores[targetMember.userId] = score.score;
+    }
+
+    // 5. Update member's group and scores
+    await this.prisma.matchingMember.update({
+      where: { id: member.id },
+      data: {
+        groupId: dto.toGroupId,
+        matchScores: newMatchScores,
+        isManuallyAssigned: true,
+        assignedBy: adminUserId,
+        assignedAt: new Date(),
+        previousGroupId: dto.fromGroupId,
+        assignmentNote: dto.note,
+      },
+    });
+
+    // 6. Update target group members' scores
+    for (const targetMember of toGroup.members) {
+      const existingScores = (targetMember.matchScores as Record<string, number>) || {};
+      existingScores[dto.userId] = newMatchScores[targetMember.userId];
+
+      await this.prisma.matchingMember.update({
+        where: { id: targetMember.id },
+        data: { matchScores: existingScores },
+      });
+    }
+
+    // 7. Remove user's scores from source group members
+    for (const sourceMember of fromGroup.members) {
+      if (sourceMember.userId === dto.userId) continue;
+
+      const scores = sourceMember.matchScores as Record<string, number>;
+      delete scores[dto.userId];
+
+      await this.prisma.matchingMember.update({
+        where: { id: sourceMember.id },
+        data: { matchScores: scores },
+      });
+    }
+
+    // 8. Recalculate both groups' statistics
+    await Promise.all([
+      this.recalculateGroupStatistics(dto.fromGroupId, adminUserId),
+      this.recalculateGroupStatistics(dto.toGroupId, adminUserId),
+    ]);
+
+    // 9. Delete source group if empty
+    const updatedFromGroup = await this.prisma.matchingGroup.findUnique({
+      where: { id: dto.fromGroupId },
+      include: { members: true },
+    });
+
+    if (updatedFromGroup && updatedFromGroup.members.length === 0) {
+      await this.prisma.matchingGroup.delete({
+        where: { id: dto.fromGroupId },
+      });
+    }
+
+    return {
+      message: 'User successfully moved between groups',
+      fromGroupId: dto.fromGroupId,
+      toGroupId: dto.toGroupId,
+      deletedFromGroup: updatedFromGroup?.members.length === 0,
+    };
+  }
+
+  /**
+   * Remove user from group
+   */
+  async removeUserFromGroup(
+    eventId: string,
+    dto: RemoveUserFromGroupDto,
+    adminUserId: string,
+  ) {
+    // 1. Find member
+    const member = await this.prisma.matchingMember.findFirst({
+      where: {
+        userId: dto.userId,
+        groupId: dto.groupId,
+        group: {
+          eventId,
+        },
+      },
+      include: {
+        group: {
+          include: {
+            members: true,
+          },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('User not found in group');
+    }
+
+    // 2. Remove member's scores from other members
+    for (const otherMember of member.group.members) {
+      if (otherMember.userId === dto.userId) continue;
+
+      const scores = otherMember.matchScores as Record<string, number>;
+      delete scores[dto.userId];
+
+      await this.prisma.matchingMember.update({
+        where: { id: otherMember.id },
+        data: { matchScores: scores },
+      });
+    }
+
+    // 3. Delete member
+    await this.prisma.matchingMember.delete({
+      where: { id: member.id },
+    });
+
+    // 4. Recalculate group or delete if empty
+    const updatedGroup = await this.prisma.matchingGroup.findUnique({
+      where: { id: dto.groupId },
+      include: { members: true },
+    });
+
+    if (updatedGroup && updatedGroup.members.length === 0) {
+      await this.prisma.matchingGroup.delete({
+        where: { id: dto.groupId },
+      });
+
+      return {
+        message: 'User removed and empty group deleted',
+        groupDeleted: true,
+      };
+    }
+
+    if (updatedGroup) {
+      await this.recalculateGroupStatistics(dto.groupId, adminUserId);
+    }
+
+    return {
+      message: 'User successfully removed from group',
+      groupDeleted: false,
+    };
+  }
+
+  /**
+   * Create empty manual group
+   */
+  async createManualGroup(
+    eventId: string,
+    dto: CreateManualGroupDto,
+    adminUserId: string,
+  ) {
+    // Check if group number already exists
+    const existing = await this.prisma.matchingGroup.findFirst({
+      where: {
+        eventId,
+        groupNumber: dto.groupNumber,
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        `Group ${dto.groupNumber} already exists`,
+      );
+    }
+
+    const group = await this.prisma.matchingGroup.create({
+      data: {
+        eventId,
+        groupNumber: dto.groupNumber,
+        status: MatchingStatus.MATCHED,
+        averageMatchScore: 0,
+        minMatchScore: 0,
+        groupSize: 0,
+        thresholdUsed: 0,
+        hasManualChanges: true,
+        lastModifiedBy: adminUserId,
+        lastModifiedAt: new Date(),
+        tableNumber: dto.tableNumber,
+        venueName: dto.venueName,
+      },
+    });
+
+    return {
+      message: 'Manual group created successfully',
+      group,
+    };
+  }
+
+  /**
+   * Bulk assign users to group
+   */
+  async bulkAssignUsers(
+    eventId: string,
+    dto: BulkAssignUsersDto,
+    adminUserId: string,
+  ) {
+    const results = {
+      success: [] as string[],
+      failed: [] as { userId: string; reason: string }[],
+    };
+
+    for (const userId of dto.userIds) {
+      try {
+        // Find transaction for this user
+        const transaction = await this.prisma.transaction.findFirst({
+          where: {
+            userId,
+            eventId,
+            paymentStatus: PaymentStatus.PAID,
+          },
+        });
+
+        if (!transaction) {
+          results.failed.push({
+            userId,
+            reason: 'No paid transaction found',
+          });
+          continue;
+        }
+
+        // Get target group
+        const group = await this.prisma.matchingGroup.findUnique({
+          where: { id: dto.targetGroupId },
+        });
+
+        if (!group) {
+          results.failed.push({
+            userId,
+            reason: 'Target group not found',
+          });
+          continue;
+        }
+
+        // Assign user
+        await this.assignUserToGroup(
+          eventId,
+          {
+            userId,
+            transactionId: transaction.id,
+            targetGroupNumber: group.groupNumber,
+            note: dto.note,
+          },
+          adminUserId,
+        );
+
+        results.success.push(userId);
+      } catch (error: any) {
+        results.failed.push({
+          userId,
+          reason: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    return {
+      message: 'Bulk assignment completed',
+      successCount: results.success.length,
+      failedCount: results.failed.length,
+      results,
+    };
+  }
+
+  /**
+   * Recalculate group statistics after manual changes
+   */
+  private async recalculateGroupStatistics(
+    groupId: string,
+    adminUserId: string,
+  ) {
+    const group = await this.prisma.matchingGroup.findUnique({
+      where: { id: groupId },
+      include: { members: true },
+    });
+
+    if (!group || group.members.length === 0) {
+      return;
+    }
+
+    // Collect all match scores
+    const allScores: number[] = [];
+    for (const member of group.members) {
+      const scores = Object.values(member.matchScores as Record<string, number>);
+      allScores.push(...scores);
+    }
+
+    const averageMatchScore =
+      allScores.length > 0
+        ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length
+        : 0;
+    const minMatchScore = allScores.length > 0 ? Math.min(...allScores) : 0;
+
+    await this.prisma.matchingGroup.update({
+      where: { id: groupId },
+      data: {
+        groupSize: group.members.length,
+        averageMatchScore: Math.round(averageMatchScore * 100) / 100,
+        minMatchScore: Math.round(minMatchScore * 100) / 100,
+        hasManualChanges: true,
+        lastModifiedBy: adminUserId,
+        lastModifiedAt: new Date(),
+      },
+    });
+  }
 
   /**
    * Main matching function with multi-pass strategy

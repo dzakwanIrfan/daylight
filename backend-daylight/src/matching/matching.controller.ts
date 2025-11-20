@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -14,6 +15,13 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
+import {
+  AssignUserToGroupDto,
+  MoveUserBetweenGroupsDto,
+  RemoveUserFromGroupDto,
+  CreateManualGroupDto,
+  BulkAssignUsersDto,
+} from './dto/manual-assignment.dto';
 
 @Controller('matching')
 export class MatchingController {
@@ -35,7 +43,6 @@ export class MatchingController {
       user.id,
     );
 
-    // Save results to database (replaces old results)
     await this.matchingService.saveMatchingResults(eventId, matchingResult);
 
     return {
@@ -107,5 +114,92 @@ export class MatchingController {
       message: 'Preview generated (not saved to groups)',
       result: matchingResult,
     };
+  }
+
+  // ==================== MANUAL ASSIGNMENT ENDPOINTS ====================
+
+  /**
+   * Get unassigned participants (Admin only)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('events/:eventId/unassigned')
+  async getUnassignedParticipants(@Param('eventId') eventId: string) {
+    return this.matchingService.getUnassignedParticipants(eventId);
+  }
+
+  /**
+   * Manually assign user to specific group (Admin only)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('events/:eventId/assign')
+  @HttpCode(HttpStatus.OK)
+  async assignUserToGroup(
+    @Param('eventId') eventId: string,
+    @Body() dto: AssignUserToGroupDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchingService.assignUserToGroup(eventId, dto, user.id);
+  }
+
+  /**
+   * Move user between groups (Admin only)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('events/:eventId/move')
+  @HttpCode(HttpStatus.OK)
+  async moveUserBetweenGroups(
+    @Param('eventId') eventId: string,
+    @Body() dto: MoveUserBetweenGroupsDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchingService.moveUserBetweenGroups(eventId, dto, user.id);
+  }
+
+  /**
+   * Remove user from group (Admin only)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('events/:eventId/remove')
+  @HttpCode(HttpStatus.OK)
+  async removeUserFromGroup(
+    @Param('eventId') eventId: string,
+    @Body() dto: RemoveUserFromGroupDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchingService.removeUserFromGroup(eventId, dto, user.id);
+  }
+
+  /**
+   * Create manual empty group (Admin only)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('events/:eventId/create-group')
+  @HttpCode(HttpStatus.CREATED)
+  async createManualGroup(
+    @Param('eventId') eventId: string,
+    @Body() dto: CreateManualGroupDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchingService.createManualGroup(eventId, dto, user.id);
+  }
+
+  /**
+   * Bulk assign users to group (Admin only)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('events/:eventId/bulk-assign')
+  @HttpCode(HttpStatus.OK)
+  async bulkAssignUsers(
+    @Param('eventId') eventId: string,
+    @Body() dto: BulkAssignUsersDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.matchingService.bulkAssignUsers(eventId, dto, user.id);
   }
 }

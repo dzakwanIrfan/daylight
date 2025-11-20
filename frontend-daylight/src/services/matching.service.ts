@@ -4,6 +4,12 @@ import type {
   MatchingPreviewResponse,
   MatchingGroup,
   MatchingAttempt,
+  UnassignedParticipantsResponse,
+  AssignUserToGroupPayload,
+  MoveUserPayload,
+  RemoveUserPayload,
+  CreateGroupPayload,
+  BulkAssignPayload,
 } from '@/types/matching.types';
 
 class MatchingService {
@@ -48,6 +54,56 @@ class MatchingService {
    */
   async getMyMatchingGroup(eventId: string): Promise<MatchingGroup> {
     const response = await apiClient.get(`/matching/events/${eventId}/my-group`);
+    return response.data;
+  }
+
+  // ==================== MANUAL ASSIGNMENT ====================
+
+  /**
+   * Get unassigned participants
+   */
+  async getUnassignedParticipants(eventId: string): Promise<UnassignedParticipantsResponse> {
+    const response = await apiClient.get(`/matching/events/${eventId}/unassigned`);
+    return response.data;
+  }
+
+  /**
+   * Assign user to group
+   */
+  async assignUserToGroup(eventId: string, payload: AssignUserToGroupPayload) {
+    const response = await apiClient.post(`/matching/events/${eventId}/assign`, payload);
+    return response.data;
+  }
+
+  /**
+   * Move user between groups
+   */
+  async moveUserBetweenGroups(eventId: string, payload: MoveUserPayload) {
+    const response = await apiClient.post(`/matching/events/${eventId}/move`, payload);
+    return response.data;
+  }
+
+  /**
+   * Remove user from group
+   */
+  async removeUserFromGroup(eventId: string, payload: RemoveUserPayload) {
+    const response = await apiClient.post(`/matching/events/${eventId}/remove`, payload);
+    return response.data;
+  }
+
+  /**
+   * Create manual group
+   */
+  async createManualGroup(eventId: string, payload: CreateGroupPayload) {
+    const response = await apiClient.post(`/matching/events/${eventId}/create-group`, payload);
+    return response.data;
+  }
+
+  /**
+   * Bulk assign users
+   */
+  async bulkAssignUsers(eventId: string, payload: BulkAssignPayload) {
+    const response = await apiClient.post(`/matching/events/${eventId}/bulk-assign`, payload);
     return response.data;
   }
 }

@@ -1,0 +1,54 @@
+name: Deploy to Production
+
+# Trigger: Jalan setiap kali ada push ke branch production
+on:
+  push:
+    branches: [ production ]
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Executing remote ssh commands
+      # Kita menggunakan action pihak ketiga yang populer untuk SSH
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          # 1. Masuk ke folder project utama
+          cd daylight
+
+          # 2. Pull perubahan terbaru
+          git pull origin production
+
+          # --- BACKEND SETUP ---
+          echo "🚀 Starting Backend Build..."
+          cd backend-daylight
+          pnpm install            
+          pnpm prisma generate     
+          
+          # Jalankan migrasi database (aman dijalankan meski tidak ada perubahan)
+          echo "🗄️ Migrating Database..."
+          pnpm prisma migrate deploy
+
+          pnpm build
+          cd ..
+
+          # --- FRONTEND SETUP ---
+          echo "🚀 Starting Frontend Build..."
+          cd frontend-daylight
+          pnpm install
+          pnpm build
+          cd ..
+
+          # --- RESTART SERVICES ---
+          echo "🔄 Restarting PM2..."
+          pm2 restart all
+          pm2 save
+          
+          echo "✅ Deployment Success!"

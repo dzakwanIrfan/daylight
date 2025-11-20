@@ -243,6 +243,9 @@ model Event {
   transactions                  Transaction[]
   matchingGroups    MatchingGroup[]
   matchingAttempts  MatchingAttempt[]
+
+  partnerId       String?
+  partner         Partner?      @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -568,4 +571,82 @@ model MatchingAttempt {
   @@index([eventId])
   @@index([attemptNumber])
   @@index([createdAt])
+}
+
+enum PartnerType {
+  RESTAURANT
+  ART_GALLERY
+  CAFE
+  BRAND
+  COMMUNITY
+  VENUE
+  SHOP
+}
+
+enum PartnerStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  REJECTED
+}
+
+model Partner {
+  id                String          @id @default(uuid())
+  
+  // Basic Information
+  name              String
+  slug              String          @unique
+  type              PartnerType
+  description       String?         @db.Text
+  shortDescription  String?
+  
+  // Contact & Location
+  address           String          @db.Text
+  city              String
+  phoneNumber       String?
+  email             String?
+  website           String?
+  googleMapsUrl     String?         @db.Text
+  latitude          Float?
+  longitude         Float?
+  
+  // Media
+  logo              String?         // Main logo/photo
+  coverImage        String?         // Cover/banner image
+  gallery           String[]        @default([]) // Additional photos
+  
+  // Status & Features
+  status            PartnerStatus   @default(PENDING)
+  isActive          Boolean         @default(true)
+  isPreferred       Boolean         @default(false) // Badge for preferred partners
+  isFeatured        Boolean         @default(false)
+  
+  // Operating Hours (JSON)
+  operatingHours    Json?           // { "monday": "09:00-18:00", ... }
+  
+  // Social Media
+  instagram         String?
+  facebook          String?
+  twitter           String?
+  
+  // Metadata
+  tags              String[]        @default([])
+  amenities         String[]        @default([]) // ["wifi", "parking", "outdoor_seating"]
+  
+  // Relations
+  events            Event[]
+  
+  // Statistics
+  totalEvents       Int             @default(0)
+  viewCount         Int             @default(0)
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  @@index([slug])
+  @@index([type])
+  @@index([city])
+  @@index([status])
+  @@index([isPreferred])
+  @@index([isActive])
 }

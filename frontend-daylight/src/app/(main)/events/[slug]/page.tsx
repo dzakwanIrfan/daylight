@@ -18,12 +18,18 @@ import {
   CheckCircle2,
   Crown,
   Gift,
+  Building2,
+  Award,
+  Verified,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { PaymentStatus } from '@/types/event.types';
 import { toast } from 'sonner';
 import { SubscriptionUpsellModal } from '@/components/subscriptions/subscription-upsell-modal';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -148,7 +154,7 @@ export default function EventDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl mx-auto py-4 px-4 sm:px-6">
+      <div className="space-y-6 max-w-4xl mx-auto py-4 px-4 sm:px-6">
         {/* Subscription Upsell Modal */}
         <SubscriptionUpsellModal
           isOpen={showUpsellModal}
@@ -335,33 +341,78 @@ export default function EventDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5 text-brand" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm text-gray-600 mb-1">Location</p>
-                <p className="font-semibold text-sm sm:text-base text-gray-900 line-clamp-1">
-                  {event.venue}
-                </p>
-                <p className="text-xs sm:text-sm text-gray-600 truncate">
-                  {event.city}
-                </p>
-                {event.googleMapsUrl && (
-                  <a
-                    href={event.googleMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+          {/* Partner Info Card (if partner exists) */}
+          {event.partner ? (
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-start gap-3">
+                {event.partner.logo && (
+                  <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                    <Image
+                      src={event.partner.logo}
+                      alt={event.partner.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Building2 className="w-4 h-4 text-brand shrink-0" />
+                    <p className="text-xs sm:text-sm text-gray-600">Event Partner</p>
+                    {event.partner.isPreferred && (
+                      <Badge className="inline-flex items-center gap-1 px-1.5 py-0 text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
+                        <Verified className="w-2.5 h-2.5" />
+                        Preferred
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="font-semibold text-sm sm:text-base text-gray-900 leading-snug">
+                    {event.partner.name}
+                  </p>
+                  {event.partner.shortDescription && (
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      {event.partner.city}
+                    </p>
+                  )}
+                  <Link
+                    href={`/partners/${event.partner.slug}`}
                     className="text-brand text-xs sm:text-sm hover:underline inline-flex items-center gap-1 mt-1"
                   >
-                    Open Maps
+                    View Partner Profile
                     <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          ) : 
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-brand" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Location</p>
+                  <p className="font-semibold text-sm sm:text-base text-gray-900 leading-snug">
+                    {event.venue}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">
+                    {event.city}
+                  </p>
+                  {event.googleMapsUrl && (
+                    <a
+                      href={event.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand text-xs sm:text-sm hover:underline inline-flex items-center gap-1 mt-1"
+                    >
+                      Open Maps
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          }
         </div>
 
         {/* Description */}

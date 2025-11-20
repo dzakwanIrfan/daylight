@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard, Sparkle, Sparkles } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard, Sparkle, Sparkles, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { title } from 'process';
@@ -26,6 +26,11 @@ const menuItems = [
     title: 'Events',
     href: '/admin/events',
     icon: Calendar,
+  },
+  {
+    title: 'Partners',
+    href: '/admin/partners',
+    icon: Handshake,
   },
   {
     title: 'Subscriptions',

@@ -191,6 +191,18 @@ export class EventsService {
         skip,
         take,
         orderBy: { [sortBy]: sortOrder },
+        include: {
+          partner: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo: true,
+              isPreferred: true,
+              type: true,
+            }
+          }
+        }
       }),
       this.prisma.event.count({ where }),
     ]);
@@ -284,6 +296,9 @@ export class EventsService {
   async getEventBySlug(slug: string) {
     const event = await this.prisma.event.findUnique({
       where: { slug },
+      include: {
+        partner: true,
+      }
     });
 
     if (!event) {

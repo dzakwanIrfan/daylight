@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Building2, CheckCircle2 } from 'lucide-react';
 import { useAdminEventMutations } from '@/hooks/use-admin-events';
 import { EventCategory, EventStatus, UpdateEventInput, Event } from '@/types/event.types';
 import { useRouter } from 'next/navigation';
@@ -20,10 +20,10 @@ import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { ImageUpload } from '@/components/ui/image-upload';
+import { useAvailablePartners } from '@/hooks/use-partners';
 
 interface EditEventFormProps {
-  event: Event;
+  event: Event & { partnerId?: string | null };
 }
 
 export function EditEventForm({ event }: EditEventFormProps) {
@@ -35,13 +35,16 @@ export function EditEventForm({ event }: EditEventFormProps) {
   const [requirementInput, setRequirementInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>(event.highlights || []);
   const [highlightInput, setHighlightInput] = useState('');
+  
+  // Partner selection
+  const { data: availablePartners, isLoading: isLoadingPartners } = useAvailablePartners();
+  const [selectedPartner, setSelectedPartner] = useState<string | null>(event.partnerId || null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     control,
-    reset,
     setValue,
   } = useForm<UpdateEventInput>({
     defaultValues: {
@@ -79,11 +82,27 @@ export function EditEventForm({ event }: EditEventFormProps) {
       id: event.id,
       data: {
         ...data,
+        partnerId: selectedPartner || undefined,
         tags,
         requirements,
         highlights,
       },
     });
+  };
+
+  const handlePartnerSelect = (partnerId: string) => {
+    if (partnerId === '') {
+      setSelectedPartner(null);
+      return;
+    }
+    
+    const partner = availablePartners?.find(p => p.id === partnerId);
+    if (partner) {
+      setSelectedPartner(partnerId);
+      setValue('venue', partner.name);
+      setValue('address', partner.address);
+      setValue('city', partner.city);
+    }
   };
 
   const addTag = () => {
@@ -251,9 +270,51 @@ export function EditEventForm({ event }: EditEventFormProps) {
         </div>
       </div>
 
-      {/* Location */}
+      {/* Location - WITH PARTNER SELECTION */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Location</h3>
+
+        {/* Partner Selection */}
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-brand" />
+            <Label className="text-sm font-semibold text-gray-900">
+              Select from Partners (Optional)
+            </Label>
+          </div>
+          <p className="text-xs text-gray-600">
+            Choose a partner to auto-fill venue details
+          </p>
+          
+          {isLoadingPartners ? (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading partners...
+            </div>
+          ) : (
+            <Select value={selectedPartner || ''} onValueChange={handlePartnerSelect}>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Select a partner" />
+              </SelectTrigger>
+              <SelectContent className="bg-white max-h-[300px]">
+                {availablePartners?.map((partner) => (
+                  <SelectItem key={partner.id} value={partner.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{partner.name}</span>
+                      {partner.isPreferred && (
+                        <Badge className="bg-green-100 text-green-700 border-green-200 text-xs px-1.5 py-0">
+                          <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                          Preferred
+                        </Badge>
+                      )}
+                      <span className="text-xs text-gray-500">• {partner.city}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">

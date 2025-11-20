@@ -1,3 +1,5 @@
+import { Partner } from "./partner.types";
+
 export enum EventCategory {
   DAYBREAK = 'DAYBREAK',
   DAYTRIP = 'DAYTRIP',
@@ -49,6 +51,7 @@ export interface Event {
   organizerContact?: string;
   createdAt: string;
   updatedAt: string;
+  partner: Partner | null;
 }
 
 export interface EventPurchaseStatus {
@@ -90,6 +93,7 @@ export interface CreateEventInput {
   highlights?: string[];
   organizerName?: string;
   organizerContact?: string;
+  partnerId?: string;
 }
 
 export interface UpdateEventInput extends Partial<CreateEventInput> {}

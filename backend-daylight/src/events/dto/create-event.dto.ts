@@ -106,4 +106,8 @@ export class CreateEventDto {
   @IsOptional()
   @IsString()
   organizerContact?: string;
+
+  @IsOptional()
+  @IsString()
+  partnerId?: string;
 }

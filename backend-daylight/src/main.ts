@@ -39,7 +39,7 @@ async function bootstrap() {
     ? [
         'https://daylightapp.asia',
       ]
-    : [frontendUrl];
+    : [frontendUrl, 'http://127.0.0.1:3001'];
   
   app.enableCors({
     origin: (origin, callback) => {

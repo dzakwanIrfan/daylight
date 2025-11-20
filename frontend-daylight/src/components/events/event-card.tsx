@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, MapPin } from 'lucide-react';
+import { Calendar, MapPin, Award } from 'lucide-react';
 import { Event } from '@/types/event.types';
+import { Partner } from '@/types/partner.types';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import {
@@ -14,7 +15,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 
 interface EventCardProps {
-  event: Event;
+  event: Event & {
+    partner?: Partner | null;
+  };
 }
 
 const categoryConfig = {
@@ -59,7 +62,7 @@ export function EventCard({ event }: EventCardProps) {
             </h3>
           </div>
 
-          {/* Category & Status */}
+          {/* Category & Partner Badge */}
           <div className="flex items-center gap-2 flex-wrap">
             <Badge
               variant="outline"
@@ -68,6 +71,14 @@ export function EventCard({ event }: EventCardProps) {
               <CategoryIcon className="w-3 h-3" />
               {event.category}
             </Badge>
+
+            {/* Preferred Partner Badge */}
+            {event.partner?.isPreferred && (
+              <Badge className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-green-100 text-green-700 border border-green-300 hover:bg-green-200">
+                <Award className="w-3 h-3" />
+                Preferred Partner
+              </Badge>
+            )}
           </div>
 
           {/* Date, Time & Location */}

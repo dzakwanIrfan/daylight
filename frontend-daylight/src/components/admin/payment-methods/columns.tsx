@@ -50,7 +50,6 @@ export const columns: ColumnDef<PaymentMethod>[] = [
               alt={method.name}
               fill
               className="object-contain p-1"
-              unoptimized
             />
           </div>
           <div className="flex flex-col min-w-0">

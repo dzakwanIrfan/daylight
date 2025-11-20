@@ -30,7 +30,6 @@ export function PaymentMethodDetailsDialog({ method, open, onOpenChange }: Payme
                 alt={method.name}
                 fill
                 className="object-contain p-2"
-                unoptimized
               />
             </div>
             <div className="flex-1">

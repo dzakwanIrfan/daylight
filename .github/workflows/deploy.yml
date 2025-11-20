@@ -1,29 +1,18 @@
-name: Deploy to Production
-
-# Trigger: Jalan setiap kali ada push ke branch production
-on:
-  push:
-    branches: [ production ]
-
-jobs:
-  deploy:
-    name: Deploy to VPS
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Executing remote ssh commands
-      # Kita menggunakan action pihak ketiga yang populer untuk SSH
-      uses: appleboy/ssh-action@v1.0.0
+# ... (bagian atas sama) ...
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          # 1. Masuk ke folder project utama
-          cd daylight
+          export PNPM_HOME="/home/daylight/.local/share/pnpm"
+          export PATH="$PNPM_HOME:$PATH"
 
-          # 2. Pull perubahan terbaru
+          # Cek versi dulu untuk memastikan pnpm sudah terbaca
+          echo "Node version: $(node -v)"
+          echo "PNPM version: $(pnpm -v)"
+
+          cd daylight
           git pull origin production
 
           # --- BACKEND SETUP ---
@@ -32,7 +21,6 @@ jobs:
           pnpm install            
           pnpm prisma generate     
           
-          # Jalankan migrasi database (aman dijalankan meski tidak ada perubahan)
           echo "🗄️ Migrating Database..."
           pnpm prisma migrate deploy
 

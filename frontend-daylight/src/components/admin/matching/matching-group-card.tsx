@@ -4,9 +4,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Users, TrendingUp, Sparkles } from 'lucide-react';
+import { Users, TrendingUp, Sparkles, UserCog } from 'lucide-react';
 import { MatchingGroup, MatchingStatus } from '@/types/matching.types';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface MatchingGroupCardProps {
   group: MatchingGroup;
@@ -26,6 +27,7 @@ const statusConfig: Record<
 
 export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
   const statusStyle = statusConfig[group.status];
+  const hasManualMembers = group.members.some((m) => m.isManuallyAssigned);
 
   return (
     <Card className="group relative overflow-hidden border-gray-200 hover:border-brand/30 transition-all duration-300 hover:shadow-lg">
@@ -70,6 +72,12 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
                 {group.thresholdUsed}% match
               </span>
             </div>
+            {group.hasManualChanges && (
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                <UserCog className="h-3 w-3 mr-1" />
+                Modified
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -146,9 +154,16 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
                   </Avatar>
                   
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {member.user.name}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {member.user.name}
+                      </p>
+                      {member.isManuallyAssigned && (
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] px-1.5 py-0">
+                          Manual
+                        </Badge>
+                      )}
+                    </div>
                     {member.user.archetype && (
                       <p className="text-xs text-gray-500 truncate">
                         {member.user.archetype.replace(/_/g, ' ')}
@@ -170,6 +185,15 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
             })}
           </div>
         </div>
+
+        {/* Last Modified Info */}
+        {group.hasManualChanges && group.lastModifiedAt && (
+          <div className="pt-3 border-t border-gray-200">
+            <p className="text-xs text-gray-500">
+              Last modified: {format(new Date(group.lastModifiedAt), 'dd MMM yyyy, HH:mm')}
+            </p>
+          </div>
+        )}
 
         {/* Compatibility Details - Collapsible */}
         <details className="group/details">

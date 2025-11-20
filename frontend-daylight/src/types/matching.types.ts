@@ -119,3 +119,89 @@ export interface MatchingAttempt {
   executionTime: number;
   createdAt: string;
 }
+
+export interface UnassignedParticipant {
+  userId: string;
+  transactionId: string;
+  name: string;
+  email: string;
+  personalitySnapshot: PersonalitySnapshot;
+}
+
+export interface UnassignedParticipantsResponse {
+  total: number;
+  participants: UnassignedParticipant[];
+}
+
+export interface AssignUserToGroupPayload {
+  userId: string;
+  transactionId: string;
+  targetGroupNumber: number;
+  note?: string;
+}
+
+export interface MoveUserPayload {
+  userId: string;
+  fromGroupId: string;
+  toGroupId: string;
+  note?: string;
+}
+
+export interface RemoveUserPayload {
+  userId: string;
+  groupId: string;
+  reason?: string;
+}
+
+export interface CreateGroupPayload {
+  groupNumber: number;
+  tableNumber?: string;
+  venueName?: string;
+  note?: string;
+}
+
+export interface BulkAssignPayload {
+  targetGroupId: string;
+  userIds: string[];
+  note?: string;
+}
+
+// Update MatchingMember to include manual assignment info
+export interface MatchingMember {
+  id: string;
+  userId: string;
+  isYou?: boolean;
+  user: {
+    email: string;
+    name: string;
+    profilePicture: string | null;
+    archetype: string | null;
+    profileScore: number | null;
+  };
+  matchScores: Record<string, number>;
+  personalitySnapshot: PersonalitySnapshot;
+  isConfirmed: boolean;
+  isManuallyAssigned: boolean;
+  assignedBy?: string;
+  assignedAt?: string;
+  assignmentNote?: string;
+}
+
+// Update MatchingGroup
+export interface MatchingGroup {
+  id: string;
+  groupNumber: number;
+  status: MatchingStatus;
+  averageMatchScore: number;
+  minMatchScore: number;
+  groupSize: number;
+  thresholdUsed: number;
+  hasManualChanges: boolean;
+  lastModifiedBy?: string;
+  lastModifiedAt?: string;
+  tableNumber: string | null;
+  venueName: string | null;
+  members: MatchingMember[];
+  createdAt: string;
+  updatedAt: string;
+}

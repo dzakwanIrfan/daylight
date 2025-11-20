@@ -53,7 +53,7 @@ export default function MyEventsPage() {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">My Events</h1>
               <p className="text-sm text-muted-foreground">
-                Manage your events and view transaction history
+                Manage your events and view your table groups
               </p>
             </div>
           </div>

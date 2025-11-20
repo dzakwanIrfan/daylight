@@ -1,5 +1,6 @@
 import { Event } from './event.types';
 import { Transaction } from './payment.types';
+import { MatchingGroup } from './matching.types';
 
 export interface MyEvent extends Event {
   transaction: {
@@ -10,6 +11,7 @@ export interface MyEvent extends Event {
     paidAt: string | null;
     createdAt: string;
   };
+  matchingGroup?: MatchingGroup;
 }
 
 export interface MyEventsResponse {

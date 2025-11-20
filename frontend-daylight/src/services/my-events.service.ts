@@ -1,6 +1,7 @@
 import apiClient from '@/lib/axios';
 import type { MyEventsResponse, MyPastEventsResponse } from '@/types/my-events.types';
 import type { QueryTransactionsResponse, QueryTransactionsParams } from '@/types/payment.types';
+import type { MatchingGroup } from '@/types/matching.types';
 
 class MyEventsService {
   private readonly baseURL = '/user-events';
@@ -26,6 +27,14 @@ class MyEventsService {
    */
   async getMyTransactions(params?: QueryTransactionsParams): Promise<QueryTransactionsResponse> {
     const response = await apiClient.get('/payment/my-transactions', { params });
+    return response.data;
+  }
+
+  /**
+   * Get user's matching group for specific event
+   */
+  async getMyMatchingGroup(eventId: string): Promise<MatchingGroup> {
+    const response = await apiClient.get(`/matching/events/${eventId}/my-group`);
     return response.data;
   }
 }

@@ -1,4 +1,20 @@
-# ... (bagian atas sama) ...
+name: Deploy to Production
+
+# Trigger: Jalan setiap kali ada push ke branch production
+on:
+  push:
+    branches: [ production ]
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Executing remote ssh commands
+      # Kita menggunakan action pihak ketiga yang populer untuk SSH
+      uses: appleboy/ssh-action@v1.0.0
+      # ... (bagian atas sama) ...
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}

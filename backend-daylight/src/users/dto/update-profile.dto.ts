@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEmail, MinLength, Matches } from 'class-validator';
+import { IsString, IsOptional, IsEmail, MinLength, Matches, ValidateIf } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -11,6 +11,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
+  @ValidateIf(o => o.phoneNumber !== '' && o.phoneNumber !== null)
   @Matches(/^[\d\s\-\+\(\)]+$/, { message: 'Invalid phone number format' })
   phoneNumber?: string;
 

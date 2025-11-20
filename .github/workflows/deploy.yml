@@ -1,42 +1,18 @@
-name: Deploy to Production
-
-on:
-  push:
-    branches: [ production ]
-
-jobs:
-  deploy:
-    name: Deploy to VPS
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Executing remote ssh commands
-      uses: appleboy/ssh-action@v1.0.0
+# ... (bagian atas sama) ...
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          # --- FIX START: LOAD ENVIRONMENT ---
-          # Load NVM (Node Version Manager) jika pakai NVM
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          
-          # Atau load .bashrc / .profile agar path pnpm terbaca
-          source ~/.bashrc || source ~/.profile
-          
-          # Tambahkan path manual pnpm (opsional, jika cara di atas gagal)
-          # export PATH=$PATH:/home/${{ secrets.VPS_USER }}/.local/share/pnpm
-          
-          # Hentikan script jika ada command yang error (PENTING!)
-          set -e
-          # --- FIX END ---
+          export PNPM_HOME="/home/daylight/.local/share/pnpm"
+          export PATH="$PNPM_HOME:$PATH"
 
-          # 1. Masuk ke folder project utama
+          # Cek versi dulu untuk memastikan pnpm sudah terbaca
+          echo "Node version: $(node -v)"
+          echo "PNPM version: $(pnpm -v)"
+
           cd daylight
-
-          # 2. Pull perubahan terbaru
           git pull origin production
 
           # --- BACKEND SETUP ---

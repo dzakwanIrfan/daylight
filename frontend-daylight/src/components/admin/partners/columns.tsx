@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { Partner, PartnerType, PartnerStatus } from '@/types/partner.types';
 import { PartnersTableRowActions } from './partners-table-row-actions';
-import { MapPin, CheckCircle2, Award } from 'lucide-react';
-import Image from 'next/image';
+import { MapPin, CheckCircle2, Verified } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const typeColors: Record<PartnerType, string> = {
@@ -86,7 +85,7 @@ export const columns: ColumnDef<Partner>[] = [
             <div className="flex items-center gap-2">
               <span className="font-medium text-gray-900 truncate">{partner.name}</span>
               {partner.isPreferred && (
-                <Award className="h-4 w-4 text-green-600 shrink-0" />
+                <Verified className="h-4 w-4 text-green-600 shrink-0" />
               )}
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">

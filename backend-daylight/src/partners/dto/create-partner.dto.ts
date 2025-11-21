@@ -9,7 +9,8 @@ import {
   IsNumber,
   MinLength,
   MaxLength,
-  IsJSON
+  IsJSON,
+  ValidateIf
 } from 'class-validator';
 import { PartnerType, PartnerStatus } from '@prisma/client';
 
@@ -44,7 +45,9 @@ export class CreatePartnerDto {
   @IsString()
   phoneNumber?: string;
 
+  // Only validate email format if it's not empty
   @IsOptional()
+  @ValidateIf((o) => o.email !== '' && o.email !== null && o.email !== undefined)
   @IsEmail()
   email?: string;
 

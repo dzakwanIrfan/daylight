@@ -7,7 +7,7 @@ import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton';
 import { columns } from '@/components/admin/partners/columns';
 import { Partner, PartnerType, PartnerStatus, PartnerBulkActionType } from '@/types/partner.types';
 import { Card } from '@/components/ui/card';
-import { Building2, CheckCircle, Clock, Award, Download, Plus, Loader2, Trash2 } from 'lucide-react';
+import { Building2, CheckCircle, Clock, Download, Plus, Loader2, Trash2, Verified } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { partnerService } from '@/services/partner.service';
@@ -114,9 +114,9 @@ export default function AdminPartnersPage() {
     {
       title: 'Preferred',
       value: stats.preferred,
-      icon: Award,
-      color: 'text-brand',
-      bg: 'bg-brand/10',
+      icon: Verified,
+      color: 'text-green-700',
+      bg: 'bg-green-50',
     },
     {
       title: 'Pending',

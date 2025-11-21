@@ -5,10 +5,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { Event, EventCategory, EventStatus } from '@/types/event.types';
-import { format } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
 import { EventsTableRowActions } from './events-table-row-actions';
 import { Users, MapPin } from 'lucide-react';
+import { formatDisplayDate, formatDisplayTime } from '@/lib/timezone';
 
 const categoryColors: Record<EventCategory, string> = {
   DAYBREAK: 'bg-orange-100 text-orange-800 border-orange-200',
@@ -92,17 +91,17 @@ export const columns: ColumnDef<Event>[] = [
       <DataTableColumnHeader column={column} title="Date & Time" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.getValue('eventDate'));
-      const startTime = new Date(row.original.startTime);
-      const endTime = new Date(row.original.endTime);
+      const eventDate = row.getValue('eventDate') as string;
+      const startTime = row.original.startTime;
+      const endTime = row.original.endTime;
       
       return (
         <div className="flex flex-col">
           <span className="font-medium text-gray-900">
-            {format(date, 'dd MMM yyyy', { locale: idLocale })}
+            {formatDisplayDate(eventDate, 'dd MMM yyyy')}
           </span>
           <span className="text-xs text-gray-500">
-            {format(startTime, 'HH:mm')} - {format(endTime, 'HH:mm')}
+            {formatDisplayTime(startTime)} - {formatDisplayTime(endTime)} WIB
           </span>
         </div>
       );

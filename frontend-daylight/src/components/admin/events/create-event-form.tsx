@@ -274,7 +274,6 @@ export function CreateEventForm() {
                 <SelectValue placeholder="Select a partner" />
               </SelectTrigger>
               <SelectContent className="bg-white max-h-[300px]">
-                <SelectItem value="">None (Manual Entry)</SelectItem>
                 {availablePartners?.map((partner) => (
                   <SelectItem key={partner.id} value={partner.id}>
                     <div className="flex items-center gap-2">

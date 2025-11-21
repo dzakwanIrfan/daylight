@@ -7,15 +7,22 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth-store';
+import { usePersonalityTestStore } from '@/store/personality-test-store';
 
 export function LogoutButton() {
   const router = useRouter();
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const resetPersonalityTest = usePersonalityTestStore((state) => state.reset);
 
   const logoutMutation = useMutation({
     mutationFn: authService.logout,
     onSuccess: () => {
       clearAuth();
+      resetPersonalityTest();
+      // Also manually remove from localStorage to be sure
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('personality-test-storage');
+      }
       toast.success('Logged out successfully');
       setTimeout(() => {
         window.location.href = '/auth/login';

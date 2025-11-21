@@ -118,7 +118,7 @@ export class AuthController {
       const googleUser = req.user;
       let result;
 
-      if (googleUser.sessionId) {
+      if (googleUser.sessionId && googleUser.sessionId !== 'undefined') {
         result = await this.authService.registerWithGoogle(
           googleUser.sessionId,
           googleUser,

@@ -28,10 +28,11 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null; // optional, tidak lagi diambil dari cookie
+  // accessToken removed, using HttpOnly cookies
+
   isHydrated: boolean;
-  setAuth: (user: User, accessToken?: string | null) => void;
-  setAccessToken: (accessToken: string | null) => void;
+  setAuth: (user: User) => void;
+
   clearAuth: () => void;
   isAuthenticated: () => boolean;
   setHydrated: () => void;
@@ -41,20 +42,15 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      accessToken: null,
       isHydrated: false,
 
-      // Bisa dipanggil dengan setAuth(user) atau setAuth(user, accessToken)
-      setAuth: (user, accessToken = null) => {
-        set({ user, accessToken });
-      },
-
-      setAccessToken: (accessToken) => {
-        set({ accessToken });
+      // Bisa dipanggil dengan setAuth(user)
+      setAuth: (user) => {
+        set({ user });
       },
 
       clearAuth: () => {
-        set({ user: null, accessToken: null });
+        set({ user: null });
       },
 
       isAuthenticated: () => {
@@ -78,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
+
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();

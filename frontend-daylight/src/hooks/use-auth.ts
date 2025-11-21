@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
+import { usePersonalityTestStore } from '@/store/personality-test-store';
 import { userService } from '@/services/user.service';
 import { toast } from 'sonner';
 
 export function useAuth(requireAuth: boolean = true) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, setAuth, accessToken, isHydrated, clearAuth } = useAuthStore();
+  const { isAuthenticated, user, setAuth, isHydrated, clearAuth } = useAuthStore();
+
   const [isChecking, setIsChecking] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,7 +22,7 @@ export function useAuth(requireAuth: boolean = true) {
 
     const checkAuth = async () => {
       setIsLoading(true);
-      
+
       try {
         const authenticated = isAuthenticated();
 
@@ -34,32 +36,36 @@ export function useAuth(requireAuth: boolean = true) {
         }
 
         // Sync profile if authenticated
-        if (authenticated && accessToken) {
+        if (authenticated) {
           try {
-            // Try to fetch profile to validate token
+            // Try to fetch profile to validate token (cookie)
             const profile = await userService.getProfile();
-            
+
             // Update store with fresh profile data
-            setAuth(profile, accessToken);
+            setAuth(profile);
           } catch (error: any) {
             // Token is invalid
             if (error?.response?.status === 401) {
               console.error('❌ Token validation failed, clearing auth');
-              
+
               // Clear auth state completely
               clearAuth();
-              
+              usePersonalityTestStore.getState().reset();
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('personality-test-storage');
+              }
+
               // Clear cookies manually as well
               if (typeof document !== 'undefined') {
                 const cookieOptions = '; path=/; domain=' + window.location.hostname.replace('www.', '.');
                 document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
                 document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
-                
+
                 // Also try without domain
                 document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
                 document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
               }
-              
+
               // Redirect to login if on protected route
               if (requireAuth && !pathname.startsWith('/auth')) {
                 router.replace('/auth/login?session=expired');
@@ -82,8 +88,8 @@ export function useAuth(requireAuth: boolean = true) {
     checkAuth();
   }, [isHydrated, pathname, requireAuth]);
 
-  return { 
-    isAuthenticated: isAuthenticated(), 
+  return {
+    isAuthenticated: isAuthenticated(),
     user,
     isChecking,
     isLoading

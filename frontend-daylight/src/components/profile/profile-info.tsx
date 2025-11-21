@@ -10,12 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Camera, Loader2 } from 'lucide-react';
 
 export function ProfileInfo() {
-  const { user, setAuth, accessToken } = useAuthStore();
+  const { user, setAuth } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user?.profilePicture || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -57,7 +57,7 @@ export function ProfileInfo() {
     setIsUploadingAvatar(true);
     try {
       const uploadResult = await userService.uploadAvatar(file);
-      
+
       // Update profile with new avatar URL
       await userService.updateProfile({
         profilePicture: uploadResult.url,
@@ -67,14 +67,11 @@ export function ProfileInfo() {
       setAvatarUrl(uploadResult.url);
 
       // Update auth store
-      if (user && accessToken) {
-        setAuth(
-          {
-            ...user,
-            profilePicture: uploadResult.url,
-          },
-          accessToken
-        );
+      if (user) {
+        setAuth({
+          ...user,
+          profilePicture: uploadResult.url,
+        });
       }
 
       toast.success('Avatar updated successfully');
@@ -96,18 +93,15 @@ export function ProfileInfo() {
 
     try {
       const response = await userService.updateProfile(formData);
-      
+
       // Update auth store with new user data
-      if (user && accessToken) {
-        setAuth(
-          {
-            ...user,
-            firstName: response.user.firstName,
-            lastName: response.user.lastName,
-            phoneNumber: response.user.phoneNumber,
-          },
-          accessToken
-        );
+      if (user) {
+        setAuth({
+          ...user,
+          firstName: response.user.firstName,
+          lastName: response.user.lastName,
+          phoneNumber: response.user.phoneNumber,
+        });
       }
 
       toast.success('Profile updated successfully');
@@ -122,7 +116,7 @@ export function ProfileInfo() {
   const getInitials = () => {
     const firstName = formData.firstName || user?.firstName;
     const lastName = formData.lastName || user?.lastName;
-    
+
     if (firstName && lastName) {
       return `${firstName[0]}${lastName[0]}`.toUpperCase();
     }
@@ -153,13 +147,13 @@ export function ProfileInfo() {
                 }}
               />
             ) : null}
-            <span 
+            <span
               className={`text-3xl font-bold text-brand ${avatarUrl ? 'hidden' : ''}`}
             >
               {getInitials()}
             </span>
           </div>
-          
+
           <button
             type="button"
             onClick={handleAvatarClick}
@@ -172,7 +166,7 @@ export function ProfileInfo() {
               <Camera className="w-4 h-4" />
             )}
           </button>
-          
+
           <input
             ref={fileInputRef}
             type="file"
@@ -181,7 +175,7 @@ export function ProfileInfo() {
             className="hidden"
           />
         </div>
-        
+
         <div className="text-center">
           <p className="font-medium">
             {formData.firstName || user?.firstName} {formData.lastName || user?.lastName}

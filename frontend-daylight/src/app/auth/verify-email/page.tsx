@@ -20,7 +20,7 @@ export default function VerifyEmailPage() {
     onSuccess: (data) => {
       setStatus('success');
       if (data.success && data.user && data.accessToken) {
-        setAuth(data.user, data.accessToken);
+        setAuth(data.user);
         toast.success('Email verified successfully!', {
           description: 'Welcome to DayLight!',
         });
@@ -51,7 +51,7 @@ export default function VerifyEmailPage() {
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-orange-50 to-white p-4">
       <div className="w-full max-w-md text-center space-y-6">
         <h1 className="text-4xl font-bold text-brand logo-text">DayLight</h1>
-        
+
         {status === 'verifying' && (
           <>
             <div className="flex justify-center">

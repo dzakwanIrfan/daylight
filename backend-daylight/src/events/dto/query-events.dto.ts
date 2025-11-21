@@ -39,7 +39,7 @@ export class QueryEventsDto {
 
   @IsOptional()
   @IsEnum(SortOrder)
-  sortOrder?: SortOrder = SortOrder.DESC;
+  sortOrder?: SortOrder = SortOrder.ASC;
 
   @IsOptional()
   @IsEnum(EventCategory)

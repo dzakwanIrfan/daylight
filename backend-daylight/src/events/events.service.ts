@@ -1,8 +1,7 @@
-import { 
-  Injectable, 
-  NotFoundException, 
-  BadRequestException, 
-  ConflictException 
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, EventStatus, PaymentStatus, TransactionType, EventCategory } from '@prisma/client';
@@ -62,11 +61,9 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    // ========================================
     // CHECK SUBSCRIPTION FIRST
-    // ========================================
     const hasValidSubscription = await this.subscriptionsService.hasValidSubscription(userId);
-    
+
     if (hasValidSubscription) {
       return {
         hasPurchased: false,
@@ -79,9 +76,7 @@ export class EventsService {
       };
     }
 
-    // ========================================
     // CHECK DIRECT PURCHASE
-    // ========================================
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         userId,
@@ -141,7 +136,7 @@ export class EventsService {
       limit = 10,
       search,
       sortBy = 'eventDate',
-      sortOrder = SortOrder.DESC,
+      sortOrder = SortOrder.ASC,
       category,
       status,
       isActive,
@@ -245,7 +240,7 @@ export class EventsService {
   async getNextWeekEvents() {
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Start of today
-    
+
     const nextWeek = new Date(now);
     nextWeek.setDate(now.getDate() + 7); // 7 days from now
     nextWeek.setHours(23, 59, 59, 999); // End of that day
@@ -495,11 +490,11 @@ export class EventsService {
       recentEvents,
     ] = await Promise.all([
       this.prisma.event.count(),
-      this.prisma.event.count({ 
-        where: { 
-          isActive: true, 
-          status: EventStatus.PUBLISHED 
-        } 
+      this.prisma.event.count({
+        where: {
+          isActive: true,
+          status: EventStatus.PUBLISHED
+        }
       }),
       this.prisma.event.count({
         where: {
@@ -508,8 +503,8 @@ export class EventsService {
           isActive: true,
         },
       }),
-      this.prisma.event.count({ 
-        where: { status: EventStatus.COMPLETED } 
+      this.prisma.event.count({
+        where: { status: EventStatus.COMPLETED }
       }),
       this.prisma.event.groupBy({
         by: ['category'],
@@ -559,15 +554,15 @@ export class EventsService {
    * Export events
    */
   async exportEvents(queryDto: QueryEventsDto) {
-    const { 
-      search, 
-      category, 
-      status, 
-      isActive, 
-      isFeatured, 
-      city, 
-      dateFrom, 
-      dateTo 
+    const {
+      search,
+      category,
+      status,
+      isActive,
+      isFeatured,
+      city,
+      dateFrom,
+      dateTo
     } = queryDto;
 
     const where: Prisma.EventWhereInput = {};
@@ -634,13 +629,15 @@ export class EventsService {
         { customerName: { contains: search, mode: 'insensitive' } },
         { customerEmail: { contains: search, mode: 'insensitive' } },
         { customerPhone: { contains: search, mode: 'insensitive' } },
-        { user: { 
-          OR: [
-            { email: { contains: search, mode: 'insensitive' } },
-            { firstName: { contains: search, mode: 'insensitive' } },
-            { lastName: { contains: search, mode: 'insensitive' } },
-          ]
-        }},
+        {
+          user: {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+            ]
+          }
+        },
       ];
     }
 
@@ -708,7 +705,7 @@ export class EventsService {
     const participantsWithQuantity = transactions.map((transaction) => {
       const orderItems = transaction.orderItems as any[];
       const quantity = orderItems[0]?.quantity || 1;
-      
+
       return {
         ...transaction,
         quantity,
@@ -845,7 +842,7 @@ export class EventsService {
       where.OR = [
         { customerName: { contains: search, mode: 'insensitive' } },
         { customerEmail: { contains: search, mode: 'insensitive' } },
-        { user: { email: { contains: search, mode: 'insensitive' } }},
+        { user: { email: { contains: search, mode: 'insensitive' } } },
       ];
     }
 

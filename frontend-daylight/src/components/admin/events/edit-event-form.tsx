@@ -12,18 +12,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, X, Building2, CheckCircle2 } from 'lucide-react';
+import { Loader2, X, Building2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAdminEventMutations } from '@/hooks/use-admin-events';
 import { EventCategory, EventStatus, UpdateEventInput, Event } from '@/types/event.types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
 import { useAvailablePartners } from '@/hooks/use-partners';
+import { 
+  localDateTimeToISO, 
+  isoToLocalDate,
+  isoToLocalDateTime,
+  isEndTimeAfterStartTime,
+  calculateDurationInHours 
+} from '@/lib/timezone';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EditEventFormProps {
   event: Event & { partnerId?: string | null };
+}
+
+interface FormData {
+  title: string;
+  category: EventCategory;
+  description: string;
+  shortDescription?: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  venue: string;
+  address: string;
+  city: string;
+  googleMapsUrl?: string;
+  latitude?: number;
+  longitude?: number;
+  price: number;
+  currency: string;
+  status: EventStatus;
+  isActive: boolean;
+  isFeatured: boolean;
+  organizerName?: string;
+  organizerContact?: string;
 }
 
 export function EditEventForm({ event }: EditEventFormProps) {
@@ -35,6 +65,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
   const [requirementInput, setRequirementInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>(event.highlights || []);
   const [highlightInput, setHighlightInput] = useState('');
+  const [timeValidationError, setTimeValidationError] = useState<string>('');
   
   // Partner selection
   const { data: availablePartners, isLoading: isLoadingPartners } = useAvailablePartners();
@@ -46,15 +77,16 @@ export function EditEventForm({ event }: EditEventFormProps) {
     formState: { errors },
     control,
     setValue,
-  } = useForm<UpdateEventInput>({
+    watch,
+  } = useForm<FormData>({
     defaultValues: {
       title: event.title,
       category: event.category,
       description: event.description,
       shortDescription: event.shortDescription,
-      eventDate: format(new Date(event.eventDate), 'yyyy-MM-dd'),
-      startTime: format(new Date(event.startTime), "yyyy-MM-dd'T'HH:mm"),
-      endTime: format(new Date(event.endTime), "yyyy-MM-dd'T'HH:mm"),
+      eventDate: isoToLocalDate(event.eventDate),
+      startTime: isoToLocalDateTime(event.startTime),
+      endTime: isoToLocalDateTime(event.endTime),
       venue: event.venue,
       address: event.address,
       city: event.city,
@@ -71,22 +103,53 @@ export function EditEventForm({ event }: EditEventFormProps) {
     },
   });
 
+  const startTime = watch('startTime');
+  const endTime = watch('endTime');
+
+  // Validate time range
+  useEffect(() => {
+    if (startTime && endTime) {
+      if (!isEndTimeAfterStartTime(startTime, endTime)) {
+        setTimeValidationError('End time must be after start time');
+      } else {
+        const duration = calculateDurationInHours(startTime, endTime);
+        if (duration > 24) {
+          setTimeValidationError('Event duration cannot exceed 24 hours');
+        } else {
+          setTimeValidationError('');
+        }
+      }
+    }
+  }, [startTime, endTime]);
+
   useEffect(() => {
     if (updateEvent.isSuccess) {
       router.push('/admin/events');
     }
   }, [updateEvent.isSuccess, router]);
 
-  const onSubmit = (data: UpdateEventInput) => {
+  const onSubmit = (data: FormData) => {
+    // Validate times
+    if (!isEndTimeAfterStartTime(data.startTime, data.endTime)) {
+      setTimeValidationError('End time must be after start time');
+      return;
+    }
+
+    // Convert local datetime to ISO with timezone
+    const eventData: UpdateEventInput = {
+      ...data,
+      eventDate: localDateTimeToISO(data.eventDate + 'T00:00'),
+      startTime: localDateTimeToISO(data.startTime),
+      endTime: localDateTimeToISO(data.endTime),
+      partnerId: selectedPartner || undefined,
+      tags,
+      requirements,
+      highlights,
+    };
+
     updateEvent.mutate({
       id: event.id,
-      data: {
-        ...data,
-        partnerId: selectedPartner || undefined,
-        tags,
-        requirements,
-        highlights,
-      },
+      data: eventData,
     });
   };
 
@@ -231,6 +294,13 @@ export function EditEventForm({ event }: EditEventFormProps) {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Date & Time</h3>
 
+        {timeValidationError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{timeValidationError}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="eventDate">Event Date *</Label>
@@ -242,6 +312,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
             {errors.eventDate && (
               <p className="text-xs text-red-600">{errors.eventDate.message}</p>
             )}
+            <p className="text-xs text-gray-500">Timezone: Asia/Jakarta (WIB)</p>
           </div>
 
           <div className="space-y-2">
@@ -268,6 +339,14 @@ export function EditEventForm({ event }: EditEventFormProps) {
             )}
           </div>
         </div>
+
+        {startTime && endTime && !timeValidationError && (
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              Duration: <strong>{calculateDurationInHours(startTime, endTime).toFixed(1)} hours</strong>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Location - WITH PARTNER SELECTION */}
@@ -633,7 +712,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
         </Button>
         <Button
           type="submit"
-          disabled={updateEvent.isPending}
+          disabled={updateEvent.isPending || !!timeValidationError}
           className="bg-brand hover:bg-brand-dark border border-black text-white font-bold"
         >
           {updateEvent.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

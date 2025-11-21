@@ -12,15 +12,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, CheckCircle2, Loader2, X } from 'lucide-react';
+import { Building2, CheckCircle2, Loader2, X, AlertCircle } from 'lucide-react';
 import { useAdminEventMutations } from '@/hooks/use-admin-events';
 import { EventCategory, EventStatus, CreateEventInput } from '@/types/event.types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { ImageUpload } from '@/components/ui/image-upload';
 import { useAvailablePartners } from '@/hooks/use-partners';
+import { 
+  localDateTimeToISO, 
+  getCurrentLocalDate, 
+  isEndTimeAfterStartTime,
+  calculateDurationInHours 
+} from '@/lib/timezone';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function CreateEventForm() {
   const router = useRouter();
@@ -33,6 +39,7 @@ export function CreateEventForm() {
   const [highlightInput, setHighlightInput] = useState('');
   const { data: availablePartners, isLoading: isLoadingPartners } = useAvailablePartners();
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
+  const [timeValidationError, setTimeValidationError] = useState<string>('');
 
   const {
     register,
@@ -49,8 +56,30 @@ export function CreateEventForm() {
       price: 0,
       isActive: true,
       isFeatured: false,
+      eventDate: getCurrentLocalDate(),
+      startTime: '',
+      endTime: '',
     },
   });
+
+  const startTime = watch('startTime');
+  const endTime = watch('endTime');
+
+  // Validate time range
+  useEffect(() => {
+    if (startTime && endTime) {
+      if (!isEndTimeAfterStartTime(startTime, endTime)) {
+        setTimeValidationError('End time must be after start time');
+      } else {
+        const duration = calculateDurationInHours(startTime, endTime);
+        if (duration > 24) {
+          setTimeValidationError('Event duration cannot exceed 24 hours');
+        } else {
+          setTimeValidationError('');
+        }
+      }
+    }
+  }, [startTime, endTime]);
 
   useEffect(() => {
     if (createEvent.isSuccess) {
@@ -59,13 +88,25 @@ export function CreateEventForm() {
   }, [createEvent.isSuccess, router]);
 
   const onSubmit = (data: CreateEventInput) => {
-    createEvent.mutate({
+    // Validate times
+    if (!isEndTimeAfterStartTime(data.startTime, data.endTime)) {
+      setTimeValidationError('End time must be after start time');
+      return;
+    }
+
+    // Convert local datetime to ISO with timezone
+    const eventData: CreateEventInput = {
       ...data,
+      eventDate: localDateTimeToISO(data.eventDate + 'T00:00'),
+      startTime: localDateTimeToISO(data.startTime),
+      endTime: localDateTimeToISO(data.endTime),
       partnerId: selectedPartner || undefined,
       tags,
       requirements,
       highlights,
-    });
+    };
+
+    createEvent.mutate(eventData);
   };
 
   const addTag = () => {
@@ -101,7 +142,6 @@ export function CreateEventForm() {
     setHighlights(highlights.filter((h) => h !== highlight));
   };
 
-  // Auto-fill function when partner is selected
   const handlePartnerSelect = (partnerId: string) => {
     const partner = availablePartners?.find(p => p.id === partnerId);
     if (partner) {
@@ -208,6 +248,13 @@ export function CreateEventForm() {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Date & Time</h3>
 
+        {timeValidationError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{timeValidationError}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="eventDate">Event Date *</Label>
@@ -219,6 +266,7 @@ export function CreateEventForm() {
             {errors.eventDate && (
               <p className="text-xs text-red-600">{errors.eventDate.message}</p>
             )}
+            <p className="text-xs text-gray-500">Timezone: Asia/Jakarta (WIB)</p>
           </div>
 
           <div className="space-y-2">
@@ -245,6 +293,14 @@ export function CreateEventForm() {
             )}
           </div>
         </div>
+
+        {startTime && endTime && !timeValidationError && (
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              Duration: <strong>{calculateDurationInHours(startTime, endTime).toFixed(1)} hours</strong>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Location */}
@@ -604,7 +660,7 @@ export function CreateEventForm() {
         </Button>
         <Button
           type="submit"
-          disabled={createEvent.isPending}
+          disabled={createEvent.isPending || !!timeValidationError}
           className="bg-brand hover:bg-brand-dark border border-black text-white font-bold"
         >
           {createEvent.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

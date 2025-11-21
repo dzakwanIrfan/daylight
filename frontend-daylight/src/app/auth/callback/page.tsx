@@ -48,7 +48,7 @@ export default function AuthCallbackPage() {
 
         // SIMPAN USER DI STORE
         // accessToken tidak diambil dari cookie lagi
-        setAuth(profile, null);
+        setAuth(profile);
         console.log('User authenticated with HttpOnly cookie:', profile);
 
         setMessage('Login successful! Redirecting...');

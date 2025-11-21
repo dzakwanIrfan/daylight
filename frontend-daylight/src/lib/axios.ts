@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/auth-store';
+import { usePersonalityTestStore } from '@/store/personality-test-store';
 import { parseApiError } from './api-error';
 
 const apiClient = axios.create({
@@ -31,7 +32,7 @@ const clearAuthCookies = () => {
     document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
     document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
     document.cookie = 'sessionId=; expires=Thu, 01 Jan 1970 00:00:00 UTC' + cookieOptions;
-    
+
     // Also try without domain for localhost
     document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
     document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
@@ -42,8 +43,12 @@ const clearAuthCookies = () => {
 // Helper to handle complete logout
 const handleCompleteLogout = () => {
   useAuthStore.getState().clearAuth();
+  usePersonalityTestStore.getState().reset();
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('personality-test-storage');
+  }
   clearAuthCookies();
-  
+
   if (typeof window !== 'undefined') {
     const publicPaths = [
       '/auth/login',
@@ -61,14 +66,9 @@ const handleCompleteLogout = () => {
 };
 
 // REQUEST INTERCEPTOR
+// Token injection removed - using HttpOnly cookies
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken;
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
     return config;
   },
   (error) => {
@@ -104,9 +104,7 @@ apiClient.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            if (token && originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
+            // Browser handles cookies automatically
             return apiClient(originalRequest);
           })
           .catch((err) => Promise.reject(parseApiError(err)));
@@ -124,13 +122,9 @@ apiClient.interceptors.response.use(
 
         const newAccessToken = (response.data as any)?.accessToken || null;
 
+        // We just need to know if it succeeded, the cookie is set by the backend
         if (newAccessToken) {
-          useAuthStore.getState().setAccessToken(newAccessToken);
-
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          }
-
+          // Retry original request (browser will attach new cookies)
           processQueue(null, newAccessToken);
           isRefreshing = false;
           return apiClient(originalRequest);

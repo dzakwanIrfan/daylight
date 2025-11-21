@@ -263,6 +263,9 @@ export class EventsService {
         eventDate: 'asc',
       },
       take: 10,
+      include: {
+        partner: true,
+      }
     });
 
     return {

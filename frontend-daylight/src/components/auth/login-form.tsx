@@ -45,7 +45,7 @@ export function LoginForm() {
     onSuccess: (data) => {
       if (data.success && data.user && data.accessToken) {
         setApiError(null);
-        setAuth(data.user, data.accessToken);
+        setAuth(data.user);
 
         toast.success('Welcome back!', {
           description: `Hello ${data.user.firstName}!`,
@@ -53,7 +53,7 @@ export function LoginForm() {
         });
 
         const redirectTo = searchParams?.get('redirect') || '/';
-        
+
         setTimeout(() => {
           router.push(redirectTo);
           router.refresh();
@@ -64,7 +64,7 @@ export function LoginForm() {
       if (error instanceof ApiError) {
         const friendlyMessage = getUserFriendlyErrorMessage(error);
         setApiError(friendlyMessage);
-        
+
         toast.error('Login failed', {
           description: friendlyMessage,
           duration: 6000,
@@ -72,7 +72,7 @@ export function LoginForm() {
       } else {
         const fallbackMessage = 'An unexpected error occurred. Please try again.';
         setApiError(fallbackMessage);
-        
+
         toast.error('Login failed', {
           description: fallbackMessage,
           duration: 6000,
@@ -98,8 +98,8 @@ export function LoginForm() {
         <p className="text-muted-foreground">Sign in to continue your journey</p>
       </div>
 
-      <ErrorAlert 
-        error={apiError} 
+      <ErrorAlert
+        error={apiError}
         onDismiss={() => setApiError(null)}
       />
 
@@ -210,7 +210,7 @@ export function LoginForm() {
           Take the persona test
         </Link>
       </p>
-      
+
       <div className="mt-8 pt-6 border-t border-gray-200">
         <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
           <Link href="/terms" className="hover:text-brand transition-colors">

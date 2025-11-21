@@ -71,12 +71,8 @@ export function CreateEventForm() {
       if (!isEndTimeAfterStartTime(startTime, endTime)) {
         setTimeValidationError('End time must be after start time');
       } else {
+        setTimeValidationError('');
         const duration = calculateDurationInHours(startTime, endTime);
-        if (duration > 24) {
-          setTimeValidationError('Event duration cannot exceed 24 hours');
-        } else {
-          setTimeValidationError('');
-        }
       }
     }
   }, [startTime, endTime]);

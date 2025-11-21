@@ -112,12 +112,7 @@ export function EditEventForm({ event }: EditEventFormProps) {
       if (!isEndTimeAfterStartTime(startTime, endTime)) {
         setTimeValidationError('End time must be after start time');
       } else {
-        const duration = calculateDurationInHours(startTime, endTime);
-        if (duration > 24) {
-          setTimeValidationError('Event duration cannot exceed 24 hours');
-        } else {
-          setTimeValidationError('');
-        }
+        setTimeValidationError('');
       }
     }
   }, [startTime, endTime]);

@@ -1,3 +1,5 @@
+import { Partner } from "./partner.types";
+
 export enum PaymentStatus {
   PENDING = 'PENDING',
   PAID = 'PAID',
@@ -100,6 +102,7 @@ export interface Transaction {
     eventDate: string;
     venue: string;
     city: string;
+    partner?: Partner | null;
   };
 }
 

@@ -30,7 +30,11 @@ export class UserEventsService {
         },
       },
       include: {
-        event: true,
+        event: {
+          include: {
+            partner: true,
+          }
+        },
       },
       orderBy: {
         event: {
@@ -74,7 +78,11 @@ export class UserEventsService {
         },
       },
       include: {
-        event: true,
+        event: {
+          include: {
+            partner: true,
+          }
+        }
       },
       orderBy: {
         event: {

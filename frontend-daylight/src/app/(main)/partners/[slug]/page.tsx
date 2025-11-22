@@ -17,6 +17,8 @@ import {
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { FaCircleCheck } from 'react-icons/fa6';
+import { PartnerType } from '@/types/partner.types';
+import { cn } from '@/lib/utils';
 
 export default function PartnerProfilePage() {
   const params = useParams();
@@ -97,16 +99,24 @@ export default function PartnerProfilePage() {
                   <span className="text-2xl sm:text-3xl font-bold text-gray-900 block">
                     {partner.name}
                   </span>
-                  <FaCircleCheck className="w-6 h-6 text-green-600 block" />
+                  <FaCircleCheck className={cn("w-6 h-6 block", 
+                    partner.type === PartnerType.BRAND ? "text-green-600"
+                    : "text-amber-400"
+                  )} />
                 </span>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                     {partner.type.replace('_', ' ')}
                   </Badge>
                   {partner.isPreferred && (
-                    <span className="inline-flex items-center gap-1 text-green-600 bg-transparent">
+                    <span className={cn("inline-flex items-center gap-1 bg-transparent", 
+                      partner.type === PartnerType.BRAND ? "text-green-600"
+                      : "text-amber-400"
+                    )}>
                       <FaCircleCheck className="w-4 h-4" />
-                      Preferred Partner
+                      <span className='text-sm'>
+                        Preferred {partner?.type === PartnerType.BRAND ? 'Brand' : 'Community'}
+                      </span> 
                     </span>
                   )}
                 </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
+import { usePersonalityTestStore } from '@/store/personality-test-store';
 import { toast } from 'sonner';
 import { userService } from '@/services/user.service';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -11,6 +12,7 @@ export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const setTestCompleted = usePersonalityTestStore((state) => state.setTestCompleted);
 
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,23 +35,23 @@ export default function AuthCallbackPage() {
 
         setMessage('Verifying session...');
 
-        // beri waktu supaya Set-Cookie dari backend sudah settle
+        // Beri waktu supaya Set-Cookie dari backend sudah settle
         await new Promise((resolve) => setTimeout(resolve, 800));
 
         setMessage('Fetching your profile...');
 
         // Cookie HttpOnly otomatis dikirim oleh browser via withCredentials
         const profile = await userService.getProfile();
-        console.log('Fetched profile:', profile);
 
         if (!profile) {
           throw new Error('Failed to retrieve user profile.');
         }
 
-        // SIMPAN USER DI STORE
-        // accessToken tidak diambil dari cookie lagi
+        // Mark personality test as completed setelah OAuth success
+        setTestCompleted();
+
+        // Simpan user di store
         setAuth(profile);
-        console.log('User authenticated with HttpOnly cookie:', profile);
 
         setMessage('Login successful! Redirecting...');
 
@@ -58,7 +60,7 @@ export default function AuthCallbackPage() {
           duration: 3000,
         });
 
-        // bersihkan query params
+        // Bersihkan query params
         window.history.replaceState({}, '', '/auth/callback');
 
         setTimeout(() => {
@@ -66,7 +68,6 @@ export default function AuthCallbackPage() {
           router.refresh();
         }, 1000);
       } catch (err: any) {
-        console.error('❌ Auth callback error:', err);
 
         const errorMessage =
           err?.response?.data?.message ||
@@ -89,7 +90,7 @@ export default function AuthCallbackPage() {
     };
 
     processAuth();
-  }, [searchParams, router, setAuth]);
+  }, [searchParams, router, setAuth, setTestCompleted]);
 
   if (isProcessing) {
     return (

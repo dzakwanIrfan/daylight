@@ -40,7 +40,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const router = useRouter();
-  const { sessionId, reset: resetPersonalityTest } = usePersonalityTestStore();
+  const { sessionId, reset: resetPersonalityTest, setTestCompleted } = usePersonalityTestStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
@@ -85,6 +85,11 @@ export function RegisterForm() {
         setApiError(null);
         setUserEmail(data.user.email);
         setRegistrationSuccess(true);
+        
+        // IMPORTANT: Mark test as completed setelah register success
+        setTestCompleted();
+        
+        // Reset personality test data setelah berhasil register
         resetPersonalityTest();
         
         toast.success('Registration successful!', {
@@ -164,9 +169,6 @@ export function RegisterForm() {
     });
   };
 
-  /**
-   * Pass sessionId to authService.googleLogin
-   */
   const handleGoogleRegister = () => {
     if (!sessionId) {
       toast.error('Please complete the persona test first', {
@@ -179,6 +181,9 @@ export function RegisterForm() {
       });
       return;
     }
+    
+    // Mark as completed sebelum OAuth redirect
+    setTestCompleted();
     
     authService.googleLogin(sessionId);
   };
@@ -252,7 +257,7 @@ export function RegisterForm() {
         <h2 className="text-2xl font-semibold mb-2">Create Your Account</h2>
         <p className="text-muted-foreground">One last step to start your journey</p>
         {sessionId && (
-          <p className="text-xs text-green-600 mt-2">Persona test completed</p>
+          <p className="text-xs text-green-600 mt-2">✓ Persona test completed</p>
         )}
       </div>
 

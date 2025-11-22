@@ -51,7 +51,7 @@ export function CreatePartnerForm() {
     control,
   } = useForm<CreatePartnerInput>({
     defaultValues: {
-      type: PartnerType.RESTAURANT,
+      type: PartnerType.BRAND,
       status: PartnerStatus.PENDING,
       isActive: true,
       isPreferred: false,
@@ -393,13 +393,8 @@ export function CreatePartnerForm() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
-                    <SelectItem value={PartnerType.RESTAURANT}>Restaurant</SelectItem>
-                    <SelectItem value={PartnerType.CAFE}>Cafe</SelectItem>
-                    <SelectItem value={PartnerType.ART_GALLERY}>Art Gallery</SelectItem>
                     <SelectItem value={PartnerType.BRAND}>Brand</SelectItem>
                     <SelectItem value={PartnerType.COMMUNITY}>Community</SelectItem>
-                    <SelectItem value={PartnerType.VENUE}>Venue</SelectItem>
-                    <SelectItem value={PartnerType.SHOP}>Shop</SelectItem>
                   </SelectContent>
                 </Select>
               )}

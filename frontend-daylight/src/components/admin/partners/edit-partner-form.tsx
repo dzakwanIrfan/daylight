@@ -291,13 +291,8 @@ export function EditPartnerForm({ partner }: EditPartnerFormProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
-                    <SelectItem value={PartnerType.RESTAURANT}>Restaurant</SelectItem>
-                    <SelectItem value={PartnerType.CAFE}>Cafe</SelectItem>
-                    <SelectItem value={PartnerType.ART_GALLERY}>Art Gallery</SelectItem>
                     <SelectItem value={PartnerType.BRAND}>Brand</SelectItem>
                     <SelectItem value={PartnerType.COMMUNITY}>Community</SelectItem>
-                    <SelectItem value={PartnerType.VENUE}>Venue</SelectItem>
-                    <SelectItem value={PartnerType.SHOP}>Shop</SelectItem>
                   </SelectContent>
                 </Select>
               )}

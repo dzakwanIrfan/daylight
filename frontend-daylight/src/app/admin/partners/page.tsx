@@ -150,7 +150,7 @@ export default function AdminPartnersPage() {
             Partners Management
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage restaurants, cafes, art galleries, brands, and communities
+            Manage Brand and Community partners integrated across events and transactions.
           </p>
         </div>
 

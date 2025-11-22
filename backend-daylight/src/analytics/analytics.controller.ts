@@ -17,12 +17,14 @@ import { AnalyticsService } from './analytics.service';
 import { AnalyticsExportService } from './analytics-export.service';
 import { TrackPageViewDto } from './dto/track-page-view.dto';
 import { UpdateDurationDto } from './dto/update-duration.dto';
-import { ExportAnalyticsDto, ExportFormat, ExportType } from './dto/export-analytics.dto';
+import { ExportFormat, ExportType } from './dto/export-analytics.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { OptionalAuthGuard } from '../common/guards/optional-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
 import type { Request, Response } from 'express';
 
 @Controller('analytics')
@@ -33,19 +35,22 @@ export class AnalyticsController {
   ) {}
 
   /**
-   * Track page view - public endpoint for all users
+   * Uses OptionalAuthGuard to extract user if logged in, but doesn't block if not
    */
-  @Public()
+  @Public() // Bypass global JwtAuthGuard
+  @UseGuards(OptionalAuthGuard) // But still try to extract user
   @Post('track')
   @HttpCode(HttpStatus.OK)
   async trackPageView(
     @Body() dto: TrackPageViewDto,
     @Req() req: Request,
-    @CurrentUser() user?: any,
+    @CurrentUser() user?: User,
   ) {
     const userAgent = req.headers['user-agent'] || '';
     const ip = this.getClientIp(req);
-    const userId = user?.id;
+    
+    // user akan berisi data user jika login, atau undefined jika tidak
+    const userId = user?.id || undefined;
 
     return this.analyticsService.trackPageView(dto, userAgent, ip, userId);
   }

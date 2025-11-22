@@ -7,12 +7,13 @@ import { DataTableSkeleton } from '@/components/data-table/data-table-skeleton';
 import { columns } from '@/components/admin/partners/columns';
 import { Partner, PartnerType, PartnerStatus, PartnerBulkActionType } from '@/types/partner.types';
 import { Card } from '@/components/ui/card';
-import { Building2, CheckCircle, Clock, Download, Plus, Loader2, Trash2, Verified } from 'lucide-react';
+import { Building2, CheckCircle, Clock, Download, Plus, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { partnerService } from '@/services/partner.service';
 import { useAdminPartners, useAdminPartnerMutations } from '@/hooks/use-partners';
 import { useRouter } from 'next/navigation';
+import { FaCircleCheck } from 'react-icons/fa6';
 
 export default function AdminPartnersPage() {
   const router = useRouter();
@@ -114,7 +115,7 @@ export default function AdminPartnersPage() {
     {
       title: 'Preferred',
       value: stats.preferred,
-      icon: Verified,
+      icon: FaCircleCheck,
       color: 'text-green-700',
       bg: 'bg-green-50',
     },

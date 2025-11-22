@@ -66,6 +66,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/events', request.url));
   }
 
+  // If authenticated and trying to access personality-test/result, redirect to home
+  if (hasAuth && pathname === '/personality-test/result') {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
   return NextResponse.next();
 }
 

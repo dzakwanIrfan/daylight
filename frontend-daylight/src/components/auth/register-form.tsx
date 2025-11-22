@@ -4,19 +4,19 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Eye, EyeOff, CheckCircle2, XCircle, Mail } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle2, XCircle, Mail, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ErrorAlert } from '@/components/ui/error-alert';
+import { Card, CardContent } from '@/components/ui/card';
 import { authService } from '@/services/auth.service';
+import { personalityService } from '@/services/personality.service';
 import { usePersonalityTestStore } from '@/store/personality-test-store';
-import { ApiError, getUserFriendlyErrorMessage } from '@/lib/api-error';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -40,23 +40,31 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const router = useRouter();
-  const { sessionId, reset: resetPersonalityTest, setTestCompleted } = usePersonalityTestStore();
+  const { sessionId, reset: resetPersonalityTest, setTestCompleted, isTestCompleted } = usePersonalityTestStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // Fetch personality result untuk preview
+  const { data: personalityResult, isLoading: isLoadingResult } = useQuery({
+    queryKey: ['personality-result-preview', sessionId],
+    queryFn: () => personalityService.getResult(sessionId),
+    enabled: !!sessionId && isTestCompleted,
+  });
+
   useEffect(() => {
     if (registrationSuccess) return;
     
-    if (!sessionId) {
+    if (!sessionId || !isTestCompleted) {
       toast.error('Please complete the persona test first', {
         description: 'You need to take the persona test before registering.',
         duration: 5000,
       });
+      router.push('/personality-test');
     }
-  }, [sessionId, registrationSuccess]);
+  }, [sessionId, isTestCompleted, registrationSuccess, router]);
 
   const {
     register,
@@ -86,9 +94,6 @@ export function RegisterForm() {
         setUserEmail(data.user.email);
         setRegistrationSuccess(true);
         
-        // IMPORTANT: Mark test as completed setelah register success
-        setTestCompleted();
-        
         // Reset personality test data setelah berhasil register
         resetPersonalityTest();
         
@@ -99,23 +104,13 @@ export function RegisterForm() {
       }
     },
     onError: (error: any) => {
-      if (error instanceof ApiError) {
-        const friendlyMessage = getUserFriendlyErrorMessage(error);
-        setApiError(friendlyMessage);
-        
-        toast.error('Registration failed', {
-          description: friendlyMessage,
-          duration: 6000,
-        });
-      } else {
-        const fallbackMessage = 'Registration failed. Please try again.';
-        setApiError(fallbackMessage);
-        
-        toast.error('Registration failed', {
-          description: fallbackMessage,
-          duration: 6000,
-        });
-      }
+      const errorMessage = error?.response?.data?.message || error?.message || 'Registration failed. Please try again.';
+      setApiError(errorMessage);
+      
+      toast.error('Registration failed', {
+        description: errorMessage,
+        duration: 6000,
+      });
     },
   });
 
@@ -128,18 +123,11 @@ export function RegisterForm() {
       });
     },
     onError: (error: any) => {
-      if (error instanceof ApiError) {
-        const friendlyMessage = getUserFriendlyErrorMessage(error);
-        toast.error('Failed to resend email', {
-          description: friendlyMessage,
-          duration: 5000,
-        });
-      } else {
-        toast.error('Failed to resend email', {
-          description: 'Please try again later.',
-          duration: 5000,
-        });
-      }
+      const errorMessage = error?.response?.data?.message || 'Failed to resend email. Please try again later.';
+      toast.error('Failed to resend email', {
+        description: errorMessage,
+        duration: 5000,
+      });
     },
   });
 
@@ -181,9 +169,6 @@ export function RegisterForm() {
       });
       return;
     }
-    
-    // Mark as completed sebelum OAuth redirect
-    setTestCompleted();
     
     authService.googleLogin(sessionId);
   };
@@ -251,20 +236,50 @@ export function RegisterForm() {
 
   // Main form
   return (
-    <div className="w-full max-w-md space-y-8 py-12">
+    <div className="w-full max-w-md space-y-6 py-8">
       <div className="text-center">
         <h1 className="text-4xl logo-text font-bold text-brand mb-2">DayLight</h1>
         <h2 className="text-2xl font-semibold mb-2">Create Your Account</h2>
         <p className="text-muted-foreground">One last step to start your journey</p>
-        {sessionId && (
-          <p className="text-xs text-green-600 mt-2">✓ Persona test completed</p>
-        )}
       </div>
 
-      <ErrorAlert 
-        error={apiError} 
-        onDismiss={() => setApiError(null)}
-      />
+      {/* Personality Test Completed Card */}
+      {sessionId && isTestCompleted && (
+        <Card className="border border-brand/20 bg-linear-to-r from-brand/5 to-brand/10">
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  Persona test complete
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Register to see your results and find your people
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoadingResult && sessionId && isTestCompleted && (
+        <Card className="border-2 border-brand/30 bg-brand/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-6 h-6 animate-spin text-brand" />
+              <span className="text-sm text-muted-foreground">Loading...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {apiError && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-800">{apiError}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -433,8 +448,15 @@ export function RegisterForm() {
       {!sessionId && (
         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800 text-center">
-            ⚠️ Please complete the persona test first before registering
+            Please complete the persona test first before registering
           </p>
+          <Button
+            onClick={() => router.push('/personality-test')}
+            variant="outline"
+            className="w-full mt-3 border-yellow-400"
+          >
+            Take Persona Test
+          </Button>
         </div>
       )}
 
@@ -445,7 +467,7 @@ export function RegisterForm() {
         </Link>
       </p>
 
-      <div className="mt-8 pt-6 border-t border-gray-200">
+      <div className="mt-6 pt-6 border-t border-gray-200">
         <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
           <Link href="/terms" className="hover:text-brand transition-colors">
             Terms & Conditions

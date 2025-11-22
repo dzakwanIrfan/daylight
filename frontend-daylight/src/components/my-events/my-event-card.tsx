@@ -6,10 +6,10 @@ import { Calendar, MapPin, CheckCircle2, Users, ChevronDown, ChevronUp } from 'l
 import { MyEvent } from '@/types/my-events.types';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useMyMatchingGroup } from '@/hooks/use-my-events';
 import { MatchingGroupCard } from './matching-group-card';
-import { Button } from '@/components/ui/button';
+import { FaCircleCheck } from 'react-icons/fa6';
 
 interface MyEventCardProps {
   event: MyEvent;
@@ -66,9 +66,17 @@ export function MyEventCard({ event, isPast = false }: MyEventCardProps) {
               {/* Location */}
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-gray-400" />
-                <span className="truncate">
-                  {event.venue}, {event.city}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="truncate">
+                    {event.venue}, {event.city}
+                  </span>
+                  {event.partner?.isPreferred && (
+                    <FaCircleCheck className={cn("size-3",
+                      event.partner?.type === 'BRAND' ? "text-green-600"
+                      : "text-amber-400"
+                    )} />
+                  )}
+                </div>
               </div>
             </div>
           </div>

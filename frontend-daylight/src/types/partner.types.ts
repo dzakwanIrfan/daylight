@@ -1,11 +1,6 @@
 export enum PartnerType {
-  RESTAURANT = 'RESTAURANT',
-  ART_GALLERY = 'ART_GALLERY',
-  CAFE = 'CAFE',
   BRAND = 'BRAND',
   COMMUNITY = 'COMMUNITY',
-  VENUE = 'VENUE',
-  SHOP = 'SHOP',
 }
 
 export enum PartnerStatus {

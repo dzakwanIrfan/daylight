@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Transaction, PaymentStatus, TransactionType } from '@/types/payment.types';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import {
   CheckCircle2,
   Clock,
@@ -15,6 +15,7 @@ import {
   Crown,
   ArrowRight,
 } from 'lucide-react';
+import { FaCircleCheck } from 'react-icons/fa6';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -66,9 +67,17 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
                 Subscription
               </span>
             )}
-            <h3 className="font-semibold text-gray-900 text-base truncate">
-              {transaction.event?.title || 'Subscription Payment'}
-            </h3>
+            <div className="flex gap-1 items-center">
+              <h3 className="font-semibold text-gray-900 text-base truncate">
+                {transaction.event?.title || 'Subscription Payment'}
+              </h3>
+              {transaction.event?.partner?.isPreferred && (
+                <FaCircleCheck className={cn("size-3",
+                  transaction.event?.partner?.type === 'BRAND' ? "text-green-600"
+                  : "text-amber-400"
+                )} />
+              )}
+            </div>
           </div>
           <p className="text-xs text-gray-600 font-mono">
             {transaction.merchantRef}

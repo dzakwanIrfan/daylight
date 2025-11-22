@@ -8,6 +8,8 @@ import { Event, EventCategory, EventStatus } from '@/types/event.types';
 import { EventsTableRowActions } from './events-table-row-actions';
 import { Users, MapPin } from 'lucide-react';
 import { formatDisplayDate, formatDisplayTime } from '@/lib/timezone';
+import { FaCircleCheck } from 'react-icons/fa6';
+import { cn } from '@/lib/utils';
 
 const categoryColors: Record<EventCategory, string> = {
   DAYBREAK: 'bg-orange-100 text-orange-800 border-orange-200',
@@ -60,7 +62,15 @@ export const columns: ColumnDef<Event>[] = [
           <span className="font-medium text-gray-900 truncate">{event.title}</span>
           <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
             <MapPin className="h-3 w-3" />
-            <span className="truncate">{event.venue}</span>
+            <div className="flex gap-1 items-center">
+              <span className="truncate">{event.venue}</span>
+              {event.partner?.isPreferred && (
+                <FaCircleCheck className={cn("size-3",
+                  event.partner?.type === 'BRAND' ? "text-green-600"
+                  : "text-amber-400 ml-1"
+                )} />
+              )}
+            </div>
           </div>
         </div>
       );

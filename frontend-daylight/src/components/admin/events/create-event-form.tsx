@@ -27,6 +27,8 @@ import {
   calculateDurationInHours 
 } from '@/lib/timezone';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
+import { PartnerType } from '@/types/partner.types';
 
 export function CreateEventForm() {
   const router = useRouter();
@@ -331,9 +333,11 @@ export function CreateEventForm() {
                     <div className="flex items-center gap-2">
                       <span>{partner.name}</span>
                       {partner.isPreferred && (
-                        <Badge className="bg-green-100 text-green-700 border-green-200 text-xs px-1.5 py-0">
+                        <Badge className={cn("bg-green-100 text-green-700 border-green-200 text-xs px-1.5 py-0",
+                          partner?.type === PartnerType.BRAND ? "bg-green-100 text-green-700 border-green-200" : "bg-amber-50 text-amber-400 border-amber-300"
+                        )}>
                           <CheckCircle2 className="h-3 w-3 mr-0.5" />
-                          Preferred
+                          Preferred {partner.type === PartnerType.BRAND ? 'Brand' : 'Community'}
                         </Badge>
                       )}
                       <span className="text-xs text-gray-500">• {partner.city}</span>

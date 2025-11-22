@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Calendar, MapPin, Verified } from 'lucide-react';
 import { Event } from '@/types/event.types';
-import { Partner } from '@/types/partner.types';
+import { Partner, PartnerType } from '@/types/partner.types';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { FaCircleCheck } from "react-icons/fa6";
@@ -14,6 +14,7 @@ import {
   Cloud,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface EventCardProps {
   event: Event & {
@@ -61,7 +62,9 @@ export function EventCard({ event }: EventCardProps) {
             <span className="flex items-center font-semibold text-base sm:text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-brand transition-colors leading-snug">
               {event.title}
               {event.partner?.isPreferred && (
-                <FaCircleCheck className="w-4 h-4 text-green-700 ml-2" />
+                <FaCircleCheck className={cn("w-4 h-4 ml-2", 
+                  event.partner?.type === PartnerType.BRAND ? "text-green-700" : "text-amber-400"
+                )} />
               )}
             </span>
           </div>
@@ -78,7 +81,11 @@ export function EventCard({ event }: EventCardProps) {
 
             {/* Preferred Partner Badge */}
             {event.partner?.isPreferred && (
-              <Badge className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-green-100 text-green-700 border border-green-300 hover:bg-green-200">
+              <Badge className={cn(
+                'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold',
+                event.partner?.type === PartnerType.BRAND ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
+                : 'bg-amber-50 text-amber-400 border border-amber-300 hover:bg-amber-100'
+                )}>
                 <FaCircleCheck className="w-3 h-3" />
                 Preferred Partner
               </Badge>

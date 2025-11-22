@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, MapPin, Award, Verified } from 'lucide-react';
+import { Calendar, MapPin, Verified } from 'lucide-react';
 import { Event } from '@/types/event.types';
 import { Partner } from '@/types/partner.types';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { FaCircleCheck } from "react-icons/fa6";
 import {
   UtensilsCrossed,
   Bus,
@@ -60,7 +61,7 @@ export function EventCard({ event }: EventCardProps) {
             <span className="flex items-center font-semibold text-base sm:text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-brand transition-colors leading-snug">
               {event.title}
               {event.partner?.isPreferred && (
-                <Verified className="w-4 h-4 text-green-700 ml-2" />
+                <FaCircleCheck className="w-4 h-4 text-green-700 ml-2" />
               )}
             </span>
           </div>
@@ -78,7 +79,7 @@ export function EventCard({ event }: EventCardProps) {
             {/* Preferred Partner Badge */}
             {event.partner?.isPreferred && (
               <Badge className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-green-100 text-green-700 border border-green-300 hover:bg-green-200">
-                <Verified className="w-3 h-3" />
+                <FaCircleCheck className="w-3 h-3" />
                 Preferred Partner
               </Badge>
             )}

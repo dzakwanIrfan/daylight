@@ -575,13 +575,8 @@ model MatchingAttempt {
 }
 
 enum PartnerType {
-  RESTAURANT
-  ART_GALLERY
-  CAFE
   BRAND
   COMMUNITY
-  VENUE
-  SHOP
 }
 
 enum PartnerStatus {

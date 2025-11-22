@@ -8,20 +8,15 @@ import {
   Loader2, 
   MapPin, 
   Phone, 
-  Mail, 
   Globe, 
-  Award,
-  Calendar,
   ExternalLink,
   Instagram,
   Facebook,
   Twitter,
-  Verified
 } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { FaCircleCheck } from 'react-icons/fa6';
 
 export default function PartnerProfilePage() {
   const params = useParams();
@@ -102,7 +97,7 @@ export default function PartnerProfilePage() {
                   <span className="text-2xl sm:text-3xl font-bold text-gray-900 block">
                     {partner.name}
                   </span>
-                  <Verified className="w-6 h-6 text-green-600 block" />
+                  <FaCircleCheck className="w-6 h-6 text-green-600 block" />
                 </span>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -110,7 +105,7 @@ export default function PartnerProfilePage() {
                   </Badge>
                   {partner.isPreferred && (
                     <span className="inline-flex items-center gap-1 text-green-600 bg-transparent">
-                      <Verified className="w-4 h-4" />
+                      <FaCircleCheck className="w-4 h-4" />
                       Preferred Partner
                     </span>
                   )}

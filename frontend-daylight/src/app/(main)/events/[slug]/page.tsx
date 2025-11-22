@@ -10,7 +10,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Users,
   ArrowLeft,
   ExternalLink,
   Check,
@@ -19,9 +18,9 @@ import {
   Crown,
   Gift,
   Building2,
-  Award,
   Verified,
 } from 'lucide-react';
+import { FaCircleCheck } from "react-icons/fa6";
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { PaymentStatus } from '@/types/event.types';
@@ -361,7 +360,7 @@ export default function EventDetailPage() {
                     <p className="text-xs sm:text-sm text-gray-600">Event Partner</p>
                     {event.partner.isPreferred && (
                       <Badge className="inline-flex items-center gap-1 px-1.5 py-0 text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
-                        <Verified className="w-2.5 h-2.5" />
+                        <FaCircleCheck className="w-2.5 h-2.5" />
                         Preferred
                       </Badge>
                     )}

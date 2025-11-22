@@ -253,6 +253,9 @@ export class EventsService {
         },
         status: EventStatus.PUBLISHED,
         isActive: true,
+        category: {
+          not: EventCategory.DAYDREAM,
+        }
       },
       orderBy: {
         eventDate: 'asc',

@@ -22,6 +22,7 @@ import { PersonaQuestionModule } from './persona-question/persona-question.modul
 import { ArchetypeDetailModule } from './archetype-detail/archetype-detail.module';
 import { MatchingModule } from './matching/matching.module';
 import { PartnersModule } from './partners/partners.module';
+import { BlogModule } from './blog/blog.module';
 
 @Module({
   imports: [
@@ -54,7 +55,8 @@ import { PartnersModule } from './partners/partners.module';
     PersonaQuestionModule,
     ArchetypeDetailModule,
     MatchingModule,
-    PartnersModule
+    PartnersModule,
+    BlogModule,
   ],
   providers: [
     {

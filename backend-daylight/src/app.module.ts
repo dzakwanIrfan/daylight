@@ -23,6 +23,7 @@ import { ArchetypeDetailModule } from './archetype-detail/archetype-detail.modul
 import { MatchingModule } from './matching/matching.module';
 import { PartnersModule } from './partners/partners.module';
 import { BlogModule } from './blog/blog.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { BlogModule } from './blog/blog.module';
     MatchingModule,
     PartnersModule,
     BlogModule,
+    AnalyticsModule,
   ],
   providers: [
     {

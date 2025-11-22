@@ -74,6 +74,7 @@ model User {
   refreshTokens     RefreshToken[]
   matchingMembers   MatchingMember[]
   posts             BlogPost[]
+  pageViews         PageView[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -710,4 +711,99 @@ model BlogPost {
   @@index([authorId])
   @@index([categoryId])
   @@index([publishedAt])
+}
+
+// ==========================================
+// ANALYTICS & TRAFFIC TRACKING
+// ==========================================
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  UNKNOWN
+}
+
+model PageView {
+  id String @id @default(uuid())
+
+  // Session tracking
+  sessionId   String // Anonymous session ID (from cookie)
+  fingerprint String? // Browser fingerprint for better tracking
+
+  // User (optional - null for non-logged in users)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Page info
+  path      String // e.g., "/events", "/auth/login"
+  referrer  String? // Where they came from
+  queryParams Json? // URL query parameters
+
+  // Device & Browser info
+  userAgent  String?   @db.Text
+  deviceType DeviceType @default(UNKNOWN)
+  browser    String?
+  os         String?
+
+  // Location (from IP)
+  country String?
+  city    String?
+  ip      String? // Hashed for privacy
+
+  // Timing
+  duration   Int? // Time spent on page in seconds
+  enteredAt  DateTime @default(now())
+  exitedAt   DateTime?
+
+  // UTM parameters for marketing
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([path])
+  @@index([createdAt])
+  @@index([deviceType])
+  @@index([country])
+}
+
+model DailyAnalytics {
+  id String @id @default(uuid())
+
+  date DateTime @unique @db.Date
+
+  // Visitor counts
+  totalPageViews   Int @default(0)
+  uniqueVisitors   Int @default(0)
+  uniqueSessions   Int @default(0)
+  loggedInVisitors Int @default(0)
+  anonymousVisitors Int @default(0)
+
+  // Device breakdown
+  desktopViews Int @default(0)
+  mobileViews  Int @default(0)
+  tabletViews  Int @default(0)
+
+  // Top pages (JSON array)
+  topPages Json? // [{ path: string, views: number }]
+
+  // Top referrers
+  topReferrers Json? // [{ referrer: string, count: number }]
+
+  // Average session duration in seconds
+  avgSessionDuration Float @default(0)
+
+  // Bounce rate percentage
+  bounceRate Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
 }

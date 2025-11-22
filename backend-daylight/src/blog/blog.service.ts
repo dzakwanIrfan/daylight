@@ -146,8 +146,6 @@ export class BlogService {
         // Handle tags update if provided
         let tagUpdate = {};
         if (tags) {
-            // Disconnect all and connect new ones (simple approach)
-            // Or smarter: connect/disconnect diff. 
             // For simplicity, we'll use set to replace all tags
             const tagConnect = await Promise.all(
                 tags.map(async (tagName) => {

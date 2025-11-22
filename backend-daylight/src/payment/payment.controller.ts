@@ -19,6 +19,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentCallbackDto } from './dto/payment-callback.dto';
@@ -86,7 +87,7 @@ export class PaymentController {
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
   async createPayment(
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
     @Body() createPaymentDto: CreatePaymentDto,
   ) {
     return this.paymentService.createPayment(user.id, createPaymentDto);

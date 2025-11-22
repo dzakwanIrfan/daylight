@@ -43,40 +43,41 @@ enum PersonalityArchetype {
 }
 
 model User {
-  id                String            @id @default(uuid())
-  email             String            @unique
-  password          String?
-  firstName         String?
-  lastName          String?
-  phoneNumber       String?
-  profilePicture    String?
-  role              UserRole          @default(USER)
-  provider          AuthProvider      @default(LOCAL)
-  googleId          String?           @unique
-  isEmailVerified   Boolean           @default(false)
-  isActive          Boolean           @default(true)
-  
-  // Email verification - HASHED TOKEN
-  emailVerificationTokenHash   String?   @unique
-  emailVerificationExpires     DateTime?
+  id              String       @id @default(uuid())
+  email           String       @unique
+  password        String?
+  firstName       String?
+  lastName        String?
+  phoneNumber     String?
+  profilePicture  String?
+  role            UserRole     @default(USER)
+  provider        AuthProvider @default(LOCAL)
+  googleId        String?      @unique
+  isEmailVerified Boolean      @default(false)
+  isActive        Boolean      @default(true)
 
-  transactions                  Transaction[]
-  
+  // Email verification - HASHED TOKEN
+  emailVerificationTokenHash String?   @unique
+  emailVerificationExpires   DateTime?
+
+  transactions Transaction[]
+
   // Password reset - HASHED TOKEN
-  resetPasswordTokenHash       String?   @unique
-  resetPasswordExpires         DateTime?
-  
+  resetPasswordTokenHash String?   @unique
+  resetPasswordExpires   DateTime?
+
   // Refresh token version for revocation
-  refreshTokenVersion          Int       @default(0)
-  
-  subscriptions                UserSubscription[]
-  personalityResult            PersonalityResult?
-  refreshTokens                RefreshToken[]
+  refreshTokenVersion Int @default(0)
+
+  subscriptions     UserSubscription[]
+  personalityResult PersonalityResult?
+  refreshTokens     RefreshToken[]
   matchingMembers   MatchingMember[]
-  
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
+  posts             BlogPost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([email])
   @@index([googleId])
   @@index([role])
@@ -87,102 +88,102 @@ model User {
 
 // Token blacklist for refresh tokens
 model RefreshToken {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash    String   @unique
-  isRevoked    Boolean  @default(false)
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([tokenHash])
   @@index([expiresAt])
 }
 
 model PersonalityResult {
-  id                    String                @id @default(uuid())
-  userId                String?               @unique
-  user                  User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  sessionId             String?               @unique
-  
-  energyRaw             Float
-  opennessRaw           Float
-  structureRaw          Float
-  affectRaw             Float
-  comfortRaw            Float
-  lifestyleRaw          Float
-  
-  energyScore           Float
-  opennessScore         Float
-  structureScore        Float
-  affectScore           Float
-  comfortScore          Float
-  lifestyleScore        Float
-  
-  profileScore          Float
-  archetype             PersonalityArchetype
-  
-  relationshipStatus    RelationshipStatus?
-  intentOnDaylight      String[]
-  genderMixComfort      GenderMixComfort?
-  
-  answers               Json
-  
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  
+  id     String  @id @default(uuid())
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sessionId String? @unique
+
+  energyRaw    Float
+  opennessRaw  Float
+  structureRaw Float
+  affectRaw    Float
+  comfortRaw   Float
+  lifestyleRaw Float
+
+  energyScore    Float
+  opennessScore  Float
+  structureScore Float
+  affectScore    Float
+  comfortScore   Float
+  lifestyleScore Float
+
+  profileScore Float
+  archetype    PersonalityArchetype
+
+  relationshipStatus RelationshipStatus?
+  intentOnDaylight   String[]
+  genderMixComfort   GenderMixComfort?
+
+  answers Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([sessionId])
   @@index([userId])
 }
 
 model ArchetypeDetail {
-  id          String                @id @default(uuid())
-  archetype   PersonalityArchetype  @unique
+  id          String               @id @default(uuid())
+  archetype   PersonalityArchetype @unique
   symbol      String
   name        String
   traits      String[]
-  description String                @db.Text
+  description String               @db.Text
   imageKey    String
-  
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([archetype])
 }
 
 model Question {
-  id                    String                @id @default(uuid())
-  questionNumber        Int                   @unique
-  section               String
-  prompt                String
-  type                  String
-  isActive              Boolean               @default(true)
-  order                 Int
-  
-  options               QuestionOption[]
-  
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  
+  id             String  @id @default(uuid())
+  questionNumber Int     @unique
+  section        String
+  prompt         String
+  type           String
+  isActive       Boolean @default(true)
+  order          Int
+
+  options QuestionOption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([questionNumber])
   @@index([order])
 }
 
 model QuestionOption {
-  id                    String                @id @default(uuid())
-  questionId            String
-  question              Question              @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
-  optionKey             String
-  text                  String
-  
-  traitImpacts          Json
-  
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  optionKey String
+  text      String
+
+  traitImpacts Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([questionId, optionKey])
 }
 
@@ -201,55 +202,55 @@ enum EventStatus {
 }
 
 model Event {
-  id              String        @id @default(uuid())
-  title           String
-  slug            String        @unique
-  category        EventCategory
-  description     String        @db.Text
-  shortDescription String?      @db.Text
-  
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  category         EventCategory
+  description      String        @db.Text
+  shortDescription String?       @db.Text
+
   // Date & Time
-  eventDate       DateTime
-  startTime       DateTime
-  endTime         DateTime
-  
+  eventDate DateTime
+  startTime DateTime
+  endTime   DateTime
+
   // Location
-  venue           String
-  address         String        @db.Text
-  city            String
-  googleMapsUrl   String?       @db.Text
-  latitude        Float?
-  longitude       Float?
-  
+  venue         String
+  address       String  @db.Text
+  city          String
+  googleMapsUrl String? @db.Text
+  latitude      Float?
+  longitude     Float?
+
   // Pricing & Capacity
-  price           Float
-  currency        String        @default("IDR")
-  currentParticipants Int      @default(0)
-  
+  price               Float
+  currency            String @default("IDR")
+  currentParticipants Int    @default(0)
+
   // Status
-  status          EventStatus   @default(DRAFT)
-  isActive        Boolean       @default(true)
-  isFeatured      Boolean       @default(false)
-  
+  status     EventStatus @default(DRAFT)
+  isActive   Boolean     @default(true)
+  isFeatured Boolean     @default(false)
+
   // Metadata
-  tags            String[]      @default([])
-  requirements    String[]      @default([])
-  highlights      String[]      @default([])
-  
+  tags         String[] @default([])
+  requirements String[] @default([])
+  highlights   String[] @default([])
+
   // Organizer
-  organizerName   String?
+  organizerName    String?
   organizerContact String?
 
-  transactions                  Transaction[]
-  matchingGroups    MatchingGroup[]
-  matchingAttempts  MatchingAttempt[]
+  transactions     Transaction[]
+  matchingGroups   MatchingGroup[]
+  matchingAttempts MatchingAttempt[]
 
-  partnerId       String?
-  partner         Partner?      @relation(fields: [partnerId], references: [id], onDelete: SetNull)
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  partnerId String?
+  partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([category])
   @@index([status])
   @@index([eventDate])
@@ -263,35 +264,35 @@ enum PaymentChannelType {
 }
 
 model PaymentMethod {
-  id                String              @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Basic Info
-  code              String              @unique
-  name              String
-  group             String
-  type              PaymentChannelType
-  
+  code  String             @unique
+  name  String
+  group String
+  type  PaymentChannelType
+
   // Fees
-  feeMerchantFlat   Float               @default(0)
-  feeMerchantPercent Float              @default(0)
-  feeCustomerFlat   Float               @default(0)
-  feeCustomerPercent Float              @default(0)
-  
+  feeMerchantFlat    Float @default(0)
+  feeMerchantPercent Float @default(0)
+  feeCustomerFlat    Float @default(0)
+  feeCustomerPercent Float @default(0)
+
   // Limits
-  minimumFee        Float?
-  maximumFee        Float?
-  minimumAmount     Float
-  maximumAmount     Float
-  
+  minimumFee    Float?
+  maximumFee    Float?
+  minimumAmount Float
+  maximumAmount Float
+
   // Display
-  iconUrl           String              @db.Text
-  isActive          Boolean             @default(true)
-  sortOrder         Int                 @default(0)
-  
+  iconUrl   String  @db.Text
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
   // Metadata
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([code])
   @@index([group])
   @@index([isActive])
@@ -307,63 +308,63 @@ enum PaymentStatus {
 }
 
 model Transaction {
-  id                    String          @id @default(uuid())
-  
-  // User & Event
-  userId                String
-  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventId               String?      
-  event                 Event?          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
-  // Tripay References
-  tripayReference       String          @unique
-  merchantRef           String          @unique
-  
-  // Payment Details
-  paymentMethodCode     String?         
-  paymentMethod         String
-  paymentName           String
-  paymentStatus         PaymentStatus   @default(PENDING)
-  
-  // Transaction Type
-  transactionType       TransactionType @default(EVENT)
-  
-  // Amounts
-  amount                Float
-  feeMerchant           Float           @default(0)
-  feeCustomer           Float           @default(0)
-  totalFee              Float           @default(0)
-  amountReceived        Float
-  
-  // Payment Info
-  payCode               String?
-  payUrl                String?         @db.Text
-  checkoutUrl           String?         @db.Text
-  qrString              String?         @db.Text
-  qrUrl                 String?         @db.Text
-  
-  // Customer Info
-  customerName          String
-  customerEmail         String
-  customerPhone         String?
+  id String @id @default(uuid())
 
-  matchingMember    MatchingMember?
-  
+  // User & Event
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Tripay References
+  tripayReference String @unique
+  merchantRef     String @unique
+
+  // Payment Details
+  paymentMethodCode String?
+  paymentMethod     String
+  paymentName       String
+  paymentStatus     PaymentStatus @default(PENDING)
+
+  // Transaction Type
+  transactionType TransactionType @default(EVENT)
+
+  // Amounts
+  amount         Float
+  feeMerchant    Float @default(0)
+  feeCustomer    Float @default(0)
+  totalFee       Float @default(0)
+  amountReceived Float
+
+  // Payment Info
+  payCode     String?
+  payUrl      String? @db.Text
+  checkoutUrl String? @db.Text
+  qrString    String? @db.Text
+  qrUrl       String? @db.Text
+
+  // Customer Info
+  customerName  String
+  customerEmail String
+  customerPhone String?
+
+  matchingMember MatchingMember?
+
   // Timestamps
-  expiredAt             DateTime?
-  paidAt                DateTime?
-  
+  expiredAt DateTime?
+  paidAt    DateTime?
+
   // Metadata
-  instructions          Json?
-  orderItems            Json
-  callbackData          Json?
-  
+  instructions Json?
+  orderItems   Json
+  callbackData Json?
+
   // Relationship to Subscription
-  userSubscription      UserSubscription?
-  
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  
+  userSubscription UserSubscription?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([eventId])
   @@index([tripayReference])
@@ -393,67 +394,67 @@ enum SubscriptionStatus {
 }
 
 model SubscriptionPlan {
-  id                String                @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Plan Details
-  name              String                // "1 Month Plan"
-  type              SubscriptionPlanType
-  description       String?               @db.Text
-  
+  name        String // "1 Month Plan"
+  type        SubscriptionPlanType
+  description String?              @db.Text
+
   // Pricing
-  price             Float
-  currency          String                @default("IDR")
-  
+  price    Float
+  currency String @default("IDR")
+
   // Duration
-  durationInMonths  Int                   // 1, 3, or 6
-  
+  durationInMonths Int // 1, 3, or 6
+
   // Features
-  features          String[]              @default([])
-  
+  features String[] @default([])
+
   // Status
-  isActive          Boolean               @default(true)
-  sortOrder         Int                   @default(0)
-  
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
   // Relationships
   userSubscriptions UserSubscription[]
-  
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([type])
   @@index([isActive])
 }
 
 model UserSubscription {
-  id                String              @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // User & Plan
-  userId            String
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId            String
-  plan              SubscriptionPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
-  
+  userId String
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId String
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
   // Subscription Details
-  status            SubscriptionStatus  @default(PENDING)
-  
+  status SubscriptionStatus @default(PENDING)
+
   // Payment Reference (link to Transaction)
-  transactionId     String?             @unique
-  transaction       Transaction?        @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  
+  transactionId String?      @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
   // Dates
-  startDate         DateTime?           // When subscription becomes active
-  endDate           DateTime?           // When it expires
-  cancelledAt       DateTime?
-  
+  startDate   DateTime? // When subscription becomes active
+  endDate     DateTime? // When it expires
+  cancelledAt DateTime?
+
   // Auto-renewal (for future implementation)
-  autoRenew         Boolean             @default(false)
-  
+  autoRenew Boolean @default(false)
+
   // Metadata
-  metadata          Json?               // For storing additional info
-  
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  metadata Json? // For storing additional info
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([status])
   @@index([startDate])
@@ -471,35 +472,35 @@ enum MatchingStatus {
 }
 
 model MatchingMember {
-  id                String          @id @default(uuid())
-  
-  groupId           String
-  group             MatchingGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  
-  userId            String
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  transactionId     String          @unique
-  transaction       Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  
+  id String @id @default(uuid())
+
+  groupId String
+  group   MatchingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionId String      @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   // Individual match scores with other members
-  matchScores       Json            // { "userId": score }
-  
+  matchScores Json // { "userId": score }
+
   // Personality snapshot at time of matching
   personalitySnapshot Json
-  
-  isConfirmed       Boolean         @default(false)
-  
+
+  isConfirmed Boolean @default(false)
+
   // Manual assignment tracking
-  isManuallyAssigned Boolean        @default(false)
-  assignedBy        String?         // Admin user ID who manually assigned
-  assignedAt        DateTime?       // When manually assigned
-  previousGroupId   String?         // Track if moved from another group
-  assignmentNote    String?         // Optional note from admin
-  
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  
+  isManuallyAssigned Boolean   @default(false)
+  assignedBy         String? // Admin user ID who manually assigned
+  assignedAt         DateTime? // When manually assigned
+  previousGroupId    String? // Track if moved from another group
+  assignmentNote     String? // Optional note from admin
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([groupId])
   @@index([userId])
   @@index([transactionId])
@@ -507,34 +508,34 @@ model MatchingMember {
 }
 
 model MatchingGroup {
-  id                String          @id @default(uuid())
-  eventId           String
-  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
-  groupNumber       Int             // Group 1, 2, 3, etc.
-  status            MatchingStatus  @default(PENDING)
-  
+  id      String @id @default(uuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  groupNumber Int // Group 1, 2, 3, etc.
+  status      MatchingStatus @default(PENDING)
+
   // Matching metadata
-  averageMatchScore Float           // Average compatibility score of the group
-  minMatchScore     Float           // Minimum score in the group
+  averageMatchScore Float // Average compatibility score of the group
+  minMatchScore     Float // Minimum score in the group
   groupSize         Int
-  thresholdUsed     Float           // What threshold was used (70, 65, 60, etc.)
-  
+  thresholdUsed     Float // What threshold was used (70, 65, 60, etc.)
+
   // NEW: Manual modification tracking
-  hasManualChanges  Boolean         @default(false)
-  lastModifiedBy    String?         // Admin user ID
-  lastModifiedAt    DateTime?       // Last manual modification time
-  
+  hasManualChanges Boolean   @default(false)
+  lastModifiedBy   String? // Admin user ID
+  lastModifiedAt   DateTime? // Last manual modification time
+
   // Group members
-  members           MatchingMember[]
-  
+  members MatchingMember[]
+
   // Table assignment (optional)
-  tableNumber       String?
-  venueName         String?
-  
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  
+  tableNumber String?
+  venueName   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([eventId, groupNumber])
   @@index([eventId])
   @@index([status])
@@ -542,32 +543,32 @@ model MatchingGroup {
 
 // NEW: Store matching attempts history
 model MatchingAttempt {
-  id                String          @id @default(uuid())
-  eventId           String
-  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
-  attemptNumber     Int             // 1st attempt, 2nd attempt, etc.
-  status            MatchingStatus
-  
+  id      String @id @default(uuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  attemptNumber Int // 1st attempt, 2nd attempt, etc.
+  status        MatchingStatus
+
   // Statistics
   totalParticipants Int
   matchedCount      Int
   unmatchedCount    Int
   groupsFormed      Int
   averageMatchScore Float?
-  highestThreshold  Float           // Highest threshold that worked
-  lowestThreshold   Float           // Lowest threshold needed
-  
+  highestThreshold  Float // Highest threshold that worked
+  lowestThreshold   Float // Lowest threshold needed
+
   // Detailed results
-  matchingResult    Json            // Store full result for transparency
-  unmatchedUsers    Json            // Users who couldn't be matched
-  
+  matchingResult Json // Store full result for transparency
+  unmatchedUsers Json // Users who couldn't be matched
+
   // Metadata
-  executedBy        String?         // Admin user ID
-  executionTime     Float           // Time taken in seconds
-  
-  createdAt         DateTime        @default(now())
-  
+  executedBy    String? // Admin user ID
+  executionTime Float // Time taken in seconds
+
+  createdAt DateTime @default(now())
+
   @@index([eventId])
   @@index([attemptNumber])
   @@index([createdAt])
@@ -591,62 +592,127 @@ enum PartnerStatus {
 }
 
 model Partner {
-  id                String          @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Basic Information
-  name              String
-  slug              String          @unique
-  type              PartnerType
-  description       String?         @db.Text
-  shortDescription  String?
-  
+  name             String
+  slug             String      @unique
+  type             PartnerType
+  description      String?     @db.Text
+  shortDescription String?
+
   // Contact & Location
-  address           String          @db.Text
-  city              String
-  phoneNumber       String?
-  email             String?
-  website           String?
-  googleMapsUrl     String?         @db.Text
-  latitude          Float?
-  longitude         Float?
-  
+  address       String  @db.Text
+  city          String
+  phoneNumber   String?
+  email         String?
+  website       String?
+  googleMapsUrl String? @db.Text
+  latitude      Float?
+  longitude     Float?
+
   // Media
-  logo              String?         // Main logo/photo
-  coverImage        String?         // Cover/banner image
-  gallery           String[]        @default([]) // Additional photos
-  
+  logo       String? // Main logo/photo
+  coverImage String? // Cover/banner image
+  gallery    String[] @default([]) // Additional photos
+
   // Status & Features
-  status            PartnerStatus   @default(PENDING)
-  isActive          Boolean         @default(true)
-  isPreferred       Boolean         @default(false) // Badge for preferred partners
-  isFeatured        Boolean         @default(false)
-  
+  status      PartnerStatus @default(PENDING)
+  isActive    Boolean       @default(true)
+  isPreferred Boolean       @default(false) // Badge for preferred partners
+  isFeatured  Boolean       @default(false)
+
   // Operating Hours (JSON)
-  operatingHours    Json?           // { "monday": "09:00-18:00", ... }
-  
+  operatingHours Json? // { "monday": "09:00-18:00", ... }
+
   // Social Media
-  instagram         String?
-  facebook          String?
-  twitter           String?
-  
+  instagram String?
+  facebook  String?
+  twitter   String?
+
   // Metadata
-  tags              String[]        @default([])
-  amenities         String[]        @default([]) // ["wifi", "parking", "outdoor_seating"]
-  
+  tags      String[] @default([])
+  amenities String[] @default([]) // ["wifi", "parking", "outdoor_seating"]
+
   // Relations
-  events            Event[]
-  
+  events Event[]
+
   // Statistics
-  totalEvents       Int             @default(0)
-  viewCount         Int             @default(0)
-  
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  
+  totalEvents Int @default(0)
+  viewCount   Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([slug])
   @@index([type])
   @@index([city])
   @@index([status])
   @@index([isPreferred])
   @@index([isActive])
+}
+
+model BlogCategory {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String? @db.Text
+
+  posts BlogPost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model BlogTag {
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
+
+  posts BlogPost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model BlogPost {
+  id         String  @id @default(uuid())
+  title      String
+  slug       String  @unique
+  content    String  @db.Text
+  excerpt    String? @db.Text
+  coverImage String?
+
+  status      BlogPostStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  categoryId String?
+  category   BlogCategory? @relation(fields: [categoryId], references: [id])
+
+  tags BlogTag[]
+
+  viewCount Int  @default(0)
+  readTime  Int? // Estimated read time in minutes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([publishedAt])
 }

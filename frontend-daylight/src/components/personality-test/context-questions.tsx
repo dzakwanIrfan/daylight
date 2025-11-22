@@ -31,6 +31,7 @@ export function ContextQuestions() {
     intentOnDaylight,
     genderMixComfort,
     setContextData,
+    setTestCompleted,
   } = usePersonalityTestStore();
 
   const [localRelationshipStatus, setLocalRelationshipStatus] = useState<'SINGLE' | 'MARRIED' | 'PREFER_NOT_SAY' | undefined>(relationshipStatus);
@@ -49,10 +50,16 @@ export function ContextQuestions() {
         intentOnDaylight: localIntentOnDaylight,
         genderMixComfort: localGenderMixComfort,
       });
+      
+      // Mark test as completed
+      setTestCompleted();
+      
       toast.success('Test completed!', {
-        description: 'Let\'s see your results...',
+        description: 'Create an account to see your full results and join events!',
       });
-      router.push('/personality-test/result');
+      
+      // Redirect langsung ke register page
+      router.push('/auth/register');
     },
     onError: (error: any) => {
       toast.error('Submission failed', {
@@ -255,7 +262,7 @@ export function ContextQuestions() {
                 Submitting...
               </>
             ) : (
-              'See My Results'
+              'Complete & Create Account'
             )}
           </Button>
         </div>

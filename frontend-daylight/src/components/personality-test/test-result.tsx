@@ -14,7 +14,6 @@ import { usePersonalityTestStore } from '@/store/personality-test-store';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// Statically import images so Next.js can optimize and pre-generate blur placeholders
 import BRIGHT_MORNING_IMG from '../../../public/images/archetypes/bright-morning.png';
 import CALM_DAWN_IMG from '../../../public/images/archetypes/calm-dawn.png';
 import BOLD_NOON_IMG from '../../../public/images/archetypes/bold-noon.png';
@@ -27,7 +26,6 @@ import STARRY_NIGHT_IMG from '../../../public/images/archetypes/starry-night.png
 import PERFECT_DAY_IMG from '../../../public/images/archetypes/perfect-day.png';
 import DEFAULT_IMG from '../../../public/images/archetypes/default.png';
 
-// Mapping archetype to image data
 const archetypeImages: Record<string, StaticImageData> = {
   BRIGHT_MORNING: BRIGHT_MORNING_IMG,
   CALM_DAWN: CALM_DAWN_IMG,
@@ -41,7 +39,6 @@ const archetypeImages: Record<string, StaticImageData> = {
   PERFECT_DAY: PERFECT_DAY_IMG,
 };
 
-// Persona dimensions with bipolar labels (like MBTI)
 const personalityDimensions = [
   {
     key: 'energy',
@@ -93,7 +90,6 @@ const personalityDimensions = [
   },
 ];
 
-// Function to get position label (like MBTI)
 function getPositionLabel(score: number): 'Strong' | 'Moderate' | 'Slight' | 'Balanced' {
   const distance = Math.abs(score - 50);
   if (distance < 10) return 'Balanced';
@@ -102,7 +98,6 @@ function getPositionLabel(score: number): 'Strong' | 'Moderate' | 'Slight' | 'Ba
   return 'Strong';
 }
 
-// Function to get which side is dominant
 function getDominantSide(score: number, leftLabel: string, rightLabel: string) {
   if (Math.abs(score - 50) < 10) {
     return { side: 'Balanced', label: `${leftLabel} / ${rightLabel}` };
@@ -114,7 +109,7 @@ function getDominantSide(score: number, leftLabel: string, rightLabel: string) {
 
 export function TestResult() {
   const router = useRouter();
-  const { sessionId, reset } = usePersonalityTestStore();
+  const { sessionId, reset, setTestCompleted } = usePersonalityTestStore();
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['personality-result', sessionId],
@@ -129,7 +124,6 @@ export function TestResult() {
   }, [sessionId, router]);
 
   const handleContinueToRegister = () => {
-    
     if (!sessionId) {
       toast.error('Session expired', {
         description: 'Please take the test again.',
@@ -137,6 +131,9 @@ export function TestResult() {
       router.push('/personality-test');
       return;
     }
+    
+    // Mark test as completed sebelum redirect ke register
+    setTestCompleted();
     
     router.push('/auth/register');
   };
@@ -231,13 +228,11 @@ export function TestResult() {
           animate={{ opacity: 1, y: 0 }}
           className="relative overflow-hidden rounded-2xl md:rounded-3xl border-4 border-black bg-white shadow-brutal-md"
         >
-          {/* Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,80,5,0.3),transparent_50%)]" />
           </div>
 
           <div className="relative z-10 p-8 space-y-6">
-            {/* Archetype Image */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -258,7 +253,6 @@ export function TestResult() {
               </div>
             </motion.div>
 
-            {/* Archetype Info */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -282,7 +276,6 @@ export function TestResult() {
                 {archetype.description}
               </p>
 
-              {/* Traits */}
               <div className="flex flex-wrap justify-center gap-2 md:gap-3 pt-4">
                 {archetype.traits.map((trait: string, index: number) => (
                   <motion.span
@@ -300,7 +293,7 @@ export function TestResult() {
           </div>
         </motion.div>
 
-        {/* Persona Profile - MBTI Style */}
+        {/* Persona Profile */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -333,7 +326,6 @@ export function TestResult() {
                       transition={{ delay: 0.6 + index * 0.1 }}
                       className="space-y-4"
                     >
-                      {/* Dimension Header */}
                       <div className="space-y-0">
                         <h4 className="font-bold text-base md:text-lg text-center md:text-left">
                           {!isBalanced && (
@@ -349,11 +341,9 @@ export function TestResult() {
                         </p>
                       </div>
 
-                      {/* Bipolar Scale Visualization */}
                       <div className="space-y-3">
-                        {/* Desktop View - Horizontal */}
+                        {/* Desktop View */}
                         <div className="hidden md:flex items-center gap-3">
-                          {/* Left Label */}
                           <div className={cn(
                             "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-w-40 justify-center",
                             scoreValue < 40 
@@ -364,12 +354,8 @@ export function TestResult() {
                             <span className="text-sm font-medium whitespace-nowrap">{dimension.leftLabel}</span>
                           </div>
 
-                          {/* Scale Bar */}
                           <div className="flex-1 relative h-3 bg-muted rounded-full border-2 border-black overflow-hidden min-w-[200px]">
-                            {/* Center Line */}
                             <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-black z-10" />
-                            
-                            {/* Indicator */}
                             <motion.div
                               className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-brand border-2 border-black rounded-full shadow-brutal-sm z-20"
                               initial={{ left: '50%' }}
@@ -379,7 +365,6 @@ export function TestResult() {
                             />
                           </div>
 
-                          {/* Right Label */}
                           <div className={cn(
                             "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-w-40 justify-center",
                             scoreValue > 60 
@@ -391,9 +376,8 @@ export function TestResult() {
                           </div>
                         </div>
 
-                        {/* Mobile View - Vertical */}
+                        {/* Mobile View */}
                         <div className="md:hidden space-y-3">
-                          {/* Labels Row */}
                           <div className="flex justify-between gap-2">
                             <div className={cn(
                               "flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 transition-all flex-1 justify-center",
@@ -416,12 +400,8 @@ export function TestResult() {
                             </div>
                           </div>
 
-                          {/* Scale Bar */}
                           <div className="relative h-3 bg-muted rounded-full border-2 border-black overflow-hidden">
-                            {/* Center Line */}
                             <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-black z-10" />
-                            
-                            {/* Indicator */}
                             <motion.div
                               className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-brand border-2 border-black rounded-full shadow-brutal-sm z-20"
                               initial={{ left: '50%' }}
@@ -432,7 +412,6 @@ export function TestResult() {
                           </div>
                         </div>
 
-                        {/* Strength Indicator (if not balanced) */}
                         {!isBalanced && (
                           <div className="text-center">
                             <span className="text-xs font-medium text-muted-foreground px-3 py-1 bg-muted rounded-full border border-border inline-block">
@@ -446,7 +425,6 @@ export function TestResult() {
                 })}
               </div>
 
-              {/* Compatibility Note */}
               <div className="pt-6 border-t-2 border-border">
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-brand/5 border-2 border-brand/20">
                   <Sparkles className="w-5 h-5 text-brand mt-0.5 shrink-0" />

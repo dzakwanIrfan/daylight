@@ -22,6 +22,8 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { BlogPublicQueryDto } from './dto/blog-public-query.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('blog')
 export class BlogController {
@@ -114,5 +116,49 @@ export class BlogController {
     @Roles(UserRole.ADMIN)
     removeTag(@Param('id') id: string) {
         return this.blogService.removeTag(id);
+    }
+
+    // Public Routes
+
+    @Public()
+    @Get('public/posts')
+    findAllPublished(@Query() query: BlogPublicQueryDto) {
+        return this.blogService.findPublishedPosts(query);
+    }
+
+    @Public()
+    @Get('public/posts/:slug')
+    findOnePublished(@Param('slug') slug: string) {
+        return this.blogService.findPublishedPostBySlug(slug);
+    }
+
+    @Public()
+    @Get('public/posts/:id/related')
+    findRelated(@Param('id') id: string, @Query('limit') limit?: number) {
+        return this.blogService.findRelatedPosts(id, limit ? parseInt(limit as any) : 3);
+    }
+
+    @Public()
+    @Get('public/featured')
+    findFeatured(@Query('limit') limit?: number) {
+        return this.blogService.findFeaturedPosts(limit ? parseInt(limit as any) : 5);
+    }
+
+    @Public()
+    @Get('public/search')
+    search(@Query('q') query: string, @Query('limit') limit?: number) {
+        return this.blogService.searchPublishedPosts(query, limit ? parseInt(limit as any) : 10);
+    }
+
+    @Public()
+    @Get('public/categories')
+    findAllCategoriesPublic() {
+        return this.blogService.findAllCategories();
+    }
+
+    @Public()
+    @Get('public/tags')
+    findAllTagsPublic() {
+        return this.blogService.findAllTags();
     }
 }

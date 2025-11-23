@@ -7,6 +7,7 @@ import type {
   BlogQueryParams,
   BlogCategory,
   BlogTag,
+  BlogAuthor,
   CreateCategoryInput,
   UpdateCategoryInput,
 } from '@/types/blog.types';
@@ -78,6 +79,12 @@ class BlogService {
 
   async deleteTag(id: string): Promise<void> {
     await apiClient.delete(`${this.baseURL}/tags/${id}`);
+  }
+
+  // Authors
+  async getAuthors(): Promise<BlogAuthor[]> {
+    const response = await apiClient.get(`${this.baseURL}/authors`);
+    return response.data;
   }
 }
 

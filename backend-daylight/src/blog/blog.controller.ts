@@ -118,6 +118,15 @@ export class BlogController {
         return this.blogService.removeTag(id);
     }
 
+    // Authors
+
+    @Get('authors')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    findAllAuthors() {
+        return this.blogService.findAllAuthors();
+    }
+
     // Public Routes
 
     @Public()

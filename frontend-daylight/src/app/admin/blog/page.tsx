@@ -8,7 +8,7 @@ import { blogPostsColumns } from '@/components/admin/blog/blog-posts-columns';
 import { Card } from '@/components/ui/card';
 import { FileText, Eye, Folder, Tags, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useBlogPosts, useBlogCategories, useBlogTags } from '@/hooks/use-blog';
+import { useBlogPosts, useBlogCategories, useBlogTags, useBlogAuthors } from '@/hooks/use-blog';
 import { useRouter } from 'next/navigation';
 import { BlogPostStatus } from '@/types/blog.types';
 import { CategoryDialog } from '@/components/admin/blog/category-dialog';
@@ -20,6 +20,7 @@ export default function AdminBlogPage() {
   const { data: postsResponse, isLoading, error } = useBlogPosts({ limit: 1000 });
   const { data: categories } = useBlogCategories();
   const { data: tags } = useBlogTags();
+  const { data: authors } = useBlogAuthors();
   const posts = postsResponse?.data || [];
 
   // Calculate stats
@@ -65,6 +66,13 @@ export default function AdminBlogPage() {
       bg: 'bg-brand/10',
     },
   ];
+
+  const getAuthorName = (author: any) => {
+    const firstName = author?.firstName || '';
+    const lastName = author?.lastName || '';
+    const name = `${firstName} ${lastName}`.trim();
+    return name || author?.email || 'Unknown Author';
+  };
 
   if (error) {
     return (
@@ -161,7 +169,7 @@ export default function AdminBlogPage() {
             <DataTableSkeleton
               columnCount={7}
               searchableColumnCount={1}
-              filterableColumnCount={2}
+              filterableColumnCount={3}
               rowCount={10}
             />
           ) : (

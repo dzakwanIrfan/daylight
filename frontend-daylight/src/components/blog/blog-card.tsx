@@ -12,9 +12,23 @@ interface BlogCardProps {
 }
 
 export function BlogCard({ post, featured = false }: BlogCardProps) {
-  const authorName = post.author.firstName && post.author.lastName
-    ? `${post.author.firstName} ${post.author.lastName}`
-    : 'DayLight Team';
+  // Safe author name extraction
+  const getAuthorName = () => {
+    if (!post.author) return 'DayLight Team';
+    
+    const { firstName, lastName } = post.author;
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+    
+    if (firstName) return firstName;
+    if (lastName) return lastName;
+    
+    return 'DayLight Team';
+  };
+
+  const authorName = getAuthorName();
 
   return (
     <Link href={`/blog/${post.slug}`}>
@@ -32,6 +46,9 @@ export function BlogCard({ post, featured = false }: BlogCardProps) {
               src={post.coverImage}
               alt={post.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
             />
             {post.category && (
               <Badge className="absolute top-4 left-4 bg-brand text-white">

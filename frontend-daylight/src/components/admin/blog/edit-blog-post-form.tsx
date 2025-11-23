@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, X, Upload } from 'lucide-react';
-import { useBlogMutations, useBlogCategories } from '@/hooks/use-blog';
+import { useBlogMutations, useBlogCategories, useBlogAuthors } from '@/hooks/use-blog';
 import { BlogPost, BlogPostStatus, UpdateBlogPostInput } from '@/types/blog.types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -28,6 +28,7 @@ export function EditBlogPostForm({ post }: EditBlogPostFormProps) {
   const router = useRouter();
   const { updatePost, uploadImage } = useBlogMutations();
   const { data: categories } = useBlogCategories();
+  const { data: authors } = useBlogAuthors();
   const [tags, setTags] = useState<string[]>(post.tags.map((t) => t.name));
   const [tagInput, setTagInput] = useState('');
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -47,6 +48,7 @@ export function EditBlogPostForm({ post }: EditBlogPostFormProps) {
       excerpt: post.excerpt,
       status: post.status,
       categoryId: post.categoryId || '',
+      authorId: post.authorId,
       coverImage: post.coverImage,
     },
   });
@@ -106,6 +108,13 @@ export function EditBlogPostForm({ post }: EditBlogPostFormProps) {
     setTags(tags.filter((t) => t !== tag));
   };
 
+  const getAuthorName = (author: any) => {
+    const firstName = author?.firstName || '';
+    const lastName = author?.lastName || '';
+    const name = `${firstName} ${lastName}`.trim();
+    return name || author?.email || 'Unknown Author';
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Basic Information */}
@@ -131,6 +140,35 @@ export function EditBlogPostForm({ post }: EditBlogPostFormProps) {
               {...register('slug', { required: 'Slug is required', minLength: 3 })}
             />
             {errors.slug && <p className="text-xs text-red-600">{errors.slug.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="author">Author *</Label>
+            <Controller
+              name="authorId"
+              control={control}
+              rules={{ required: 'Author is required' }}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select author" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    {authors?.map((author) => (
+                      <SelectItem key={author.id} value={author.id}>
+                        {getAuthorName(author)}
+                        {author._count && author._count.posts > 0 && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({author._count.posts} posts)
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.authorId && <p className="text-xs text-red-600">{errors.authorId.message}</p>}
           </div>
 
           <div className="space-y-2">

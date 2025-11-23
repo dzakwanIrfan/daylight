@@ -4,6 +4,17 @@ export enum BlogPostStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+export interface BlogAuthor {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  profilePicture?: string;
+  _count?: {
+    posts: number;
+  };
+}
+
 export interface BlogCategory {
   id: string;
   name: string;
@@ -37,12 +48,7 @@ export interface BlogPost {
   status: BlogPostStatus;
   publishedAt?: string;
   authorId: string;
-  author: {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    profilePicture?: string;
-  };
+  author: BlogAuthor;
   categoryId?: string;
   category?: BlogCategory;
   tags: BlogTag[];
@@ -63,7 +69,9 @@ export interface CreateBlogPostInput {
   tags?: string[];
 }
 
-export interface UpdateBlogPostInput extends Partial<CreateBlogPostInput> {}
+export interface UpdateBlogPostInput extends Partial<CreateBlogPostInput> {
+  authorId?: string;
+}
 
 export interface BlogQueryParams {
   page?: number;

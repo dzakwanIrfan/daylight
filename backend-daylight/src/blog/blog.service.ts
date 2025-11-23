@@ -134,10 +134,27 @@ export class BlogService {
     }
 
     async updatePost(id: string, updatePostDto: UpdatePostDto) {
-        const { tags, title, ...rest } = updatePostDto;
+        const { tags, title, authorId, ...rest } = updatePostDto;
 
         const post = await this.prisma.blogPost.findUnique({ where: { id } });
         if (!post) throw new NotFoundException('Post not found');
+
+        // Validate author exists if authorId is provided
+        if (authorId) {
+            const author = await this.prisma.user.findUnique({ 
+                where: { id: authorId },
+                select: { id: true, role: true }
+            });
+            
+            if (!author) {
+                throw new NotFoundException('Author not found');
+            }
+            
+            // Optional: Check if author has admin role
+            if (author.role !== 'ADMIN') {
+                throw new BadRequestException('Selected user is not an admin');
+            }
+        }
 
         let slug = post.slug;
         if (title && title !== post.title) {
@@ -168,6 +185,7 @@ export class BlogService {
                 ...rest,
                 title,
                 slug,
+                ...(authorId && { authorId }),
                 tags: tagUpdate,
                 publishedAt:
                     updatePostDto.status === BlogPostStatus.PUBLISHED && post.status !== BlogPostStatus.PUBLISHED
@@ -237,6 +255,32 @@ export class BlogService {
 
     async removeTag(id: string) {
         return this.prisma.blogTag.delete({ where: { id } });
+    }
+
+    // --- Authors ---
+
+    async findAllAuthors() {
+        // Get all users who have written at least one blog post
+        const authors = await this.prisma.user.findMany({
+            where: {
+                role: 'ADMIN', // Only admins can be authors
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                profilePicture: true,
+                _count: {
+                    select: { posts: true }
+                }
+            },
+            orderBy: {
+                firstName: 'asc'
+            }
+        });
+
+        return authors;
     }
 
     // --- Helpers ---

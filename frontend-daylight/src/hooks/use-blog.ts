@@ -17,6 +17,7 @@ export const blogKeys = {
   postDetail: (id: string) => [...blogKeys.posts(), id] as const,
   categories: () => [...blogKeys.all, 'categories'] as const,
   tags: () => [...blogKeys.all, 'tags'] as const,
+  authors: () => [...blogKeys.all, 'authors'] as const,
 };
 
 // Posts
@@ -50,6 +51,15 @@ export function useBlogTags() {
   return useQuery({
     queryKey: blogKeys.tags(),
     queryFn: () => blogService.getTags(),
+    staleTime: 60000,
+  });
+}
+
+// Authors
+export function useBlogAuthors() {
+  return useQuery({
+    queryKey: blogKeys.authors(),
+    queryFn: () => blogService.getAuthors(),
     staleTime: 60000,
   });
 }

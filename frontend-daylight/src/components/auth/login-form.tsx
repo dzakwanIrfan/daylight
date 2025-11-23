@@ -207,12 +207,16 @@ export function LoginForm() {
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{' '}
         <Link href="/personality-test" className="text-brand hover:underline font-medium">
-          Take the persona test
+          Sign Up
         </Link>
       </p>
 
       <div className="mt-8 pt-6 border-t border-gray-200">
         <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
+          <Link href="/blog" className="hover:text-brand transition-colors">
+            Blog
+          </Link>
+          <span>•</span>
           <Link href="/terms" className="hover:text-brand transition-colors">
             Terms & Conditions
           </Link>

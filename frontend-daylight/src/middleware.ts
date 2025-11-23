@@ -15,6 +15,7 @@ const publicRoutes = [
   '/privacy',
   '/community-guidelines',
   '/contact',
+  '/blog'
 ];
 
 const authRoutes = ['/auth/login', '/auth/register'];

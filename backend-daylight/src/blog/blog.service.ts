@@ -6,6 +6,7 @@ import { BlogQueryDto } from './dto/blog-query.dto';
 import { UploadService } from '../upload/upload.service';
 import slugify from 'slugify';
 import { BlogPostStatus, Prisma } from '@prisma/client';
+import { BlogPublicQueryDto } from './dto/blog-public-query.dto';
 
 @Injectable()
 export class BlogService {
@@ -250,5 +251,166 @@ export class BlogService {
         }
 
         return slug;
+    }
+
+    async findPublishedPosts(query: BlogPublicQueryDto) {
+        const { page = 1, limit = 10, search, categorySlug, tagSlug, featured } = query;
+        const skip = (page - 1) * limit;
+
+        const where: Prisma.BlogPostWhereInput = {
+            AND: [
+                { status: BlogPostStatus.PUBLISHED },
+                categorySlug ? { category: { slug: categorySlug } } : {},
+                tagSlug ? { tags: { some: { slug: tagSlug } } } : {},
+                search
+                    ? {
+                        OR: [
+                            { title: { contains: search, mode: 'insensitive' } },
+                            { content: { contains: search, mode: 'insensitive' } },
+                            { excerpt: { contains: search, mode: 'insensitive' } },
+                        ],
+                    }
+                    : {},
+            ],
+        };
+
+        const [total, posts] = await Promise.all([
+            this.prisma.blogPost.count({ where }),
+            this.prisma.blogPost.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { publishedAt: 'desc' },
+                include: {
+                    author: {
+                        select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                    },
+                    category: true,
+                    tags: true,
+                },
+            }),
+        ]);
+
+        return {
+            data: posts,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
+    async findPublishedPostBySlug(slug: string) {
+        const post = await this.prisma.blogPost.findFirst({
+            where: {
+                slug,
+                status: BlogPostStatus.PUBLISHED,
+            },
+            include: {
+                author: {
+                    select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                },
+                category: true,
+                tags: true,
+            },
+        });
+
+        if (!post) {
+            throw new NotFoundException(`Post not found`);
+        }
+
+        // Increment view count
+        await this.prisma.blogPost.update({
+            where: { id: post.id },
+            data: { viewCount: { increment: 1 } }
+        });
+
+        return post;
+    }
+
+    async findRelatedPosts(postId: string, limit: number = 3) {
+        const post = await this.prisma.blogPost.findUnique({
+            where: { id: postId },
+            include: { tags: true, category: true },
+        });
+
+        if (!post) {
+            throw new NotFoundException('Post not found');
+        }
+
+        // Find posts with same tags or category
+        const relatedPosts = await this.prisma.blogPost.findMany({
+            where: {
+                AND: [
+                    { id: { not: postId } },
+                    { status: BlogPostStatus.PUBLISHED },
+                    {
+                        OR: [
+                            { categoryId: post.categoryId },
+                            { tags: { some: { id: { in: post.tags.map(t => t.id) } } } },
+                        ],
+                    },
+                ],
+            },
+            take: limit,
+            orderBy: { publishedAt: 'desc' },
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                excerpt: true,
+                coverImage: true,
+                publishedAt: true,
+                readTime: true,
+                category: true,
+            },
+        });
+
+        return relatedPosts;
+    }
+
+    async findFeaturedPosts(limit: number = 5) {
+        // For now, return latest published posts
+        // You can add a 'featured' field to BlogPost model later
+        return this.prisma.blogPost.findMany({
+            where: { status: BlogPostStatus.PUBLISHED },
+            take: limit,
+            orderBy: { publishedAt: 'desc' },
+            include: {
+                author: {
+                    select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                },
+                category: true,
+                tags: true,
+            },
+        });
+    }
+
+    async searchPublishedPosts(query: string, limit: number = 10) {
+        return this.prisma.blogPost.findMany({
+            where: {
+                AND: [
+                    { status: BlogPostStatus.PUBLISHED },
+                    {
+                        OR: [
+                            { title: { contains: query, mode: 'insensitive' } },
+                            { content: { contains: query, mode: 'insensitive' } },
+                            { excerpt: { contains: query, mode: 'insensitive' } },
+                        ],
+                    },
+                ],
+            },
+            take: limit,
+            orderBy: { publishedAt: 'desc' },
+            include: {
+                author: {
+                    select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                },
+                category: true,
+                tags: true,
+            },
+        });
     }
 }

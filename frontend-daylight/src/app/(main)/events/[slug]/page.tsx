@@ -38,7 +38,45 @@ export default function EventDetailPage() {
   const { user } = useAuth();
   const slug = params.slug as string;
   
-  const { data: event, isLoading } = usePublicEvent(slug);
+  const { data: event, isLoading, error } = usePublicEvent(slug);
+
+  // Tambahkan error handling
+  if (error) {
+    const apiError = error as any;
+    if (apiError?.response?.status === 403) {
+      return (
+        <DashboardLayout>
+          <div className="space-y-6 max-w-4xl mx-auto py-4 px-4 sm:px-6">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-600 hover:text-brand transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-gray-900">
+                Event No Longer Available
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                This event is no longer available for viewing. Registration closes 24 hours before the event starts.
+              </p>
+              <button
+                onClick={() => router.push('/events')}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-lg font-semibold hover:bg-brand/90 transition-colors"
+              >
+                Browse Other Events
+              </button>
+            </div>
+          </div>
+        </DashboardLayout>
+      );
+    }
+  }
   const { 
     data: purchaseStatus, 
     isLoading: isPurchaseStatusLoading 

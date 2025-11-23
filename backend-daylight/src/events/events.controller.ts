@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -18,6 +19,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
 import { QueryEventsDto } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -31,37 +33,47 @@ export class EventsController {
   // PUBLIC ENDPOINTS
 
   /**
-   * Get all public events (no auth required)
+   * Get all public events (with 24h restriction)
+   * Can be accessed without auth, but userId helps with filtering
    */
   @Public()
   @Get('public')
-  async getPublicEvents(@Query() queryDto: QueryEventsDto) {
-    return this.eventsService.getEvents(queryDto);
+  async getPublicEvents(
+    @Query() queryDto: QueryEventsDto,
+    @CurrentUser() user?: User,
+  ) {
+    return this.eventsService.getPublicEvents(queryDto, user?.id);
   }
 
   /**
-   * Get events for next week (no auth required)
+   * Get events for next week (with 24h restriction)
    */
   @Public()
   @Get('public/next-week')
-  async getNextWeekEvents() {
-    return this.eventsService.getNextWeekEvents();
+  async getNextWeekEvents(@CurrentUser() user?: User) {
+    return this.eventsService.getNextWeekEvents(user?.id);
   }
 
   /**
-   * Get event by slug (no auth required)
+   * Get event by slug (with 24h restriction for non-purchasers)
    */
   @Public()
   @Get('public/:slug')
-  async getPublicEventBySlug(@Param('slug') slug: string) {
-    return this.eventsService.getEventBySlug(slug);
+  async getPublicEventBySlug(
+    @Param('slug') slug: string,
+    @CurrentUser() user?: User,
+  ) {
+    return this.eventsService.getEventBySlug(slug, user?.id);
   }
 
+  /**
+   * Check user's purchase status for an event
+   */
   @UseGuards(JwtAuthGuard)
   @Get('public/:slug/purchase-status')
   async checkUserPurchaseStatus(
     @Param('slug') slug: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     return this.eventsService.checkUserPurchaseStatus(slug, user.id);
   }
@@ -75,6 +87,9 @@ export class EventsController {
     return this.eventsService.getDashboardStats();
   }
 
+  /**
+   * Admin: Get all events without 24h restriction
+   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Get()

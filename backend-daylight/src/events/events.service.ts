@@ -1,7 +1,8 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, EventStatus, PaymentStatus, TransactionType, EventCategory } from '@prisma/client';
@@ -45,6 +46,42 @@ export class EventsService {
     }
 
     return uniqueSlug;
+  }
+
+  /**
+   * Check if user has purchased a specific event
+   */
+  private async hasUserPurchasedEvent(userId: string, eventId: string): Promise<boolean> {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: {
+        userId,
+        eventId,
+        paymentStatus: PaymentStatus.PAID,
+      },
+    });
+
+    return !!transaction;
+  }
+
+  /**
+   * Check if event is within 24 hours before start time
+   */
+  private isEventWithin24Hours(eventDate: Date, startTime: Date): boolean {
+    const now = new Date();
+    const eventStartDateTime = new Date(eventDate);
+    
+    // Set the time from startTime to eventDate
+    const startTimeDate = new Date(startTime);
+    eventStartDateTime.setHours(startTimeDate.getHours());
+    eventStartDateTime.setMinutes(startTimeDate.getMinutes());
+    eventStartDateTime.setSeconds(0);
+    eventStartDateTime.setMilliseconds(0);
+
+    // Calculate 24 hours before event start
+    const twentyFourHoursBefore = new Date(eventStartDateTime);
+    twentyFourHoursBefore.setHours(twentyFourHoursBefore.getHours() - 24);
+
+    return now >= twentyFourHoursBefore;
   }
 
   /**
@@ -235,9 +272,158 @@ export class EventsService {
   }
 
   /**
+   * Get public events with 24h restriction
+   * This is used by regular users
+   */
+  async getPublicEvents(queryDto: QueryEventsDto, userId?: string) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy = 'eventDate',
+      sortOrder = SortOrder.ASC,
+      category,
+      status,
+      isActive,
+      isFeatured,
+      city,
+      dateFrom,
+      dateTo,
+    } = queryDto;
+
+    const where: Prisma.EventWhereInput = {
+      NOT: { category: EventCategory.DAYDREAM },
+      status: EventStatus.PUBLISHED,
+      isActive: true,
+    };
+
+    // Search
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { venue: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
+        { organizerName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Filters
+    if (category) where.category = category;
+    if (status) where.status = status;
+    if (typeof isActive === 'boolean') where.isActive = isActive;
+    if (typeof isFeatured === 'boolean') where.isFeatured = isFeatured;
+    if (city) where.city = { contains: city, mode: 'insensitive' };
+
+    // Date range
+    if (dateFrom || dateTo) {
+      where.eventDate = {};
+      if (dateFrom) where.eventDate.gte = new Date(dateFrom);
+      if (dateTo) where.eventDate.lte = new Date(dateTo);
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    // Execute queries
+    const [events, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          partner: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo: true,
+              isPreferred: true,
+              type: true,
+            }
+          }
+        }
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    // Filter out events within 24 hours (unless user purchased them)
+    let filteredEvents = events;
+    
+    if (userId) {
+      // Get all event IDs that user has purchased
+      const userPurchasedEvents = await this.prisma.transaction.findMany({
+        where: {
+          userId,
+          paymentStatus: PaymentStatus.PAID,
+        },
+        select: {
+          eventId: true,
+        },
+      });
+
+      const purchasedEventIds = new Set(
+        userPurchasedEvents
+          .map((t) => t.eventId)
+          .filter((id): id is string => id !== null)
+      );
+
+      // Filter events
+      filteredEvents = events.filter((event) => {
+        // If user purchased, show event regardless of time
+        if (purchasedEventIds.has(event.id)) {
+          return true;
+        }
+
+        // Otherwise, hide if within 24 hours
+        return !this.isEventWithin24Hours(event.eventDate, event.startTime);
+      });
+    } else {
+      // For non-logged in users, hide all events within 24 hours
+      filteredEvents = events.filter((event) => {
+        return !this.isEventWithin24Hours(event.eventDate, event.startTime);
+      });
+    }
+
+    // Calculate pagination metadata based on filtered results
+    const filteredTotal = filteredEvents.length;
+    const totalPages = Math.ceil(filteredTotal / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return {
+      data: filteredEvents,
+      pagination: {
+        total: filteredTotal,
+        page,
+        limit,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+      },
+      filters: {
+        search,
+        category,
+        status,
+        isActive,
+        isFeatured,
+        city,
+        dateFrom,
+        dateTo,
+      },
+      sorting: {
+        sortBy,
+        sortOrder,
+      },
+    };
+  }
+
+  /**
    * Get events for next week
    */
-  async getNextWeekEvents() {
+  async getNextWeekEvents(userId?: string) {
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Start of today
 
@@ -266,13 +452,51 @@ export class EventsService {
       }
     });
 
+    // Filter out events within 24 hours (unless user purchased them)
+    let filteredEvents = events;
+    
+    if (userId) {
+      // Get all event IDs that user has purchased
+      const userPurchasedEvents = await this.prisma.transaction.findMany({
+        where: {
+          userId,
+          paymentStatus: PaymentStatus.PAID,
+        },
+        select: {
+          eventId: true,
+        },
+      });
+
+      const purchasedEventIds = new Set(
+        userPurchasedEvents
+          .map((t) => t.eventId)
+          .filter((id): id is string => id !== null)
+      );
+
+      // Filter events
+      filteredEvents = events.filter((event) => {
+        // If user purchased, show event regardless of time
+        if (purchasedEventIds.has(event.id)) {
+          return true;
+        }
+
+        // Otherwise, hide if within 24 hours
+        return !this.isEventWithin24Hours(event.eventDate, event.startTime);
+      });
+    } else {
+      // For non-logged in users, hide all events within 24 hours
+      filteredEvents = events.filter((event) => {
+        return !this.isEventWithin24Hours(event.eventDate, event.startTime);
+      });
+    }
+
     return {
-      data: events,
+      data: filteredEvents,
       dateRange: {
         from: now.toISOString(),
         to: nextWeek.toISOString(),
       },
-      total: events.length,
+      total: filteredEvents.length,
     };
   }
 
@@ -293,8 +517,9 @@ export class EventsService {
 
   /**
    * Get event by slug
+   * For public access - requires user to have purchased if within 24h
    */
-  async getEventBySlug(slug: string) {
+  async getEventBySlug(slug: string, userId?: string) {
     const event = await this.prisma.event.findUnique({
       where: { slug },
       include: {
@@ -304,6 +529,24 @@ export class EventsService {
 
     if (!event) {
       throw new NotFoundException('Event not found');
+    }
+
+    // Check if event is within 24 hours
+    const isWithin24Hours = this.isEventWithin24Hours(event.eventDate, event.startTime);
+
+    if (isWithin24Hours && userId) {
+      // Check if user has purchased this event
+      const hasPurchased = await this.hasUserPurchasedEvent(userId, event.id);
+      
+      if (!hasPurchased) {
+        throw new ForbiddenException(
+          'This event is no longer available for viewing. Registration closes 24 hours before the event starts.'
+        );
+      }
+    } else if (isWithin24Hours && !userId) {
+      throw new ForbiddenException(
+        'This event is no longer available for viewing. Registration closes 24 hours before the event starts.'
+      );
     }
 
     return event;

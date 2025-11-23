@@ -490,3 +490,62 @@ html {
   color: inherit;
   padding: 0;
 }
+
+/* Medium-style blockquote */
+.article-content blockquote {
+  border-left: 3px solid #000;
+  padding-left: 23px;
+  margin-left: -23px;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  font-style: italic;
+  font-size: 20px;
+  line-height: 1.58;
+  color: #4b5563;
+}
+
+.article-content blockquote p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.article-content blockquote p:first-child {
+  margin-top: 0;
+}
+
+.article-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Paragraph spacing */
+.article-content p {
+  margin-bottom: 1em;
+  margin-top: 0;
+}
+
+.article-content p:first-child {
+  margin-top: 0;
+}
+
+/* Better spacing for lists */
+.article-content ul,
+.article-content ol {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.article-content li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Heading spacing */
+.article-content h2 {
+  margin-top: 1.75em;
+  margin-bottom: 0.5em;
+}
+
+.article-content h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}

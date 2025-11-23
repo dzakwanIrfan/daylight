@@ -1,4 +1,3 @@
-// frontend-daylight/src/app/blog/[slug]/page.tsx
 import { Metadata } from 'next';
 import { BlogPostContent } from './blog-post-content';
 
@@ -19,32 +18,61 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!response.ok) {
       return {
         title: 'Post Not Found - DayLight Blog',
+        description: 'The blog post you are looking for could not be found.',
       };
     }
 
     const post = await response.json();
 
+    // Extract text from HTML content for better description
+    const contentText = post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 160) : '';
+    const description = post.excerpt || contentText || post.title;
+
     return {
       title: `${post.title} - DayLight Blog`,
-      description: post.excerpt || post.title,
+      description: description,
+      keywords: post.tags?.map((tag: any) => tag.name).join(', '),
+      authors: post.author?.firstName ? [{ name: `${post.author.firstName} ${post.author.lastName}` }] : [],
       openGraph: {
         title: post.title,
-        description: post.excerpt || post.title,
-        images: post.coverImage ? [post.coverImage] : [],
+        description: description,
+        images: post.coverImage ? [{
+          url: post.coverImage,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        }] : [],
         type: 'article',
         publishedTime: post.publishedAt,
+        modifiedTime: post.updatedAt,
         authors: post.author?.firstName ? [`${post.author.firstName} ${post.author.lastName}`] : [],
+        tags: post.tags?.map((tag: any) => tag.name),
       },
       twitter: {
         card: 'summary_large_image',
         title: post.title,
-        description: post.excerpt || post.title,
+        description: description,
         images: post.coverImage ? [post.coverImage] : [],
+        creator: '@DayLight',
+      },
+      alternates: {
+        canonical: `/blog/${slug}`,
+      },
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
       },
     };
   } catch (error) {
     return {
       title: 'DayLight Blog',
+      description: 'Discover meaningful experiences and connect with like-minded people.',
     };
   }
 }

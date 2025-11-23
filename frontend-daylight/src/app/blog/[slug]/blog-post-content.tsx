@@ -57,10 +57,23 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
     );
   }
 
-  const authorName =
-    post.author.firstName && post.author.lastName
-      ? `${post.author.firstName} ${post.author.lastName}`
-      : 'DayLight Team';
+  // Safe author name extraction with fallback
+  const getAuthorName = () => {
+    if (!post.author) return 'DayLight Team';
+    
+    const { firstName, lastName } = post.author;
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+    
+    if (firstName) return firstName;
+    if (lastName) return lastName;
+    
+    return 'DayLight Team';
+  };
+
+  const authorName = getAuthorName();
 
   return (
     <BlogLayout>
@@ -99,14 +112,23 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 pb-6 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
-                  {post.author.profilePicture ? (
+                  {post.author?.profilePicture ? (
                     <img
                       src={post.author.profilePicture}
                       alt={authorName}
                       className="w-full h-full rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextElementSibling) {
+                          (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                        }
+                      }}
                     />
                   ) : (
                     <User className="w-5 h-5 text-brand" />
+                  )}
+                  {post.author?.profilePicture && (
+                    <User className="w-5 h-5 text-brand" style={{ display: 'none' }} />
                   )}
                 </div>
                 <span className="font-medium text-gray-900">{authorName}</span>
@@ -148,6 +170,9 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
                 src={post.coverImage}
                 alt={post.title}
                 className="w-full h-auto"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
           )}
@@ -178,14 +203,23 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
           <div className="bg-gray-50 rounded-xl p-6 mb-12">
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                {post.author.profilePicture ? (
+                {post.author?.profilePicture ? (
                   <img
                     src={post.author.profilePicture}
                     alt={authorName}
                     className="w-full h-full rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextElementSibling) {
+                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                      }
+                    }}
                   />
                 ) : (
                   <User className="w-8 h-8 text-brand" />
+                )}
+                {post.author?.profilePicture && (
+                  <User className="w-8 h-8 text-brand" style={{ display: 'none' }} />
                 )}
               </div>
               <div>

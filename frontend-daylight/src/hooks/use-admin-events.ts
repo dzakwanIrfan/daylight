@@ -22,7 +22,7 @@ export const eventKeys = {
 export function useAdminEvents(params: QueryEventsParams = {}) {
   return useQuery({
     queryKey: eventKeys.list(params),
-    queryFn: () => eventService.getEvents(params),
+    queryFn: () => eventService.getAdminEvents(params),
     staleTime: 30000, // 30 seconds
   });
 }
@@ -31,7 +31,7 @@ export function useAdminEvents(params: QueryEventsParams = {}) {
 export function useAdminEvent(id: string) {
   return useQuery({
     queryKey: eventKeys.detail(id),
-    queryFn: () => eventService.getEventById(id),
+    queryFn: () => eventService.getEventAdminById(id),
     enabled: !!id,
   });
 }

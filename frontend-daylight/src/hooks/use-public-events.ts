@@ -1,54 +1,52 @@
 import { useQuery } from '@tanstack/react-query';
-import { publicEventService } from '@/services/public-event.service';
-import { useAuth } from './use-auth';
+import { eventService } from '@/services/event.service';
+import type { QueryEventsParams } from '@/types/event.types';
 
 // Query Keys
-export const publicEventKeys = {
+export const publicEventsKeys = {
   all: ['public-events'] as const,
-  lists: () => [...publicEventKeys.all, 'list'] as const,
-  list: (params?: any) => [...publicEventKeys.lists(), params] as const,
-  nextWeek: () => [...publicEventKeys.all, 'next-week'] as const,
-  detail: (slug: string) => [...publicEventKeys.all, 'detail', slug] as const,
-  purchaseStatus: (slug: string) => [...publicEventKeys.all, 'purchase-status', slug] as const,
+  list: (params?: QueryEventsParams) => [...publicEventsKeys.all, 'list', params] as const,
+  detail: (slug: string) => [...publicEventsKeys.all, 'detail', slug] as const,
+  nextWeek: () => [...publicEventsKeys.all, 'next-week'] as const,
+  purchaseStatus: (slug: string) => [...publicEventsKeys.all, 'purchase-status', slug] as const,
 };
 
-// Get Public Events
-export function usePublicEvents(params?: any) {
+// Get public events with filters
+export function usePublicEvents(params?: QueryEventsParams) {
   return useQuery({
-    queryKey: publicEventKeys.list(params),
-    queryFn: () => publicEventService.getPublicEvents(params),
-    staleTime: 60000, // 1 minute
-  });
-}
-
-// Get Next Week Events
-export function useNextWeekEvents() {
-  return useQuery({
-    queryKey: publicEventKeys.nextWeek(),
-    queryFn: () => publicEventService.getNextWeekEvents(),
-    staleTime: 60000, // 1 minute
-  });
-}
-
-// Get Event by Slug
-export function usePublicEvent(slug: string) {
-  return useQuery({
-    queryKey: publicEventKeys.detail(slug),
-    queryFn: () => publicEventService.getEventBySlug(slug),
-    enabled: !!slug,
+    queryKey: publicEventsKeys.list(params),
+    queryFn: () => eventService.getEvents(params),
     staleTime: 30000, // 30 seconds
   });
 }
 
-// Check Event Purchase Status
-export function useEventPurchaseStatus(slug: string) {
-  const { user } = useAuth();
-  
+// Get single event by slug
+export function usePublicEvent(slug: string) {
   return useQuery({
-    queryKey: publicEventKeys.purchaseStatus(slug),
-    queryFn: () => publicEventService.checkPurchaseStatus(slug),
-    enabled: !!slug && !!user, // Only run if user is logged in
-    staleTime: 10000, // 10 seconds - Keep fresh for real-time check
-    retry: 1, // Retry once if failed
+    queryKey: publicEventsKeys.detail(slug),
+    queryFn: () => eventService.getEventById(slug),
+    enabled: !!slug,
+    staleTime: 60000, // 1 minute
+    retry: 1, // Only retry once on error
+  });
+}
+
+// Get events for next week
+export function useNextWeekEvents() {
+  return useQuery({
+    queryKey: publicEventsKeys.nextWeek(),
+    queryFn: () => eventService.getNextWeekEvents(),
+    staleTime: 30000,
+  });
+}
+
+// Get user's purchase status for an event
+export function useEventPurchaseStatus(slug: string) {
+  return useQuery({
+    queryKey: publicEventsKeys.purchaseStatus(slug),
+    queryFn: () => eventService.getPurchaseStatus(slug),
+    enabled: !!slug,
+    staleTime: 30000,
+    retry: 1,
   });
 }

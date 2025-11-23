@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, LogOut, ChevronDown, Shield, Crown, Calendar } from 'lucide-react';
+import { User, LogOut, ChevronDown, Shield, Crown, Calendar, BookText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -262,6 +262,18 @@ export function UserMenu() {
           >
             <Calendar className="w-4 h-4" />
             <span className="text-sm font-medium">My Events</span>
+          </button>
+
+          {/* Blog */}
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              router.push('/blog');
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+          >
+            <BookText className="w-4 h-4" />
+            <span className="text-sm font-medium">Blog</span>
           </button>
 
           {/* Subscription Management */}

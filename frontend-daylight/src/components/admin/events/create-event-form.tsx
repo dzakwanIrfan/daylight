@@ -187,7 +187,7 @@ export function CreateEventForm() {
                     <SelectItem value={EventCategory.DAYBREAK}>DayBreak</SelectItem>
                     <SelectItem value={EventCategory.DAYTRIP}>DayTrip</SelectItem>
                     <SelectItem value={EventCategory.DAYCARE}>DayCare</SelectItem>
-                    <SelectItem value={EventCategory.DAYDREAM}>DayDream</SelectItem>
+                    {/* <SelectItem value={EventCategory.DAYDREAM}>DayDream</SelectItem> */}
                   </SelectContent>
                 </Select>
               )}

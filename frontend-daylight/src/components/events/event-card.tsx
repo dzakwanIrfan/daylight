@@ -35,10 +35,10 @@ const categoryConfig = {
     color: 'bg-green-50 text-green-600 border-green-200',
     icon: HeartHandshake,
   },
-  DAYDREAM: {
-    color: 'bg-purple-50 text-purple-600 border-purple-200',
-    icon: Cloud,
-  },
+  // DAYDREAM: {
+  //   color: 'bg-purple-50 text-purple-600 border-purple-200',
+  //   icon: Cloud,
+  // },
 };
 
 export function EventCard({ event }: EventCardProps) {

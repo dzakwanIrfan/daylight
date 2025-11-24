@@ -25,7 +25,7 @@ const categories = [
     value: EventCategory.DAYBREAK,
     label: 'DayBreak',
     icon: UtensilsCrossed,
-    description: 'Start fresh. Meet new people.',
+    description: 'Dinner & Coffee',
   },
   {
     value: EventCategory.DAYTRIP,
@@ -39,12 +39,12 @@ const categories = [
     icon: HeartHandshake,
     description: 'A safe space to support each other.',
   },
-  {
-    value: EventCategory.DAYDREAM,
-    label: 'DayDream',
-    icon: Cloud,
-    description: 'Share ideas. Inspire together.',
-  },
+  // {
+  //   value: EventCategory.DAYDREAM,
+  //   label: 'DayDream',
+  //   icon: Cloud,
+  //   description: 'Share ideas. Inspire together.',
+  // },
 ];
 
 export function CategoryFilter({

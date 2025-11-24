@@ -11,28 +11,28 @@ import Image from 'next/image';
 const categoryInfo = {
   DAYBREAK: {
     title: 'DayBreak Events',
-    description: 'Drink and Dinner Activities.',
+    description: 'Dinner & Coffee Activities.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/DayBreak.png',
+    src: '/images/categories/text/DayBreak.png',
   },
   DAYTRIP: {
     title: 'DayTrip Events',
     description: 'Travel & Trip Activities.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/DayTrip.png',
+    src: '/images/categories/text/DayTrip.png',
   },
   DAYCARE: {
     title: 'DayCare Events',
     description: 'Health & Wellness Activities.',
     color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/DayCare.png',
+    src: '/images/categories/text/DayCare.png',
   },
-  DAYDREAM: {
-    title: 'DayDream Events',
-    description: 'Share ideas. Inspire together through creativity.',
-    color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
-    src: '/images/categories/DayDream.png',
-  },
+  // DAYDREAM: {
+  //   title: 'DayDream Events',
+  //   description: 'Share ideas. Inspire together through creativity.',
+  //   color: 'bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20',
+  //   src: '/images/categories/text/DayDream.png',
+  // },
 };
 
 export default function CategoryPage() {

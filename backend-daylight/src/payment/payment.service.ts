@@ -326,19 +326,12 @@ export class PaymentService {
     callbackData: PaymentCallbackDto,
     signature: string,
   ) {
-    this.logger.log('=== CALLBACK RECEIVED ===');
-    this.logger.log(`Reference: ${callbackData.reference}`);
-    this.logger.log(`Merchant Ref: ${callbackData.merchant_ref}`);
-    this.logger.log(`Status: ${callbackData.status}`);
-
     // Verify signature
     const isValid = this.verifyCallbackSignature(callbackData, signature);
     if (!isValid) {
       this.logger.error('Invalid callback signature');
       throw new UnauthorizedException('Invalid signature');
     }
-
-    this.logger.log('✅ Signature verified');
 
     const { merchant_ref, status, paid_at } = callbackData;
 
@@ -360,9 +353,6 @@ export class PaymentService {
       this.logger.error(`Transaction not found: ${merchant_ref}`);
       throw new NotFoundException('Transaction not found');
     }
-
-    this.logger.log(`Found transaction: ${transaction.id}`);
-    this.logger.log(`Transaction type: ${transaction.transactionType}`);
 
     // Map Tripay status
     let mappedStatus: PaymentStatus;
@@ -401,7 +391,6 @@ export class PaymentService {
           await this.subscriptionsService.activateSubscription(
             transaction.userSubscription.id
           );
-          this.logger.log(`✅ Subscription activated: ${transaction.userSubscription.id}`);
         }
       }
 
@@ -418,7 +407,6 @@ export class PaymentService {
             },
           },
         });
-        this.logger.log('✅ Event participants updated');
       }
     }
 
@@ -437,8 +425,6 @@ export class PaymentService {
       },
     });
 
-    this.logger.log('✅ Transaction updated');
-
     // Emit WebSocket events
     try {
       if (status === 'PAID') {
@@ -453,6 +439,22 @@ export class PaymentService {
             paidAt: updatedTransaction.paidAt,
           },
         );
+
+        // Send email notification to Customer
+        const userName = transaction.user.firstName || 'Customer';
+        this.emailService.sendPaymentSuccessEmail(transaction.user.email, userName, updatedTransaction, transaction.event);
+
+        // Send email notification to admin
+        try {
+          await this.emailService.sendTransactionNotificationToAdmin(
+            transaction,
+            updatedTransaction.event,
+            null,
+          );
+          this.logger.log('Admin notification email sent');
+        } catch (emailError) {
+          this.logger.error(`Failed to send admin email: ${emailError.message}`);
+        }
       } else if (status === 'EXPIRED') {
         this.paymentGateway.emitPaymentExpired(
           transaction.id,
@@ -471,8 +473,6 @@ export class PaymentService {
         paidAt: updatedTransaction.paidAt,
         updatedAt: updatedTransaction.updatedAt,
       });
-
-      this.logger.log('✅ WebSocket events emitted');
     } catch (wsError) {
       this.logger.error(`WebSocket error: ${wsError.message}`);
     }
@@ -958,7 +958,7 @@ export class PaymentService {
       });
 
       // Create pending subscription
-      await this.subscriptionsService.createPendingSubscription(
+      const subscription = await this.subscriptionsService.createPendingSubscription(
         userId,
         planId,
         transaction.id
@@ -978,6 +978,18 @@ export class PaymentService {
         });
       } catch (wsError) {
         this.logger.error(`WebSocket error: ${wsError.message}`);
+      }
+
+      // Send email notification to admin
+      try {
+        await this.emailService.sendTransactionNotificationToAdmin(
+          transaction,
+          null,
+          subscription,
+        );
+        this.logger.log('Admin notification email sent');
+      } catch (emailError) {
+        this.logger.error(`Failed to send admin email: ${emailError.message}`);
       }
 
       return {

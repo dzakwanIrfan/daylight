@@ -282,6 +282,139 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       {/* Editor Content */}
       <EditorContent editor={editor} />
 
+      {/* Toolbar */}
+      <div className="border-b p-2 flex flex-wrap gap-1 bg-gray-50">
+        {/* Text Formatting */}
+        <div className="flex gap-1 border-r pr-2">
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            isActive={editor.isActive('bold')}
+          >
+            <Bold className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            isActive={editor.isActive('italic')}
+          >
+            <Italic className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            isActive={editor.isActive('underline')}
+          >
+            <UnderlineIcon className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            isActive={editor.isActive('strike')}
+          >
+            <Strikethrough className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleCode().run()}
+            isActive={editor.isActive('code')}
+          >
+            <Code className="h-4 w-4" />
+          </MenuButton>
+        </div>
+
+        {/* Headings */}
+        <div className="flex gap-1 border-r pr-2">
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            isActive={editor.isActive('heading', { level: 1 })}
+          >
+            <Heading1 className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            isActive={editor.isActive('heading', { level: 2 })}
+          >
+            <Heading2 className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            isActive={editor.isActive('heading', { level: 3 })}
+          >
+            <Heading3 className="h-4 w-4" />
+          </MenuButton>
+        </div>
+
+        {/* Lists */}
+        <div className="flex gap-1 border-r pr-2">
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            isActive={editor.isActive('bulletList')}
+          >
+            <List className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            isActive={editor.isActive('orderedList')}
+          >
+            <ListOrdered className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            isActive={editor.isActive('blockquote')}
+          >
+            <Quote className="h-4 w-4" />
+          </MenuButton>
+        </div>
+
+        {/* Alignment */}
+        <div className="flex gap-1 border-r pr-2">
+          <MenuButton
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            isActive={editor.isActive({ textAlign: 'left' })}
+          >
+            <AlignLeft className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            isActive={editor.isActive({ textAlign: 'center' })}
+          >
+            <AlignCenter className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            isActive={editor.isActive({ textAlign: 'right' })}
+          >
+            <AlignRight className="h-4 w-4" />
+          </MenuButton>
+        </div>
+
+        {/* Media */}
+        <div className="flex gap-1 border-r pr-2">
+          <MenuButton onClick={() => setShowLinkDialog(true)}>
+            <LinkIcon className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton onClick={handleImageUpload} disabled={uploadImage.isPending}>
+            {uploadImage.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImageIcon className="h-4 w-4" />
+            )}
+          </MenuButton>
+        </div>
+
+        {/* Undo/Redo */}
+        <div className="flex gap-1">
+          <MenuButton
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().undo()}
+          >
+            <Undo className="h-4 w-4" />
+          </MenuButton>
+          <MenuButton
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+          >
+            <Redo className="h-4 w-4" />
+          </MenuButton>
+        </div>
+      </div>
+      
       {/* Link Dialog */}
       <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
         <DialogContent className="bg-white">

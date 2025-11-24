@@ -99,3 +99,9 @@ export interface CreateCategoryInput {
 }
 
 export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {}
+
+export interface CreateTagInput {
+  name: string;
+}
+
+export interface UpdateTagInput extends Partial<CreateTagInput> {}

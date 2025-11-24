@@ -15,6 +15,10 @@ import { BlogService } from './blog.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { BlogQueryDto } from './dto/blog-query.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CreateTagDto } from './dto/create-tag.dto';
+import { UpdateTagDto } from './dto/update-tag.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@prisma/client';
 import type { User } from '@prisma/client';
@@ -78,8 +82,8 @@ export class BlogController {
     @Post('categories')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.ADMIN)
-    createCategory(@Body() body: { name: string; description?: string }) {
-        return this.blogService.createCategory(body.name, body.description);
+    createCategory(@Body() createCategoryDto: CreateCategoryDto) {
+        return this.blogService.createCategory(createCategoryDto.name, createCategoryDto.description);
     }
 
     @Get('categories')
@@ -87,14 +91,21 @@ export class BlogController {
         return this.blogService.findAllCategories();
     }
 
+    @Get('categories/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    findOneCategory(@Param('id') id: string) {
+        return this.blogService.findOneCategory(id);
+    }
+
     @Patch('categories/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.ADMIN)
     updateCategory(
         @Param('id') id: string,
-        @Body() body: { name?: string; description?: string },
+        @Body() updateCategoryDto: UpdateCategoryDto,
     ) {
-        return this.blogService.updateCategory(id, body.name, body.description);
+        return this.blogService.updateCategory(id, updateCategoryDto.name, updateCategoryDto.description);
     }
 
     @Delete('categories/:id')
@@ -106,9 +117,33 @@ export class BlogController {
 
     // Tags
 
+    @Post('tags')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    createTag(@Body() createTagDto: CreateTagDto) {
+        return this.blogService.createTag(createTagDto.name);
+    }
+
     @Get('tags')
     findAllTags() {
         return this.blogService.findAllTags();
+    }
+
+    @Get('tags/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    findOneTag(@Param('id') id: string) {
+        return this.blogService.findOneTag(id);
+    }
+
+    @Patch('tags/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    updateTag(
+        @Param('id') id: string,
+        @Body() updateTagDto: UpdateTagDto,
+    ) {
+        return this.blogService.updateTag(id, updateTagDto);
     }
 
     @Delete('tags/:id')

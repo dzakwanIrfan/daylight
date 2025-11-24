@@ -7,6 +7,8 @@ import type {
   UpdateBlogPostInput,
   CreateCategoryInput,
   UpdateCategoryInput,
+  CreateTagInput,
+  UpdateTagInput,
 } from '@/types/blog.types';
 
 // Query Keys
@@ -16,7 +18,9 @@ export const blogKeys = {
   post: (params: BlogQueryParams) => [...blogKeys.posts(), params] as const,
   postDetail: (id: string) => [...blogKeys.posts(), id] as const,
   categories: () => [...blogKeys.all, 'categories'] as const,
+  categoryDetail: (id: string) => [...blogKeys.categories(), id] as const,
   tags: () => [...blogKeys.all, 'tags'] as const,
+  tagDetail: (id: string) => [...blogKeys.tags(), id] as const,
   authors: () => [...blogKeys.all, 'authors'] as const,
 };
 
@@ -46,12 +50,28 @@ export function useBlogCategories() {
   });
 }
 
+export function useBlogCategory(id: string) {
+  return useQuery({
+    queryKey: blogKeys.categoryDetail(id),
+    queryFn: () => blogService.getCategoryById(id),
+    enabled: !!id,
+  });
+}
+
 // Tags
 export function useBlogTags() {
   return useQuery({
     queryKey: blogKeys.tags(),
     queryFn: () => blogService.getTags(),
     staleTime: 60000,
+  });
+}
+
+export function useBlogTag(id: string) {
+  return useQuery({
+    queryKey: blogKeys.tagDetail(id),
+    queryFn: () => blogService.getTagById(id),
+    enabled: !!id,
   });
 }
 
@@ -124,8 +144,9 @@ export function useBlogMutations() {
   const updateCategory = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateCategoryInput }) =>
       blogService.updateCategory(id, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: blogKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: blogKeys.categoryDetail(variables.id) });
       toast.success('Category updated successfully');
     },
     onError: (error: any) => {
@@ -141,6 +162,30 @@ export function useBlogMutations() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to delete category');
+    },
+  });
+
+  const createTag = useMutation({
+    mutationFn: (data: CreateTagInput) => blogService.createTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: blogKeys.tags() });
+      toast.success('Tag created successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create tag');
+    },
+  });
+
+  const updateTag = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTagInput }) =>
+      blogService.updateTag(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: blogKeys.tags() });
+      queryClient.invalidateQueries({ queryKey: blogKeys.tagDetail(variables.id) });
+      toast.success('Tag updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update tag');
     },
   });
 
@@ -163,6 +208,8 @@ export function useBlogMutations() {
     createCategory,
     updateCategory,
     deleteCategory,
+    createTag,
+    updateTag,
     deleteTag,
   };
 }

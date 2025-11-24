@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -7,6 +7,7 @@ import { UploadService } from '../upload/upload.service';
 import slugify from 'slugify';
 import { BlogPostStatus, Prisma } from '@prisma/client';
 import { BlogPublicQueryDto } from './dto/blog-public-query.dto';
+import { UpdateTagDto } from './dto/update-tag.dto';
 
 @Injectable()
 export class BlogService {
@@ -15,17 +16,16 @@ export class BlogService {
         private uploadService: UploadService,
     ) { }
 
-    // --- Posts ---
+    // --- Posts --- (keep existing code)
 
     async createPost(userId: string, createPostDto: CreatePostDto) {
         const { title, tags, ...rest } = createPostDto;
         const slug = await this.generateUniqueSlug(title);
 
-        // Handle tags: create if not exists, then connect
         const tagConnect = tags
             ? await Promise.all(
                 tags.map(async (tagName) => {
-                    const tagSlug = slugify(tagName, { lower: true });
+                    const tagSlug = slugify(tagName, { lower: true, strict: true });
                     const tag = await this.prisma.blogTag.upsert({
                         where: { slug: tagSlug },
                         update: {},
@@ -49,7 +49,7 @@ export class BlogService {
             },
             include: {
                 author: {
-                    select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                    select: { id: true, firstName: true, lastName: true, profilePicture: true, email: true },
                 },
                 category: true,
                 tags: true,
@@ -87,7 +87,7 @@ export class BlogService {
                 orderBy: { createdAt: 'desc' },
                 include: {
                     author: {
-                        select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                        select: { id: true, firstName: true, lastName: true, profilePicture: true, email: true },
                     },
                     category: true,
                     tags: true,
@@ -113,7 +113,7 @@ export class BlogService {
             },
             include: {
                 author: {
-                    select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                    select: { id: true, firstName: true, lastName: true, profilePicture: true, email: true },
                 },
                 category: true,
                 tags: true,
@@ -124,7 +124,6 @@ export class BlogService {
             throw new NotFoundException(`Post not found`);
         }
 
-        // Increment view count
         await this.prisma.blogPost.update({
             where: { id: post.id },
             data: { viewCount: { increment: 1 } }
@@ -139,7 +138,6 @@ export class BlogService {
         const post = await this.prisma.blogPost.findUnique({ where: { id } });
         if (!post) throw new NotFoundException('Post not found');
 
-        // Validate author exists if authorId is provided
         if (authorId) {
             const author = await this.prisma.user.findUnique({ 
                 where: { id: authorId },
@@ -150,7 +148,6 @@ export class BlogService {
                 throw new NotFoundException('Author not found');
             }
             
-            // Optional: Check if author has admin role
             if (author.role !== 'ADMIN') {
                 throw new BadRequestException('Selected user is not an admin');
             }
@@ -161,13 +158,11 @@ export class BlogService {
             slug = await this.generateUniqueSlug(title);
         }
 
-        // Handle tags update if provided
         let tagUpdate = {};
         if (tags) {
-            // For simplicity, we'll use set to replace all tags
             const tagConnect = await Promise.all(
                 tags.map(async (tagName) => {
-                    const tagSlug = slugify(tagName, { lower: true });
+                    const tagSlug = slugify(tagName, { lower: true, strict: true });
                     const tag = await this.prisma.blogTag.upsert({
                         where: { slug: tagSlug },
                         update: {},
@@ -194,7 +189,7 @@ export class BlogService {
             },
             include: {
                 author: {
-                    select: { id: true, firstName: true, lastName: true, profilePicture: true },
+                    select: { id: true, firstName: true, lastName: true, profilePicture: true, email: true },
                 },
                 category: true,
                 tags: true,
@@ -203,6 +198,9 @@ export class BlogService {
     }
 
     async removePost(id: string) {
+        const post = await this.prisma.blogPost.findUnique({ where: { id } });
+        if (!post) throw new NotFoundException('Post not found');
+        
         return this.prisma.blogPost.delete({ where: { id } });
     }
 
@@ -210,60 +208,197 @@ export class BlogService {
         return this.uploadService.uploadFile(file, {
             folder: 'blog',
             allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-            maxSize: 5 * 1024 * 1024, // 5MB
+            maxSize: 5 * 1024 * 1024,
         });
     }
 
     // --- Categories ---
 
     async createCategory(name: string, description?: string) {
-        const slug = slugify(name, { lower: true });
+        const slug = slugify(name, { lower: true, strict: true });
+        
+        // Check if category with same slug already exists
+        const existing = await this.prisma.blogCategory.findUnique({
+            where: { slug }
+        });
+        
+        if (existing) {
+            throw new ConflictException('Category with this name already exists');
+        }
+        
         return this.prisma.blogCategory.create({
             data: { name, slug, description },
+            include: { _count: { select: { posts: true } } }
         });
     }
 
     async findAllCategories() {
         return this.prisma.blogCategory.findMany({
+            include: { _count: { select: { posts: true } } },
+            orderBy: { name: 'asc' }
+        });
+    }
+
+    async findOneCategory(id: string) {
+        const category = await this.prisma.blogCategory.findUnique({
+            where: { id },
+            include: { _count: { select: { posts: true } } }
+        });
+        
+        if (!category) {
+            throw new NotFoundException('Category not found');
+        }
+        
+        return category;
+    }
+
+    async updateCategory(id: string, name?: string, description?: string) {
+        const category = await this.prisma.blogCategory.findUnique({ where: { id } });
+        if (!category) throw new NotFoundException('Category not found');
+        
+        const data: any = {};
+        
+        if (description !== undefined) {
+            data.description = description;
+        }
+        
+        if (name && name !== category.name) {
+            const slug = slugify(name, { lower: true, strict: true });
+            
+            // Check if new slug conflicts with existing category
+            const existing = await this.prisma.blogCategory.findFirst({
+                where: { 
+                    slug,
+                    NOT: { id }
+                }
+            });
+            
+            if (existing) {
+                throw new ConflictException('Category with this name already exists');
+            }
+            
+            data.name = name;
+            data.slug = slug;
+        }
+        
+        return this.prisma.blogCategory.update({
+            where: { id },
+            data,
             include: { _count: { select: { posts: true } } }
         });
     }
 
-    async updateCategory(id: string, name?: string, description?: string) {
-        const data: any = { description };
-        if (name) {
-            data.name = name;
-            data.slug = slugify(name, { lower: true });
-        }
-        return this.prisma.blogCategory.update({
-            where: { id },
-            data
-        });
-    }
-
     async removeCategory(id: string) {
+        const category = await this.prisma.blogCategory.findUnique({
+            where: { id },
+            include: { _count: { select: { posts: true } } }
+        });
+        
+        if (!category) throw new NotFoundException('Category not found');
+        
+        if (category._count.posts > 0) {
+            throw new BadRequestException('Cannot delete category with existing posts');
+        }
+        
         return this.prisma.blogCategory.delete({ where: { id } });
     }
 
     // --- Tags ---
 
+    async createTag(name: string) {
+        const slug = slugify(name, { lower: true, strict: true });
+        
+        // Check if tag with same slug already exists
+        const existing = await this.prisma.blogTag.findUnique({
+            where: { slug }
+        });
+        
+        if (existing) {
+            throw new ConflictException('Tag with this name already exists');
+        }
+        
+        return this.prisma.blogTag.create({
+            data: { name, slug },
+            include: { _count: { select: { posts: true } } }
+        });
+    }
+
     async findAllTags() {
         return this.prisma.blogTag.findMany({
+            include: { _count: { select: { posts: true } } },
+            orderBy: { name: 'asc' }
+        });
+    }
+
+    async findOneTag(id: string) {
+        const tag = await this.prisma.blogTag.findUnique({
+            where: { id },
+            include: { _count: { select: { posts: true } } }
+        });
+        
+        if (!tag) {
+            throw new NotFoundException('Tag not found');
+        }
+        
+        return tag;
+    }
+
+    async updateTag(id: string, updateTagDto: UpdateTagDto) {
+        const tag = await this.prisma.blogTag.findUnique({ where: { id } });
+        if (!tag) throw new NotFoundException('Tag not found');
+        
+        // If no name provided, just return the existing tag
+        if (!updateTagDto.name) {
+            return tag;
+        }
+        
+        // If name is the same, no need to update
+        if (updateTagDto.name === tag.name) {
+            return tag;
+        }
+        
+        const slug = slugify(updateTagDto.name, { lower: true, strict: true });
+        
+        // Check if new slug conflicts with existing tag
+        const existing = await this.prisma.blogTag.findFirst({
+            where: { 
+                slug,
+                NOT: { id }
+            }
+        });
+        
+        if (existing) {
+            throw new ConflictException('Tag with this name already exists');
+        }
+        
+        return this.prisma.blogTag.update({
+            where: { id },
+            data: { name: updateTagDto.name, slug },
             include: { _count: { select: { posts: true } } }
         });
     }
 
     async removeTag(id: string) {
+        const tag = await this.prisma.blogTag.findUnique({
+            where: { id },
+            include: { _count: { select: { posts: true } } }
+        });
+        
+        if (!tag) throw new NotFoundException('Tag not found');
+        
+        if (tag._count.posts > 0) {
+            throw new BadRequestException('Cannot delete tag with existing posts');
+        }
+        
         return this.prisma.blogTag.delete({ where: { id } });
     }
 
     // --- Authors ---
 
     async findAllAuthors() {
-        // Get all users who have written at least one blog post
         const authors = await this.prisma.user.findMany({
             where: {
-                role: 'ADMIN', // Only admins can be authors
+                role: 'ADMIN',
             },
             select: {
                 id: true,
@@ -286,17 +421,18 @@ export class BlogService {
     // --- Helpers ---
 
     private async generateUniqueSlug(title: string): Promise<string> {
-        let slug = slugify(title, { lower: true });
+        let slug = slugify(title, { lower: true, strict: true });
         let count = 1;
 
         while (await this.prisma.blogPost.findUnique({ where: { slug } })) {
-            slug = `${slugify(title, { lower: true })}-${count}`;
+            slug = `${slugify(title, { lower: true, strict: true })}-${count}`;
             count++;
         }
 
         return slug;
     }
 
+    // Keep other existing methods (findPublishedPosts, findPublishedPostBySlug, etc.)
     async findPublishedPosts(query: BlogPublicQueryDto) {
         const { page = 1, limit = 10, search, categorySlug, tagSlug, featured } = query;
         const skip = (page - 1) * limit;
@@ -365,7 +501,6 @@ export class BlogService {
             throw new NotFoundException(`Post not found`);
         }
 
-        // Increment view count
         await this.prisma.blogPost.update({
             where: { id: post.id },
             data: { viewCount: { increment: 1 } }
@@ -384,7 +519,6 @@ export class BlogService {
             throw new NotFoundException('Post not found');
         }
 
-        // Find posts with same tags or category
         const relatedPosts = await this.prisma.blogPost.findMany({
             where: {
                 AND: [
@@ -416,8 +550,6 @@ export class BlogService {
     }
 
     async findFeaturedPosts(limit: number = 5) {
-        // For now, return latest published posts
-        // You can add a 'featured' field to BlogPost model later
         return this.prisma.blogPost.findMany({
             where: { status: BlogPostStatus.PUBLISHED },
             take: limit,

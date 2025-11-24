@@ -1,77 +1,128 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { X, LayoutDashboard, Users, Calendar, Settings, FileText, Crown, CreditCard, Sparkle, Sparkles, Handshake, BookText, BarChart3 } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, Handshake, Crown, Settings, FileText, CreditCard, BookText, Folder, Tags, Sparkles, Sparkle, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { title } from 'process';
 
 interface AdminSidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  href: string;
+  icon: any;
+  badge?: string;
+}
+
+interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}
+
+const menuSections: MenuSection[] = [
   {
-    title: 'Dashboard',
-    href: '/admin',
-    icon: LayoutDashboard,
+    title: 'Overview',
+    items: [
+      {
+        title: 'Dashboard',
+        href: '/admin',
+        icon: LayoutDashboard,
+      },
+      {
+        title: 'Analytics',
+        href: '/admin/analytics',
+        icon: BarChart3,
+      },
+    ],
   },
   {
-    title: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Users',
-    href: '/admin/users',
-    icon: Users,
-  },
-  {
-    title: 'Events',
-    href: '/admin/events',
-    icon: Calendar,
-  },
-  {
-    title: 'Partners',
-    href: '/admin/partners',
-    icon: Handshake,
+    title: 'Management',
+    items: [
+      {
+        title: 'Users',
+        href: '/admin/users',
+        icon: Users,
+      },
+      {
+        title: 'Events',
+        href: '/admin/events',
+        icon: Calendar,
+      },
+      {
+        title: 'Partners',
+        href: '/admin/partners',
+        icon: Handshake,
+      },
+    ],
   },
   {
     title: 'Subscriptions',
-    href: '/admin/subscriptions',
-    icon: Crown, 
+    items: [
+      {
+        title: 'Subscriptions',
+        href: '/admin/subscriptions',
+        icon: Crown,
+      },
+      {
+        title: 'Plans',
+        href: '/admin/subscription-plans',
+        icon: Settings,
+      },
+    ],
   },
   {
-    title: 'Subscription Plans',
-    href: '/admin/subscription-plans',
-    icon: Settings,
-  },
-  { 
-    title: 'Transactions', 
-    href: '/admin/transactions', 
-    icon: FileText 
-  },
-  {
-    title: 'Payment Methods',
-    href: '/admin/payment-methods',
-    icon: CreditCard,
-  },
-  {
-    title: 'Blog',
-    href: '/admin/blog',
-    icon: BookText,
+    title: 'Financial',
+    items: [
+      {
+        title: 'Transactions',
+        href: '/admin/transactions',
+        icon: FileText,
+      },
+      {
+        title: 'Payment Methods',
+        href: '/admin/payment-methods',
+        icon: CreditCard,
+      },
+    ],
   },
   {
-    title: 'Persona Questions',
-    href: '/admin/persona-questions',
-    icon: Sparkles,
+    title: 'Content',
+    items: [
+      {
+        title: 'Blog Posts',
+        href: '/admin/blog',
+        icon: BookText,
+      },
+      {
+        title: 'Categories',
+        href: '/admin/blog/categories',
+        icon: Folder,
+      },
+      {
+        title: 'Tags',
+        href: '/admin/blog/tags',
+        icon: Tags,
+      },
+    ],
   },
   {
-    title: 'Archetype Details',
-    href: '/admin/archetype-details',
-    icon: Sparkle,
-  }
+    title: 'Personality',
+    items: [
+      {
+        title: 'Questions',
+        href: '/admin/persona-questions',
+        icon: Sparkles,
+      },
+      {
+        title: 'Archetypes',
+        href: '/admin/archetype-details',
+        icon: Sparkle,
+      },
+    ],
+  },
 ];
 
 export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
@@ -88,8 +139,26 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     if (href === '/admin') {
       return pathname === '/admin';
     }
+
+    // Special handling for blog routes
+    if (href === '/admin/blog') {
+      // Only active if exactly /admin/blog or /admin/blog/new or /admin/blog/[id]/edit
+      return pathname === '/admin/blog' || 
+             pathname === '/admin/blog/new' ||
+             pathname.match(/^\/admin\/blog\/[^/]+\/edit$/);
+    }
+
+    if (href === '/admin/blog/categories') {
+      // Only active if exactly /admin/blog/categories
+      return pathname === '/admin/blog/categories';
+    }
+
+    if (href === '/admin/blog/tags') {
+      // Only active if exactly /admin/blog/tags
+      return pathname === '/admin/blog/tags';
+    }
     
-    // For other routes, check if pathname starts with the href
+    // For other routes, exact match or starts with href + /
     return pathname === href || pathname.startsWith(href + '/');
   };
 
@@ -103,7 +172,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         )}
       >
         {/* Logo & Close Button */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2">
             <Image src="/daylight.png" alt="DayLight Logo" width={32} height={32} className="rounded-lg" />
             <div>
@@ -120,31 +189,53 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const itemIsActive = isActive(item.href);
+        <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+          {menuSections.map((section, sectionIndex) => (
+            <div key={sectionIndex}>
+              {/* Section Title */}
+              <h3 className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {section.title}
+              </h3>
+              
+              {/* Section Items */}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const itemIsActive = isActive(item.href);
 
-            return (
-              <button
-                key={item.href}
-                onClick={() => handleNavigation(item.href)}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
-                  itemIsActive
-                    ? 'bg-brand text-white shadow-sm'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.title}</span>
-              </button>
-            );
-          })}
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => handleNavigation(item.href)}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                        itemIsActive
+                          ? 'bg-brand text-white shadow-sm'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      )}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{item.title}</span>
+                      {item.badge && (
+                        <span className={cn(
+                          'ml-auto text-xs px-2 py-0.5 rounded-full',
+                          itemIsActive 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-brand/10 text-brand'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 shrink-0">
           <div className="px-4 py-3 bg-brand/5 rounded-lg">
             <p className="text-xs font-medium text-gray-900">Admin Access</p>
             <p className="text-xs text-gray-600 mt-1">

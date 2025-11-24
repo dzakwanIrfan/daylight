@@ -91,7 +91,7 @@ export default function AdminBlogPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:gap-0 gap-2 md:items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-headline font-bold text-gray-900">
               Blog Management

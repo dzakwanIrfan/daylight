@@ -10,6 +10,8 @@ import type {
   BlogAuthor,
   CreateCategoryInput,
   UpdateCategoryInput,
+  CreateTagInput,
+  UpdateTagInput,
 } from '@/types/blog.types';
 
 class BlogService {
@@ -57,6 +59,11 @@ class BlogService {
     return response.data;
   }
 
+  async getCategoryById(id: string): Promise<BlogCategory> {
+    const response = await apiClient.get(`${this.baseURL}/categories/${id}`);
+    return response.data;
+  }
+
   async createCategory(data: CreateCategoryInput): Promise<BlogCategory> {
     const response = await apiClient.post(`${this.baseURL}/categories`, data);
     return response.data;
@@ -74,6 +81,21 @@ class BlogService {
   // Tags
   async getTags(): Promise<BlogTag[]> {
     const response = await apiClient.get(`${this.baseURL}/tags`);
+    return response.data;
+  }
+
+  async getTagById(id: string): Promise<BlogTag> {
+    const response = await apiClient.get(`${this.baseURL}/tags/${id}`);
+    return response.data;
+  }
+
+  async createTag(data: CreateTagInput): Promise<BlogTag> {
+    const response = await apiClient.post(`${this.baseURL}/tags`, data);
+    return response.data;
+  }
+
+  async updateTag(id: string, data: UpdateTagInput): Promise<BlogTag> {
+    const response = await apiClient.patch(`${this.baseURL}/tags/${id}`, data);
     return response.data;
   }
 

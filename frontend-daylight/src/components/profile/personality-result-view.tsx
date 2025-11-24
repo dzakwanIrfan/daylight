@@ -102,7 +102,7 @@ function getDominantSide(score: number, leftLabel: string, rightLabel: string) {
   if (Math.abs(score - 50) < 10) {
     return { side: 'Balanced', label: `${leftLabel} / ${rightLabel}` };
   }
-  return score > 50 
+  return score > 50
     ? { side: 'right', label: rightLabel }
     : { side: 'left', label: leftLabel };
 }
@@ -116,10 +116,10 @@ export function PersonalityResultView() {
 
   const handleShare = async () => {
     if (!result) return;
-    
+
     try {
       const shareText = `I'm a ${result.archetype.name} on DayLight! ${result.archetype.description}`;
-      
+
       if (navigator.share) {
         await navigator.share({
           title: `My DayLight Personality: ${result.archetype.name}`,
@@ -176,10 +176,10 @@ export function PersonalityResultView() {
         <div>
           <h3 className="text-lg font-semibold mb-1">Your Persona Result</h3>
           <p className="text-sm text-muted-foreground">
-            Taken on {new Date(result.createdAt).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
+            Taken on {new Date(result.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
             })}
           </p>
         </div>
@@ -232,7 +232,7 @@ export function PersonalityResultView() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-center space-y-3"
+            className="space-y-3 flex flex-col items-center"
           >
             <div className="inline-flex items-center justify-center px-6 py-2 rounded-full bg-brand/10 border-2 border-brand">
               <span className="md:text-2xl text-xl mr-2">{archetype.symbol}</span>
@@ -247,9 +247,10 @@ export function PersonalityResultView() {
               </span>
             </h2>
 
-            <p className="md:text-xl text-lg text-foreground/80 max-w-2xl mx-auto font-medium leading-relaxed">
-              {archetype.description}
-            </p>
+            <div
+              className="md:text-xl text-lg text-foreground/80 max-w-2xl mx-auto font-medium leading-relaxed prose prose-lg prose-p:text-foreground/80 prose-headings:text-foreground prose-strong:text-foreground"
+              dangerouslySetInnerHTML={{ __html: archetype.description }}
+            />
 
             {/* Traits */}
             <div className="flex flex-wrap justify-center gap-2 pt-4">
@@ -325,8 +326,8 @@ export function PersonalityResultView() {
                         {/* Left Label */}
                         <div className={cn(
                           "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-w-40 justify-center",
-                          scoreValue < 40 
-                            ? "bg-brand/10 border-brand font-bold" 
+                          scoreValue < 40
+                            ? "bg-brand/10 border-brand font-bold"
                             : "bg-muted border-border"
                         )}>
                           <span className="text-lg">{dimension.leftIcon}</span>
@@ -337,7 +338,7 @@ export function PersonalityResultView() {
                         <div className="flex-1 relative h-3 bg-muted rounded-full border-2 border-black overflow-hidden min-w-[200px]">
                           {/* Center Line */}
                           <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-black z-10" />
-                          
+
                           {/* Indicator */}
                           <motion.div
                             className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-brand border-2 border-black rounded-full shadow-brutal-sm z-20"
@@ -351,8 +352,8 @@ export function PersonalityResultView() {
                         {/* Right Label */}
                         <div className={cn(
                           "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-w-40 justify-center",
-                          scoreValue > 60 
-                            ? "bg-brand/10 border-brand font-bold" 
+                          scoreValue > 60
+                            ? "bg-brand/10 border-brand font-bold"
                             : "bg-muted border-border"
                         )}>
                           <span className="text-sm font-medium whitespace-nowrap">{dimension.rightLabel}</span>
@@ -366,8 +367,8 @@ export function PersonalityResultView() {
                         <div className="flex justify-between gap-2">
                           <div className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 transition-all flex-1 justify-center",
-                            scoreValue < 40 
-                              ? "bg-brand/10 border-brand font-bold" 
+                            scoreValue < 40
+                              ? "bg-brand/10 border-brand font-bold"
                               : "bg-muted border-border"
                           )}>
                             <span className="text-base">{dimension.leftIcon}</span>
@@ -376,8 +377,8 @@ export function PersonalityResultView() {
 
                           <div className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 transition-all flex-1 justify-center",
-                            scoreValue > 60 
-                              ? "bg-brand/10 border-brand font-bold" 
+                            scoreValue > 60
+                              ? "bg-brand/10 border-brand font-bold"
                               : "bg-muted border-border"
                           )}>
                             <span className="text-xs font-medium">{dimension.rightLabel}</span>
@@ -389,7 +390,7 @@ export function PersonalityResultView() {
                         <div className="relative h-3 bg-muted rounded-full border-2 border-black overflow-hidden">
                           {/* Center Line */}
                           <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-black z-10" />
-                          
+
                           {/* Indicator */}
                           <motion.div
                             className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-brand border-2 border-black rounded-full shadow-brutal-sm z-20"
@@ -422,7 +423,7 @@ export function PersonalityResultView() {
                 <div className="space-y-1">
                   <h4 className="font-bold text-brand text-base">What This Means</h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Your persona profile helps us match you with people who complement your style. 
+                    Your persona profile helps us match you with people who complement your style.
                     There's no "better" or "worse" — every profile brings unique value to connections and conversations.
                   </p>
                 </div>

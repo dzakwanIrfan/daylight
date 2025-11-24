@@ -1,15 +1,15 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, X } from 'lucide-react';
 import { AdminArchetypeDetail, UpdateArchetypeDetailPayload } from '@/types/admin-archetype-detail.types';
 import { useAdminArchetypeDetailMutations } from '@/hooks/use-admin-archetype-details';
 import { useEffect } from 'react';
+import { RichTextEditor } from '@/components/admin/blog/rich-text-editor';
 
 interface EditArchetypeDetailDialogProps {
   archetypeDetail: AdminArchetypeDetail;
@@ -62,7 +62,7 @@ export function EditArchetypeDetailDialog({ archetypeDetail, open, onOpenChange 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[1080px] bg-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Archetype Detail</DialogTitle>
         </DialogHeader>
@@ -134,11 +134,17 @@ export function EditArchetypeDetailDialog({ archetypeDetail, open, onOpenChange 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description *</Label>
-            <Textarea
-              id="description"
-              placeholder="Enter archetype description..."
-              rows={4}
-              {...register('description', { required: 'Description is required' })}
+            <Controller
+              name="description"
+              control={control}
+              rules={{ required: 'Description is required' }}
+              render={({ field }) => (
+                <RichTextEditor
+                  content={field.value ? field.value : ''}
+                  onChange={field.onChange}
+                  placeholder="Enter archetype description..."
+                />
+              )}
             />
             {errors.description && (
               <p className="text-xs text-red-600">{errors.description.message}</p>

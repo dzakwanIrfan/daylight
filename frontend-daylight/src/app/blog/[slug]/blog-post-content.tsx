@@ -238,7 +238,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
               
               /* Headings with better spacing */
               prose-headings:font-bold prose-headings:text-gray-900 prose-headings:tracking-tight
-              prose-h1:text-[32px] prose-h1:leading-[1.25] prose-h1:mb-[0.75em] prose-h1:mt-[1.5em]
+              prose-h1:text-[32px] prose-h1:leading-tight prose-h1:mb-[0.75em] prose-h1:mt-[1.5em]
               prose-h2:text-[28px] prose-h2:leading-[1.3] prose-h2:mb-[0.5em] prose-h2:mt-[1.75em]
               prose-h3:text-[24px] prose-h3:leading-[1.35] prose-h3:mb-[0.5em] prose-h3:mt-[1.5em]
               
@@ -270,7 +270,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
               
               /* Code inline */
               prose-code:bg-gray-100 prose-code:text-gray-800
-              prose-code:px-[6px] prose-code:py-[2px] prose-code:rounded
+              prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
               prose-code:text-[18px] prose-code:font-mono
               prose-code:before:content-[''] prose-code:after:content-['']
               prose-code:font-normal
@@ -278,7 +278,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
               /* Pre & Code blocks */
               prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg
               prose-pre:p-6 prose-pre:my-10 prose-pre:overflow-x-auto
-              prose-pre:shadow-md prose-pre:text-[16px] prose-pre:leading-[1.5]
+              prose-pre:shadow-md prose-pre:text-[16px] prose-pre:leading-normal
               
               /* Lists with proper spacing */
               prose-ul:my-[1.5em] prose-ul:list-disc prose-ul:pl-[30px]
@@ -291,7 +291,7 @@ export function BlogPostContent({ slug }: BlogPostContentProps) {
               [&_li_p]:mb-[0.5em]
               
               /* Horizontal Rule */
-              prose-hr:my-[3em] prose-hr:border-gray-200 prose-hr:border-t-[1px]
+              prose-hr:my-[3em] prose-hr:border-gray-200 prose-hr:border-t
               
               /* Tables */
               prose-table:my-[2em] prose-table:text-[18px]

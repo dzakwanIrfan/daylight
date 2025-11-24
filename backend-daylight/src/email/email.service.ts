@@ -625,4 +625,279 @@ export class EmailService {
       html: this.getEmailTemplate(content),
     });
   }
+
+  /**
+   * Send transaction notification to admin
+   */
+  async sendTransactionNotificationToAdmin(
+    transaction: any,
+    event: any | null,
+    subscription: any | null,
+  ) {
+    const adminEmail = this.configService.get('ADMIN_EMAIL') || 'contact@himgroup.asia';
+
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+      }).format(amount);
+    };
+
+    const formatDate = (date: Date) => {
+      return new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+      }).format(new Date(date));
+    };
+
+    const transactionType = transaction.transactionType === 'EVENT' ? 'Event Registration' : 'Subscription';
+    const itemName = event?.title || subscription?.plan?.name || 'N/A';
+
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">New Transaction Alert</h2>
+        <p class="text">A new transaction has been created on DayLight platform.</p>
+        
+        <div class="alert-box ${transaction.paymentStatus === 'PAID' ? 'alert-success' : 'alert-warning'}">
+          <strong>Status:</strong> ${transaction.paymentStatus}
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Transaction Information</h3>
+          <div class="info-row">
+            <span class="info-label">Transaction ID:</span>
+            <span class="info-value">${transaction.id}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Invoice Number:</span>
+            <span class="info-value">${transaction.merchantRef}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Transaction Type:</span>
+            <span class="info-value">${transactionType}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Item:</span>
+            <span class="info-value">${itemName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Amount:</span>
+            <span class="info-value">${formatCurrency(transaction.amount)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Total (with fees):</span>
+            <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Payment Method:</span>
+            <span class="info-value">${transaction.paymentName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Created At:</span>
+            <span class="info-value">${formatDate(transaction.createdAt)}</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Customer Information</h3>
+          <div class="info-row">
+            <span class="info-label">Name:</span>
+            <span class="info-value">${transaction.customerName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email:</span>
+            <span class="info-value">${transaction.customerEmail}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Phone:</span>
+            <span class="info-value">${transaction.customerPhone || '-'}</span>
+          </div>
+        </div>
+
+        ${event ? `
+        <div class="info-box">
+          <h3 class="info-box-title">Event Details</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name:</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Event Date:</span>
+            <span class="info-value">${formatDate(event.eventDate)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location:</span>
+            <span class="info-value">${event.venue}, ${event.city}</span>
+          </div>
+        </div>
+        ` : ''}
+
+        ${subscription ? `
+        <div class="info-box">
+          <h3 class="info-box-title">Subscription Details</h3>
+          <div class="info-row">
+            <span class="info-label">Plan:</span>
+            <span class="info-value">${subscription.plan?.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Duration:</span>
+            <span class="info-value">${subscription.plan?.durationInMonths} Month(s)</span>
+          </div>
+        </div>
+        ` : ''}
+
+        <div class="divider"></div>
+
+        <p class="text" style="font-size: 13px; color: #999;">
+          This is an automated notification from DayLight transaction system.
+        </p>
+      </div>
+    `;
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: adminEmail,
+      subject: `[DayLight] New ${transactionType} - ${transaction.merchantRef}`,
+      html: this.getEmailTemplate(content),
+    });
+  }
+
+  /**
+   * Send event reminder to participant (H-1)
+   */
+  async sendEventReminderEmail(
+    email: string,
+    name: string,
+    event: any,
+    transaction: any,
+  ) {
+    const formatDate = (date: Date) => {
+      return new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+      }).format(new Date(date));
+    };
+
+    const formatTime = (date: Date) => {
+      return new Intl.DateTimeFormat('id-ID', {
+        timeStyle: 'short',
+      }).format(new Date(date));
+    };
+
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">This is a friendly reminder that your DayLight event is happening <strong>tomorrow</strong>!</p>
+        
+        <div class="alert-box alert-info">
+          <strong>Event Tomorrow:</strong> Don't forget to mark your calendar!
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Event Details</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name:</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date:</span>
+            <span class="info-value">${formatDate(event.eventDate)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Time:</span>
+            <span class="info-value">${formatTime(event.startTime)} - ${formatTime(event.endTime)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location:</span>
+            <span class="info-value">${event.venue}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Address:</span>
+            <span class="info-value">${event.address}, ${event.city}</span>
+          </div>
+        </div>
+
+        ${event.googleMapsUrl ? `
+        <div class="button-container">
+          <a href="${event.googleMapsUrl}" class="button">Get Directions</a>
+        </div>
+        ` : ''}
+
+        <div class="info-box">
+          <h3 class="info-box-title">What to Bring</h3>
+          <ul class="list">
+            <li class="list-item">Your booking confirmation (Invoice: ${transaction.merchantRef})</li>
+            <li class="list-item">Valid ID card</li>
+            <li class="list-item">Positive energy and open mind! 😊</li>
+          </ul>
+        </div>
+
+        ${event.requirements && event.requirements.length > 0 ? `
+        <div class="info-box">
+          <h3 class="info-box-title">Event Requirements</h3>
+          <ul class="list">
+            ${event.requirements.map((req: string) => `<li class="list-item">${req}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        <div class="alert-box alert-warning">
+          <strong>Important:</strong> Please arrive 15 minutes before the event starts.
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text"><strong>Questions?</strong></p>
+        <p class="text">If you have any questions or need assistance, feel free to contact us at 
+          <a href="mailto:support@daylight.com" class="link">support@daylight.com</a>
+        </p>
+
+        <p class="text">We're excited to see you tomorrow!</p>
+      </div>
+    `;
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: email,
+      subject: `Reminder: ${event.title} is Tomorrow! 🎉`,
+      html: this.getEmailTemplate(content),
+    });
+  }
+
+  /**
+   * Send bulk event reminders
+   */
+  async sendBulkEventReminders(participants: Array<{
+    email: string;
+    name: string;
+    event: any;
+    transaction: any;
+  }>) {
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as Array<{ email: string; error: string }>,
+    };
+
+    for (const participant of participants) {
+      try {
+        await this.sendEventReminderEmail(
+          participant.email,
+          participant.name,
+          participant.event,
+          participant.transaction,
+        );
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          email: participant.email,
+          error: error.message,
+        });
+      }
+    }
+
+    return results;
+  }
 }

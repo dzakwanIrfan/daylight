@@ -20,11 +20,11 @@ import {
 const categories = [
   {
     label: 'DayBreak',
-    description: 'Drink and Dinner Activities.',
+    description: 'Dinner & Coffee Activities.',
     icon: UtensilsCrossed,
     href: '/events/category/DAYBREAK',
     color: 'bg-orange-500',
-    src: '/images/categories/DayBreak.png'
+    src: '/images/categories/text/DayBreak.png'
   },
   {
     label: 'DayTrip',
@@ -32,7 +32,7 @@ const categories = [
     icon: Bus,
     href: '/events/category/DAYTRIP',
     color: 'bg-blue-500',
-    src: '/images/categories/DayTrip.png'
+    src: '/images/categories/text/DayTrip.png'
   },
   {
     label: 'DayCare',
@@ -40,7 +40,7 @@ const categories = [
     icon: HeartHandshake,
     href: '/events/category/DAYCARE',
     color: 'bg-green-500',
-    src: '/images/categories/DayCare.png'
+    src: '/images/categories/text/DayCare.png'
   },
   // {
   //   label: 'DayDream',

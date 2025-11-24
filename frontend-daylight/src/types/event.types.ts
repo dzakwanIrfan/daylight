@@ -4,7 +4,7 @@ export enum EventCategory {
   DAYBREAK = 'DAYBREAK',
   DAYTRIP = 'DAYTRIP',
   DAYCARE = 'DAYCARE',
-  DAYDREAM = 'DAYDREAM',
+  // DAYDREAM = 'DAYDREAM',
 }
 
 export enum EventStatus {

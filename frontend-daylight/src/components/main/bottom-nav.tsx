@@ -6,7 +6,7 @@ import { Home, MessageCircle, Calendar, User } from 'lucide-react';
 
 const navItems = [
   {
-    name: 'Events',
+    name: 'Home',
     href: '/',
     icon: Home,
   },

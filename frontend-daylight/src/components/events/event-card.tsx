@@ -78,18 +78,6 @@ export function EventCard({ event }: EventCardProps) {
               <CategoryIcon className="w-3 h-3" />
               {event.category}
             </Badge>
-
-            {/* Preferred Partner Badge */}
-            {event.partner?.isPreferred && (
-              <Badge className={cn(
-                'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold',
-                event.partner?.type === PartnerType.BRAND ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
-                : 'bg-amber-50 text-amber-400 border border-amber-300 hover:bg-amber-100'
-                )}>
-                <FaCircleCheck className="w-3 h-3" />
-                Preferred Partner
-              </Badge>
-            )}
           </div>
 
           {/* Date, Time & Location */}

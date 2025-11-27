@@ -399,12 +399,9 @@ export default function EventDetailPage() {
                     <Building2 className="w-4 h-4 text-brand shrink-0" />
                     <p className="text-xs sm:text-sm text-gray-600">Event Partner</p>
                     {event.partner.isPreferred && (
-                      <Badge className={cn("inline-flex items-center gap-1 px-1.5 py-0 text-xs font-semibold",
-                        event.partner.type === PartnerType.BRAND ? "bg-green-100 text-green-700 border-green-200" : "bg-amber-50 text-amber-400 border-amber-300"
-                      )}>
-                        <FaCircleCheck className="w-2.5 h-2.5" />
-                      Preferred
-                      </Badge>
+                      <FaCircleCheck className={cn("w-3 h-3",
+                        event.partner.type === PartnerType.BRAND ? "text-amber-400" : "text-green-600"
+                      )} />
                     )}
                   </div>
                   <p className="font-semibold text-sm sm:text-base text-gray-900 leading-snug">

@@ -352,8 +352,9 @@ model Transaction {
   matchingMember MatchingMember?
 
   // Timestamps
-  expiredAt DateTime?
-  paidAt    DateTime?
+  expiredAt      DateTime?
+  paidAt         DateTime?
+  reminderSentAt DateTime?
 
   // Metadata
   instructions Json?
@@ -736,12 +737,12 @@ model PageView {
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Page info
-  path      String // e.g., "/events", "/auth/login"
-  referrer  String? // Where they came from
+  path        String // e.g., "/events", "/auth/login"
+  referrer    String? // Where they came from
   queryParams Json? // URL query parameters
 
   // Device & Browser info
-  userAgent  String?   @db.Text
+  userAgent  String?    @db.Text
   deviceType DeviceType @default(UNKNOWN)
   browser    String?
   os         String?
@@ -752,9 +753,9 @@ model PageView {
   ip      String? // Hashed for privacy
 
   // Timing
-  duration   Int? // Time spent on page in seconds
-  enteredAt  DateTime @default(now())
-  exitedAt   DateTime?
+  duration  Int? // Time spent on page in seconds
+  enteredAt DateTime  @default(now())
+  exitedAt  DateTime?
 
   // UTM parameters for marketing
   utmSource   String?
@@ -779,10 +780,10 @@ model DailyAnalytics {
   date DateTime @unique @db.Date
 
   // Visitor counts
-  totalPageViews   Int @default(0)
-  uniqueVisitors   Int @default(0)
-  uniqueSessions   Int @default(0)
-  loggedInVisitors Int @default(0)
+  totalPageViews    Int @default(0)
+  uniqueVisitors    Int @default(0)
+  uniqueSessions    Int @default(0)
+  loggedInVisitors  Int @default(0)
   anonymousVisitors Int @default(0)
 
   // Device breakdown

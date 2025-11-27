@@ -100,8 +100,8 @@ export default function PartnerProfilePage() {
                     {partner.name}
                   </span>
                   <FaCircleCheck className={cn("w-6 h-6 block", 
-                    partner.type === PartnerType.BRAND ? "text-green-600"
-                    : "text-amber-400"
+                    partner.type === PartnerType.BRAND ? "text-amber-400"
+                    : "text-green-600"
                   )} />
                 </span>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -110,8 +110,8 @@ export default function PartnerProfilePage() {
                   </Badge>
                   {partner.isPreferred && (
                     <span className={cn("inline-flex items-center gap-1 bg-transparent", 
-                      partner.type === PartnerType.BRAND ? "text-green-600"
-                      : "text-amber-400"
+                      partner.type === PartnerType.BRAND ? "text-amber-400"
+                      : "text-green-600"
                     )}>
                       <FaCircleCheck className="w-4 h-4" />
                       <span className='text-sm'>

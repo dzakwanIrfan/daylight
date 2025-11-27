@@ -66,8 +66,8 @@ export const columns: ColumnDef<Event>[] = [
               <span className="truncate">{event.venue}</span>
               {event.partner?.isPreferred && (
                 <FaCircleCheck className={cn("size-3",
-                  event.partner?.type === 'BRAND' ? "text-green-600"
-                  : "text-amber-400 ml-1"
+                  event.partner?.type === 'BRAND' ? "text-amber-400"
+                  : "text-green-600"
                 )} />
               )}
             </div>

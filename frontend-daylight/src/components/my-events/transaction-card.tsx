@@ -73,8 +73,8 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
               </h3>
               {transaction.event?.partner?.isPreferred && (
                 <FaCircleCheck className={cn("size-3",
-                  transaction.event?.partner?.type === 'BRAND' ? "text-green-600"
-                  : "text-amber-400"
+                  transaction.event?.partner?.type === 'BRAND' ? "text-amber-400"
+                  : "text-green-600"
                 )} />
               )}
             </div>

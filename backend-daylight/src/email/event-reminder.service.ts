@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
 import { PaymentStatus, TransactionType } from '@prisma/client';
@@ -14,32 +14,38 @@ export class EventReminderService {
   ) {}
 
   /**
-   * Send H-1 event reminders
-   * Runs every 10 minutes
+   * Send H-1 event reminders (24 hours before event)
+   * Runs every hour at minute 0 (e.g., 08:00, 09:00, 10:00)
+   * Only sends reminder ONCE per transaction
    */
-  @Cron('*/10 * * * *', {
+  @Cron('0 * * * *', {
     timeZone: 'Asia/Jakarta',
   })
   async sendTomorrowEventReminders() {
     this.logger.log('Starting H-1 event reminder job...');
 
     try {
-      // Calculate tomorrow's date range (midnight to midnight)
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      // Get current time in Jakarta timezone
+      const now = new Date();
 
-      const dayAfterTomorrow = new Date(tomorrow);
-      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+      // Calculate the window: events happening in 24-25 hours from now
+      // This ensures we catch events exactly 24 hours before
+      const reminderWindowStart = new Date(now);
+      reminderWindowStart.setHours(reminderWindowStart.getHours() + 24);
 
-      this.logger.log(`📅 Finding events between ${tomorrow.toISOString()} and ${dayAfterTomorrow.toISOString()}`);
+      const reminderWindowEnd = new Date(now);
+      reminderWindowEnd.setHours(reminderWindowEnd.getHours() + 25);
 
-      // Find all events happening tomorrow
-      const tomorrowEvents = await this.prisma.event.findMany({
+      this.logger.log(
+        `📅 Finding events between ${reminderWindowStart.toISOString()} and ${reminderWindowEnd.toISOString()}`,
+      );
+
+      // Find all events happening within the reminder window (24-25 hours from now)
+      const upcomingEvents = await this.prisma.event.findMany({
         where: {
-          eventDate: {
-            gte: tomorrow,
-            lt: dayAfterTomorrow,
+          startTime: {
+            gte: reminderWindowStart,
+            lt: reminderWindowEnd,
           },
           status: 'PUBLISHED',
           isActive: true,
@@ -59,26 +65,29 @@ export class EventReminderService {
         },
       });
 
-      if (tomorrowEvents.length === 0) {
+      if (upcomingEvents.length === 0) {
+        this.logger.log('No events found in the reminder window');
         return;
       }
 
-      this.logger.log(`Found ${tomorrowEvents.length} events tomorrow`);
+      this.logger.log(`Found ${upcomingEvents.length} events in reminder window`);
 
       let totalParticipants = 0;
       let totalEmailsSent = 0;
       let totalEmailsFailed = 0;
+      let totalSkipped = 0;
 
       // Process each event
-      for (const event of tomorrowEvents) {
-        this.logger.log(`Processing event: ${event.title}`);
+      for (const event of upcomingEvents) {
+        this.logger.log(`Processing event: ${event.title} (ID: ${event.id})`);
 
-        // Get all paid participants for this event
+        // Get all paid participants for this event WHO HAVEN'T RECEIVED REMINDER YET
         const transactions = await this.prisma.transaction.findMany({
           where: {
             eventId: event.id,
             paymentStatus: PaymentStatus.PAID,
             transactionType: TransactionType.EVENT,
+            reminderSentAt: null,
           },
           include: {
             user: {
@@ -92,37 +101,47 @@ export class EventReminderService {
 
         totalParticipants += transactions.length;
 
-        if (transactions.length === 0) {
-          this.logger.log(`No participants for ${event.title}`);
-          continue;
-        }
+        this.logger.log(`${transactions.length} participants need reminders`);
 
-        this.logger.log(`${transactions.length} participants found`);
-        // Prepare participant data
-        const participants = transactions.map((transaction) => ({
-          email: transaction.customerEmail,
-          name: transaction.customerName || 
-                `${transaction.user?.firstName || ''} ${transaction.user?.lastName || ''}`.trim() || 
-                'Participant',
-          event,
-          transaction,
-        }));
+        // Process each transaction individually to ensure we track sent status
+        for (const transaction of transactions) {
+          const participantName =
+            transaction.customerName ||
+            `${transaction.user?.firstName || ''} ${transaction.user?.lastName || ''}`.trim() ||
+            'Participant';
 
-        // Send bulk reminders
-        const results = await this.emailService.sendBulkEventReminders(participants);
+          try {
+            // Send the reminder email
+            await this.emailService.sendEventReminderEmail(
+              transaction.customerEmail,
+              participantName,
+              event,
+              transaction,
+            );
 
-        totalEmailsSent += results.success;
-        totalEmailsFailed += results.failed;
+            // Mark reminder as sent 
+            await this.prisma.transaction.update({
+              where: { id: transaction.id },
+              data: { reminderSentAt: new Date() },
+            });
 
-        this.logger.log(`${results.success} emails sent`);
-        if (results.failed > 0) {
-          this.logger.error(`${results.failed} emails failed`);
-          results.errors.forEach((error) => {
-            this.logger.error(`- ${error.email}: ${error.error}`);
-          });
+            totalEmailsSent++;
+          } catch (error) {
+            totalEmailsFailed++;
+            this.logger.error(
+              `Failed to send reminder to ${transaction.customerEmail}: ${error.message}`,
+            );
+          }
         }
       }
 
+      this.logger.log('========================================');
+      this.logger.log('H-1 Event Reminder Job Completed');
+      this.logger.log(`Total participants processed: ${totalParticipants}`);
+      this.logger.log(`Emails sent successfully: ${totalEmailsSent}`);
+      this.logger.log(`Emails failed: ${totalEmailsFailed}`);
+      this.logger.log(`Skipped (already sent): ${totalSkipped}`);
+      this.logger.log('========================================');
     } catch (error) {
       this.logger.error('Error in event reminder job:', error);
       throw error;

@@ -63,7 +63,7 @@ export function EventCard({ event }: EventCardProps) {
               {event.title}
               {event.partner?.isPreferred && (
                 <FaCircleCheck className={cn("w-4 h-4 ml-2", 
-                  event.partner?.type === PartnerType.BRAND ? "text-green-700" : "text-amber-400"
+                  event.partner?.type === PartnerType.BRAND ? "text-amber-400" : "text-green-600"
                 )} />
               )}
             </span>
@@ -93,7 +93,7 @@ export function EventCard({ event }: EventCardProps) {
             {/* Location */}
             <div className="flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="truncate">{event.city}</span>
+              <span className="truncate">{event.city}, {event.venue}</span>
             </div>
           </div>
         </div>

@@ -1,10 +1,17 @@
 import { AxiosError } from 'axios';
 
+export interface ValidationErrorDetail {
+  field: string;
+  message: string;
+  constraints?: Record<string, string>;
+}
+
 export interface ApiErrorResponse {
   success: false;
   statusCode: number;
-  message: string | string[];
+  message: string;
   error: string;
+  errors?: ValidationErrorDetail[];
   timestamp: string;
   path: string;
 }
@@ -13,6 +20,7 @@ export class ApiError extends Error {
   public statusCode: number;
   public error: string;
   public messages: string[];
+  public fieldErrors: Map<string, string>;
   public timestamp: string;
   public path: string;
 
@@ -38,6 +46,16 @@ export class ApiError extends Error {
     this.timestamp = response?.timestamp || new Date().toISOString();
     this.path = response?.path || '';
 
+    // Parse field-specific errors
+    this.fieldErrors = new Map();
+    if (response?.errors && Array.isArray(response.errors)) {
+      for (const err of response.errors) {
+        if (err.field && err.field !== '_general') {
+          this.fieldErrors.set(err.field, err.message);
+        }
+      }
+    }
+
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ApiError);
     }
@@ -49,6 +67,42 @@ export class ApiError extends Error {
 
   get fullMessage(): string {
     return this.messages.join(', ');
+  }
+
+  /**
+   * Check if there are field-specific validation errors
+   */
+  hasFieldErrors(): boolean {
+    return this.fieldErrors.size > 0;
+  }
+
+  /**
+   * Get error for a specific field
+   */
+  getFieldError(field: string): string | undefined {
+    return this.fieldErrors.get(field);
+  }
+
+  /**
+   * Get all field errors as an object (for react-hook-form)
+   */
+  getFieldErrorsObject(): Record<string, { message: string }> {
+    const errors: Record<string, { message: string }> = {};
+    this.fieldErrors.forEach((message, field) => {
+      errors[field] = { message };
+    });
+    return errors;
+  }
+
+  /**
+   * Get all field errors as array
+   */
+  getFieldErrorsArray(): ValidationErrorDetail[] {
+    const errors: ValidationErrorDetail[] = [];
+    this.fieldErrors.forEach((message, field) => {
+      errors.push({ field, message });
+    });
+    return errors;
   }
 
   is(statusCode: number): boolean {
@@ -68,7 +122,7 @@ export class ApiError extends Error {
   }
 
   isValidationError(): boolean {
-    return this.statusCode === 400;
+    return this.statusCode === 400 && this.hasFieldErrors();
   }
 
   isConflict(): boolean {
@@ -81,6 +135,10 @@ export class ApiError extends Error {
 }
 
 export function parseApiError(error: any): ApiError {
+  if (error instanceof ApiError) {
+    return error;
+  }
+  
   if (error.isAxiosError) {
     return new ApiError(error as AxiosError<ApiErrorResponse>);
   }
@@ -121,6 +179,7 @@ export function getUserFriendlyErrorMessage(error: ApiError): string {
     'Please complete the persona test first': 'Please complete the persona test before registering.',
     'Session expired. Please login again': 'Your session has expired. Please login again.',
     'An account with this email already exists': 'This email is already registered. Please login with your password.',
+    'Validation failed': 'Please check the form for errors and try again.',
   };
 
   for (const [key, value] of Object.entries(errorMap)) {
@@ -130,4 +189,21 @@ export function getUserFriendlyErrorMessage(error: ApiError): string {
   }
 
   return error.fullMessage;
+}
+
+/**
+ * Helper to apply API errors to react-hook-form
+ */
+export function applyApiErrorsToForm(
+  error: ApiError,
+  setError: (name: string, error: { type: string; message: string }) => void
+): void {
+  if (error.hasFieldErrors()) {
+    error.fieldErrors.forEach((message, field) => {
+      setError(field, {
+        type: 'server',
+        message,
+      });
+    });
+  }
 }

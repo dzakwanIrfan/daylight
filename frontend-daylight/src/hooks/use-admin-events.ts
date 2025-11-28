@@ -7,6 +7,7 @@ import type {
   UpdateEventInput,
   BulkActionEventPayload,
 } from '@/types/event.types';
+import { parseApiError, getUserFriendlyErrorMessage } from '@/lib/api-error';
 
 // Query Keys
 export const eventKeys = {
@@ -54,10 +55,9 @@ export function useAdminEventMutations() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
       queryClient.invalidateQueries({ queryKey: eventKeys.stats() });
-      toast.success(data.message || 'Event created successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create event');
+      toast.success('Success', {
+        description: data.message || 'Event created successfully',
+      });
     },
   });
 
@@ -68,10 +68,9 @@ export function useAdminEventMutations() {
       queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
       queryClient.invalidateQueries({ queryKey: eventKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: eventKeys.stats() });
-      toast.success(data.message || 'Event updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update event');
+      toast.success('Success', {
+        description: data.message || 'Event updated successfully',
+      });
     },
   });
 
@@ -81,10 +80,15 @@ export function useAdminEventMutations() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
       queryClient.invalidateQueries({ queryKey: eventKeys.stats() });
-      toast.success(data.message || 'Event deleted successfully');
+      toast.success('Success', {
+        description: data.message || 'Event deleted successfully',
+      });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete event');
+      const apiError = parseApiError(error);
+      toast.error('Failed to delete event', {
+        description: getUserFriendlyErrorMessage(apiError),
+      });
     },
   });
 
@@ -93,10 +97,15 @@ export function useAdminEventMutations() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
       queryClient.invalidateQueries({ queryKey: eventKeys.stats() });
-      toast.success(data.message || 'Bulk action completed successfully');
+      toast.success('Success', {
+        description: data.message || 'Bulk action completed successfully',
+      });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to perform bulk action');
+      const apiError = parseApiError(error);
+      toast.error('Failed to perform bulk action', {
+        description: getUserFriendlyErrorMessage(apiError),
+      });
     },
   });
 

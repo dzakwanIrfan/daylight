@@ -29,6 +29,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { PartnerType } from '@/types/partner.types';
+import { FormFieldError } from '@/components/ui/form-field-error';
+import { useFormError } from '@/hooks/use-form-error';
 
 export function CreateEventForm() {
   const router = useRouter();
@@ -42,6 +44,7 @@ export function CreateEventForm() {
   const { data: availablePartners, isLoading: isLoadingPartners } = useAvailablePartners();
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
   const [timeValidationError, setTimeValidationError] = useState<string>('');
+  const [generalError, setGeneralError] = useState<string>('');
 
   const {
     register,
@@ -50,6 +53,8 @@ export function CreateEventForm() {
     control,
     watch,
     setValue,
+    setError,
+    clearErrors,
   } = useForm<CreateEventInput>({
     defaultValues: {
       category: EventCategory.DAYBREAK,
@@ -64,6 +69,11 @@ export function CreateEventForm() {
     },
   });
 
+  const { handleError } = useFormError<CreateEventInput>(setError, {
+    showToast: true,
+    toastTitle: 'Failed to create event',
+  });
+
   const startTime = watch('startTime');
   const endTime = watch('endTime');
 
@@ -74,7 +84,6 @@ export function CreateEventForm() {
         setTimeValidationError('End time must be after start time');
       } else {
         setTimeValidationError('');
-        const duration = calculateDurationInHours(startTime, endTime);
       }
     }
   }, [startTime, endTime]);
@@ -85,7 +94,23 @@ export function CreateEventForm() {
     }
   }, [createEvent.isSuccess, router]);
 
+  // Handle mutation error
+  useEffect(() => {
+    if (createEvent.error) {
+      const apiError = handleError(createEvent.error);
+      if (!apiError.hasFieldErrors()) {
+        setGeneralError(apiError.primaryMessage);
+      }
+    } else {
+      setGeneralError('');
+    }
+  }, [createEvent.error, handleError]);
+
   const onSubmit = (data: CreateEventInput) => {
+    // Clear previous errors
+    setGeneralError('');
+    clearErrors();
+
     // Validate times
     if (!isEndTimeAfterStartTime(data.startTime, data.endTime)) {
       setTimeValidationError('End time must be after start time');
@@ -147,14 +172,21 @@ export function CreateEventForm() {
       setValue('venue', partner.name);
       setValue('address', partner.address);
       setValue('city', partner.city);
-      if (partner.logo) {
-        // You could set partner logo as event image
-      }
+      // Clear related errors
+      clearErrors(['venue', 'address', 'city']);
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      {/* General Error Alert */}
+      {generalError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{generalError}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Basic Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
@@ -165,11 +197,10 @@ export function CreateEventForm() {
             <Input
               id="title"
               placeholder="e.g., Morning Yoga & Breakfast"
-              {...register('title', { required: 'Title is required', minLength: 3 })}
+              className={cn(errors.title && 'border-red-500 focus-visible:ring-red-500')}
+              {...register('title', { required: 'Title is required', minLength: { value: 3, message: 'Title must be at least 3 characters' } })}
             />
-            {errors.title && (
-              <p className="text-xs text-red-600">{errors.title.message}</p>
-            )}
+            <FormFieldError message={errors.title?.message} />
           </div>
 
           <div className="space-y-2">
@@ -180,21 +211,18 @@ export function CreateEventForm() {
               rules={{ required: 'Category is required' }}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className={cn(errors.category && 'border-red-500')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value={EventCategory.DAYBREAK}>DayBreak</SelectItem>
                     <SelectItem value={EventCategory.DAYTRIP}>DayTrip</SelectItem>
                     <SelectItem value={EventCategory.DAYCARE}>DayCare</SelectItem>
-                    {/* <SelectItem value={EventCategory.DAYDREAM}>DayDream</SelectItem> */}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.category && (
-              <p className="text-xs text-red-600">{errors.category.message}</p>
-            )}
+            <FormFieldError message={errors.category?.message} />
           </div>
 
           <div className="space-y-2">
@@ -204,7 +232,7 @@ export function CreateEventForm() {
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className={cn(errors.status && 'border-red-500')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
@@ -216,6 +244,7 @@ export function CreateEventForm() {
                 </Select>
               )}
             />
+            <FormFieldError message={errors.status?.message} />
           </div>
 
           <div className="md:col-span-2 space-y-2">
@@ -223,8 +252,10 @@ export function CreateEventForm() {
             <Input
               id="shortDescription"
               placeholder="Brief one-line description"
-              {...register('shortDescription', { maxLength: 500 })}
+              className={cn(errors.shortDescription && 'border-red-500 focus-visible:ring-red-500')}
+              {...register('shortDescription', { maxLength: { value: 500, message: 'Short description must be less than 500 characters' } })}
             />
+            <FormFieldError message={errors.shortDescription?.message} />
           </div>
 
           <div className="md:col-span-2 space-y-2">
@@ -233,11 +264,13 @@ export function CreateEventForm() {
               id="description"
               rows={5}
               placeholder="Describe the event in detail..."
-              {...register('description', { required: 'Description is required', minLength: 10 })}
+              className={cn(errors.description && 'border-red-500 focus-visible:ring-red-500')}
+              {...register('description', { 
+                required: 'Description is required', 
+                minLength: { value: 10, message: 'Description must be at least 10 characters' } 
+              })}
             />
-            {errors.description && (
-              <p className="text-xs text-red-600">{errors.description.message}</p>
-            )}
+            <FormFieldError message={errors.description?.message} />
           </div>
         </div>
       </div>
@@ -259,11 +292,10 @@ export function CreateEventForm() {
             <Input
               id="eventDate"
               type="date"
+              className={cn(errors.eventDate && 'border-red-500 focus-visible:ring-red-500')}
               {...register('eventDate', { required: 'Event date is required' })}
             />
-            {errors.eventDate && (
-              <p className="text-xs text-red-600">{errors.eventDate.message}</p>
-            )}
+            <FormFieldError message={errors.eventDate?.message} />
             <p className="text-xs text-gray-500">Timezone: Asia/Jakarta (WIB)</p>
           </div>
 
@@ -272,11 +304,10 @@ export function CreateEventForm() {
             <Input
               id="startTime"
               type="datetime-local"
+              className={cn(errors.startTime && 'border-red-500 focus-visible:ring-red-500')}
               {...register('startTime', { required: 'Start time is required' })}
             />
-            {errors.startTime && (
-              <p className="text-xs text-red-600">{errors.startTime.message}</p>
-            )}
+            <FormFieldError message={errors.startTime?.message} />
           </div>
 
           <div className="space-y-2">
@@ -284,11 +315,10 @@ export function CreateEventForm() {
             <Input
               id="endTime"
               type="datetime-local"
+              className={cn(errors.endTime && 'border-red-500 focus-visible:ring-red-500')}
               {...register('endTime', { required: 'End time is required' })}
             />
-            {errors.endTime && (
-              <p className="text-xs text-red-600">{errors.endTime.message}</p>
-            )}
+            <FormFieldError message={errors.endTime?.message} />
           </div>
         </div>
 
@@ -355,11 +385,13 @@ export function CreateEventForm() {
             <Input
               id="venue"
               placeholder="e.g., Ubud Yoga Studio"
-              {...register('venue', { required: 'Venue is required', minLength: 3 })}
+              className={cn(errors.venue && 'border-red-500 focus-visible:ring-red-500')}
+              {...register('venue', { 
+                required: 'Venue is required', 
+                minLength: { value: 3, message: 'Venue must be at least 3 characters' } 
+              })}
             />
-            {errors.venue && (
-              <p className="text-xs text-red-600">{errors.venue.message}</p>
-            )}
+            <FormFieldError message={errors.venue?.message} />
           </div>
 
           <div className="space-y-2">
@@ -367,11 +399,13 @@ export function CreateEventForm() {
             <Input
               id="city"
               placeholder="e.g., Bali"
-              {...register('city', { required: 'City is required', minLength: 2 })}
+              className={cn(errors.city && 'border-red-500 focus-visible:ring-red-500')}
+              {...register('city', { 
+                required: 'City is required', 
+                minLength: { value: 2, message: 'City must be at least 2 characters' } 
+              })}
             />
-            {errors.city && (
-              <p className="text-xs text-red-600">{errors.city.message}</p>
-            )}
+            <FormFieldError message={errors.city?.message} />
           </div>
 
           <div className="md:col-span-2 space-y-2">
@@ -380,11 +414,13 @@ export function CreateEventForm() {
               id="address"
               rows={2}
               placeholder="Complete address with street, district, etc."
-              {...register('address', { required: 'Address is required', minLength: 10 })}
+              className={cn(errors.address && 'border-red-500 focus-visible:ring-red-500')}
+              {...register('address', { 
+                required: 'Address is required', 
+                minLength: { value: 10, message: 'Address must be at least 10 characters' } 
+              })}
             />
-            {errors.address && (
-              <p className="text-xs text-red-600">{errors.address.message}</p>
-            )}
+            <FormFieldError message={errors.address?.message} />
           </div>
 
           <div className="md:col-span-2 space-y-2">
@@ -393,8 +429,10 @@ export function CreateEventForm() {
               id="googleMapsUrl"
               type="url"
               placeholder="https://maps.google.com/..."
+              className={cn(errors.googleMapsUrl && 'border-red-500 focus-visible:ring-red-500')}
               {...register('googleMapsUrl')}
             />
+            <FormFieldError message={errors.googleMapsUrl?.message} />
           </div>
 
           <div className="space-y-2">
@@ -404,8 +442,10 @@ export function CreateEventForm() {
               type="number"
               step="any"
               placeholder="-8.4095"
+              className={cn(errors.latitude && 'border-red-500 focus-visible:ring-red-500')}
               {...register('latitude', { valueAsNumber: true })}
             />
+            <FormFieldError message={errors.latitude?.message} />
           </div>
 
           <div className="space-y-2">
@@ -415,8 +455,10 @@ export function CreateEventForm() {
               type="number"
               step="any"
               placeholder="115.1889"
+              className={cn(errors.longitude && 'border-red-500 focus-visible:ring-red-500')}
               {...register('longitude', { valueAsNumber: true })}
             />
+            <FormFieldError message={errors.longitude?.message} />
           </div>
         </div>
       </div>
@@ -433,11 +475,14 @@ export function CreateEventForm() {
               type="number"
               min="0"
               placeholder="0"
-              {...register('price', { required: 'Price is required', min: 0, valueAsNumber: true })}
+              className={cn(errors.price && 'border-red-500 focus-visible:ring-red-500')}
+              {...register('price', { 
+                required: 'Price is required', 
+                min: { value: 0, message: 'Price cannot be negative' }, 
+                valueAsNumber: true 
+              })}
             />
-            {errors.price && (
-              <p className="text-xs text-red-600">{errors.price.message}</p>
-            )}
+            <FormFieldError message={errors.price?.message} />
             <p className="text-xs text-gray-500">Set 0 for free events</p>
           </div>
 
@@ -446,8 +491,10 @@ export function CreateEventForm() {
             <Input
               id="currency"
               placeholder="IDR"
+              className={cn(errors.currency && 'border-red-500 focus-visible:ring-red-500')}
               {...register('currency')}
             />
+            <FormFieldError message={errors.currency?.message} />
           </div>
         </div>
       </div>
@@ -586,8 +633,10 @@ export function CreateEventForm() {
             <Input
               id="organizerName"
               placeholder="e.g., John Doe"
+              className={cn(errors.organizerName && 'border-red-500 focus-visible:ring-red-500')}
               {...register('organizerName')}
             />
+            <FormFieldError message={errors.organizerName?.message} />
           </div>
 
           <div className="space-y-2">
@@ -595,8 +644,10 @@ export function CreateEventForm() {
             <Input
               id="organizerContact"
               placeholder="e.g., +62 812 3456 7890"
+              className={cn(errors.organizerContact && 'border-red-500 focus-visible:ring-red-500')}
               {...register('organizerContact')}
             />
+            <FormFieldError message={errors.organizerContact?.message} />
           </div>
         </div>
       </div>

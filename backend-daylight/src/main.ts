@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -71,6 +71,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // Enhanced ValidationPipe dengan detailed errors
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -78,6 +79,27 @@ async function bootstrap() {
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
+      },
+      // Custom exception factory untuk format error yang lebih baik
+      exceptionFactory: (errors) => {
+        const formattedErrors = errors.map((error) => {
+          const constraints = error.constraints || {};
+          const childErrors = error.children?.flatMap((child) => {
+            const childConstraints = child.constraints || {};
+            return Object.values(childConstraints);
+          }) || [];
+          
+          return {
+            field: error.property,
+            message: [...Object.values(constraints), ...childErrors].join('. '),
+            constraints: constraints,
+          };
+        });
+
+        return new BadRequestException({
+          message: 'Validation failed',
+          errors: formattedErrors,
+        });
       },
     }),
   );

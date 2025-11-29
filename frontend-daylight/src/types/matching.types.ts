@@ -21,7 +21,8 @@ export interface MatchingMember {
   isYou?: boolean;
   user: {
     email: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     profilePicture: string | null;
     archetype: string | null;
     profileScore: number | null;
@@ -29,7 +30,11 @@ export interface MatchingMember {
   matchScores: Record<string, number>;
   personalitySnapshot: PersonalitySnapshot;
   isConfirmed: boolean;
-}
+  isManuallyAssigned: boolean;
+  assignedBy?: string;
+  assignedAt?: string;
+  assignmentNote?: string;
+  }
 
 export enum MatchingStatus {
   PENDING = 'PENDING',
@@ -48,12 +53,15 @@ export interface MatchingGroup {
   minMatchScore: number;
   groupSize: number;
   thresholdUsed: number;
+  hasManualChanges: boolean;
+  lastModifiedBy?: string;
+  lastModifiedAt?: string;
   tableNumber: string | null;
   venueName: string | null;
   members: MatchingMember[];
   createdAt: string;
   updatedAt: string;
-}
+  }
 
 export interface ThresholdBreakdown {
   threshold: number;
@@ -86,7 +94,8 @@ export interface MatchingPreviewResponse {
       members: {
         userId: string;
         email: string;
-        name: string;
+        firstName: string;
+        lastName: string;
       }[];
       averageMatchScore: number;
       minMatchScore: number;
@@ -97,7 +106,8 @@ export interface MatchingPreviewResponse {
     unmatchedUsers: {
       userId: string;
       email: string;
-      name: string;
+      firstName: string;
+      lastName: string;
     }[];
     statistics: MatchingStatistics;
     thresholdBreakdown: ThresholdBreakdown[];
@@ -123,10 +133,11 @@ export interface MatchingAttempt {
 export interface UnassignedParticipant {
   userId: string;
   transactionId: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   personalitySnapshot: PersonalitySnapshot;
-}
+  }
 
 export interface UnassignedParticipantsResponse {
   total: number;
@@ -173,7 +184,8 @@ export interface MatchingMember {
   isYou?: boolean;
   user: {
     email: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     profilePicture: string | null;
     archetype: string | null;
     profileScore: number | null;

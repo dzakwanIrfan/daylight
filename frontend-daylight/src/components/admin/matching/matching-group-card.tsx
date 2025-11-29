@@ -127,8 +127,8 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
           </p>
           <div className="space-y-2">
             {group.members.map((member) => {
-              const initials = member.user.name
-                .split(' ')
+              const initials = [member.user.firstName, member.user.lastName]
+                .filter(Boolean)
                 .map((n) => n[0])
                 .join('')
                 .toUpperCase()
@@ -143,7 +143,7 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
                     {member.user.profilePicture ? (
                       <AvatarImage
                         src={member.user.profilePicture}
-                        alt={member.user.name}
+                        alt={`${member.user.firstName} ${member.user.lastName}`}
                         crossOrigin="anonymous"
                         referrerPolicy="no-referrer"
                       />
@@ -156,7 +156,7 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {member.user.name}
+                        {[member.user.firstName, member.user.lastName].filter(Boolean).join(' ')}
                       </p>
                       {member.isManuallyAssigned && (
                         <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] px-1.5 py-0">
@@ -212,7 +212,7 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
               return (
                 <div key={member1.id} className="space-y-1.5">
                   <p className="text-xs font-medium text-gray-700">
-                    {member1.user.name}
+                    {[member1.user.firstName, member1.user.lastName].filter(Boolean).join(' ')}
                   </p>
                   <div className="space-y-1 pl-3">
                     {scores.map(([userId, score]) => {
@@ -225,7 +225,7 @@ export function MatchingGroupCard({ group }: MatchingGroupCardProps) {
                           className="flex items-center justify-between text-xs"
                         >
                           <span className="text-gray-600">
-                            → {member2.user.name}
+                            → {[member2.user.firstName, member2.user.lastName].filter(Boolean).join(' ')}
                           </span>
                           <span className={cn(
                             'font-semibold px-2 py-0.5 rounded',

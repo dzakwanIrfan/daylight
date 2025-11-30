@@ -12,8 +12,8 @@ export function TypingIndicator({ users, group }: TypingIndicatorProps) {
 
   const typingNames = users
     .map((t) => {
-      const member = group.members. find((m) => m.userId === t.userId);
-      return member?.user. firstName || member?.user.email?. split('@')[0] || 'Someone';
+      const member = group.members.find((m) => m.userId === t.userId);
+      return member?.user.firstName || member?.user.email?.split('@')[0] || 'Someone';
     })
     .slice(0, 3);
 
@@ -25,22 +25,22 @@ export function TypingIndicator({ users, group }: TypingIndicatorProps) {
         : `${typingNames[0]}, ${typingNames[1]} and ${users.length - 2} others are typing`;
 
   return (
-    <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground px-2 sm:px-3 py-1">
-      <div className="flex gap-0.5 sm:gap-1">
+    <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground px-3 py-1">
+      <div className="flex gap-1 shrink-0">
         <div
-          className="w-1. 5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
           style={{ animationDelay: '0ms' }}
         />
         <div
-          className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
           style={{ animationDelay: '150ms' }}
         />
         <div
-          className="w-1. 5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
           style={{ animationDelay: '300ms' }}
         />
       </div>
-      <span>{text}...</span>
+      <span className="truncate">{text}...</span>
     </div>
   );
 }

@@ -51,8 +51,8 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
         {/* Members Grid */}
         <div className="flex flex-wrap gap-2">
           {group.members.map((member) => {
-            const initials = member.user.name
-              .split(' ')
+            const initials = [member.user.firstName, member.user.lastName]
+              .filter(Boolean)
               .map((n) => n[0])
               .join('')
               .toUpperCase()
@@ -67,7 +67,7 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
                   {member.user.profilePicture ? (
                     <AvatarImage
                       src={member.user.profilePicture}
-                      alt={member.user.name}
+                      alt={member.user.firstName + ' ' + member.user.lastName}
                       crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
                     />
@@ -78,7 +78,7 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
                 </Avatar>
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-gray-900 truncate max-w-[120px]">
-                    {member.isYou ? 'You' : member.user.name}
+                    {member.isYou ? 'You' : member.user.firstName + ' ' + member.user.lastName}
                   </p>
                   {member.user.archetype && (
                     <p className="text-[10px] text-gray-500 truncate">
@@ -92,7 +92,7 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
         </div>
 
         {/* Match Score */}
-        <div className="mt-3 pt-3 border-t border-gray-200">
+        {/* <div className="mt-3 pt-3 border-t border-gray-200">
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-600">Group Compatibility</span>
             <div className="flex items-center gap-1">
@@ -107,7 +107,7 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
               </span>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {group.tableNumber && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-600">
@@ -146,8 +146,8 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
       {/* Members List */}
       <div className="space-y-2">
         {group.members.map((member) => {
-          const initials = member.user.name
-            .split(' ')
+          const initials = [member.user.firstName, member.user.lastName]
+            .filter(Boolean)
             .map((n) => n[0])
             .join('')
             .toUpperCase()
@@ -167,7 +167,7 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
                 {member.user.profilePicture ? (
                   <AvatarImage
                     src={member.user.profilePicture}
-                    alt={member.user.name}
+                    alt={member.user.firstName + ' ' + member.user.lastName}
                     crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
                   />
@@ -180,7 +180,7 @@ export function MatchingGroupCard({ group, compact = false }: MatchingGroupCardP
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {member.isYou ? 'You' : member.user.name}
+                    {member.isYou ? 'You' : member.user.firstName + ' ' + member.user.lastName}
                   </p>
                   {member.isYou && (
                     <Badge variant="outline" className="bg-brand/10 text-brand border-brand/20 text-xs">

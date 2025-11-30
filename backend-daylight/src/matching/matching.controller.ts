@@ -116,7 +116,7 @@ export class MatchingController {
     };
   }
 
-  // ==================== MANUAL ASSIGNMENT ENDPOINTS ====================
+  // MANUAL ASSIGNMENT ENDPOINTS
 
   /**
    * Get unassigned participants (Admin only)

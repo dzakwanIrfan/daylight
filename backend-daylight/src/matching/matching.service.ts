@@ -109,7 +109,7 @@ export class MatchingService {
     return matchingResult;
   }
 
-  // ==================== DELEGATE TO MANUAL ASSIGNMENT SERVICE ====================
+  // DELEGATE TO MANUAL ASSIGNMENT SERVICE
 
   /**
    * Get unassigned participants for manual assignment
@@ -193,7 +193,7 @@ export class MatchingService {
     );
   }
 
-  // ==================== DELEGATE TO PERSISTENCE SERVICE ====================
+  // DELEGATE TO PERSISTENCE SERVICE
 
   /**
    * Save matching results to database
@@ -226,7 +226,7 @@ export class MatchingService {
     return this.persistenceService.getUserMatchingGroup(eventId, userId);
   }
 
-  // ==================== UTILITY ====================
+  // UTILITY
 
   /**
    * Utility: Clamp value

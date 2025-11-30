@@ -54,6 +54,8 @@ interface ChatState {
   activeGroupId: string | null;
   typingUsers: TypingUser[];
   unreadCounts: Record<string, number>; // groupId -> count
+  isLoading: boolean;
+  hasLoaded: boolean;
 
   // Actions
   setGroups: (groups: ChatGroup[]) => void;
@@ -68,6 +70,8 @@ interface ChatState {
   incrementUnread: (groupId: string) => void;
   clearUnread: (groupId: string) => void;
   setUnreadCount: (groupId: string, count: number) => void;
+  setLoading: (loading: boolean) => void;
+  setHasLoaded: (loaded: boolean) => void;
   reset: () => void;
 }
 
@@ -77,6 +81,8 @@ const initialState = {
   activeGroupId: null,
   typingUsers: [],
   unreadCounts: {},
+  isLoading: false,
+  hasLoaded: false,
 };
 
 export const useChatStore = create<ChatState>()(
@@ -84,14 +90,14 @@ export const useChatStore = create<ChatState>()(
     (set, get) => ({
       ...initialState,
 
-      setGroups: (groups) => set({ groups }),
+      setGroups: (groups) => set({ groups, hasLoaded: true }),
 
       setActiveGroup: (groupId) => set({ activeGroupId: groupId }),
 
       addMessage: (groupId, message) =>
         set((state) => {
           const groupMessages = state.messages[groupId] || [];
-          
+
           // Prevent duplicates
           if (groupMessages.some((m) => m.id === message. id)) {
             return state;
@@ -108,7 +114,7 @@ export const useChatStore = create<ChatState>()(
       setMessages: (groupId, messages) =>
         set((state) => ({
           messages: {
-            ... state.messages,
+            ...state. messages,
             [groupId]: messages,
           },
         })),
@@ -116,7 +122,7 @@ export const useChatStore = create<ChatState>()(
       prependMessages: (groupId, messages) =>
         set((state) => {
           const existing = state.messages[groupId] || [];
-          const existingIds = new Set(existing.map((m) => m.id));
+          const existingIds = new Set(existing.map((m) => m. id));
           const newMessages = messages.filter((m) => !existingIds.has(m.id));
 
           return {
@@ -134,7 +140,7 @@ export const useChatStore = create<ChatState>()(
 
           Object.keys(updatedMessages).forEach((groupId) => {
             updatedMessages[groupId] = updatedMessages[groupId].map((msg) =>
-              messageIdSet.has(msg.id) ? { ...msg, status } : msg
+              messageIdSet.has(msg.id) ?  { ...msg, status } : msg
             );
           });
 
@@ -147,20 +153,20 @@ export const useChatStore = create<ChatState>()(
             (t) => !(t.userId === typing.userId && t.groupId === typing.groupId)
           );
           return {
-            typingUsers: [...filtered, typing],
+            typingUsers: [... filtered, typing],
           };
         }),
 
       removeTypingUser: (userId, groupId) =>
         set((state) => ({
-          typingUsers: state. typingUsers.filter(
-            (t) => !(t. userId === userId && t.groupId === groupId)
+          typingUsers: state.typingUsers.filter(
+            (t) => !(t.userId === userId && t.groupId === groupId)
           ),
         })),
 
       clearTypingUsers: (groupId) =>
         set((state) => ({
-          typingUsers: state.typingUsers.filter((t) => t.groupId !== groupId),
+          typingUsers: state.typingUsers. filter((t) => t.groupId !== groupId),
         })),
 
       incrementUnread: (groupId) =>
@@ -182,10 +188,14 @@ export const useChatStore = create<ChatState>()(
       setUnreadCount: (groupId, count) =>
         set((state) => ({
           unreadCounts: {
-            ... state.unreadCounts,
+            ...state.unreadCounts,
             [groupId]: count,
           },
         })),
+
+      setLoading: (isLoading) => set({ isLoading }),
+
+      setHasLoaded: (hasLoaded) => set({ hasLoaded }),
 
       reset: () => set(initialState),
     }),
@@ -195,7 +205,7 @@ export const useChatStore = create<ChatState>()(
       partialize: (state) => ({
         // Only persist minimal data
         unreadCounts: state.unreadCounts,
-        activeGroupId: state.activeGroupId,
+        activeGroupId: state. activeGroupId,
       }),
     }
   )

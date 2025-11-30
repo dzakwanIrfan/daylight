@@ -13,7 +13,7 @@ export interface Notification {
   readAt: string | null;
   referenceId: string | null;
   referenceType: string | null;
-  metadata: any;
+  metadata: Record<string, any> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +21,8 @@ export interface Notification {
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
+  isLoading: boolean;
+  hasLoaded: boolean;
 
   // Actions
   setNotifications: (notifications: Notification[]) => void;
@@ -29,45 +31,55 @@ interface NotificationState {
   markAllAsRead: () => void;
   deleteNotification: (notificationId: string) => void;
   setUnreadCount: (count: number) => void;
+  setLoading: (loading: boolean) => void;
+  setHasLoaded: (loaded: boolean) => void;
   reset: () => void;
 }
 
 const initialState = {
   notifications: [],
   unreadCount: 0,
+  isLoading: false,
+  hasLoaded: false,
 };
 
 export const useNotificationStore = create<NotificationState>()(
   persist(
     (set) => ({
-      ...initialState,
+      ... initialState,
 
       setNotifications: (notifications) =>
         set({
           notifications,
           unreadCount: notifications.filter((n) => !n.isRead).length,
+          hasLoaded: true,
         }),
 
       addNotification: (notification) =>
         set((state) => {
           // Prevent duplicates
-          if (state.notifications.some((n) => n.id === notification.id)) {
+          if (state.notifications.some((n) => n.id === notification. id)) {
             return state;
           }
 
           return {
-            notifications: [notification, ...state.notifications],
+            notifications: [notification, ...state.notifications]. slice(0, 100), // Keep max 100
             unreadCount: notification.isRead ? state.unreadCount : state.unreadCount + 1,
           };
         }),
 
       markAsRead: (notificationId) =>
-        set((state) => ({
-          notifications: state.notifications.map((n) =>
-            n.id === notificationId ? { ...n, isRead: true, readAt: new Date(). toISOString() } : n
-          ),
-          unreadCount: Math.max(0, state.unreadCount - 1),
-        })),
+        set((state) => {
+          const notification = state.notifications. find((n) => n.id === notificationId);
+          if (! notification || notification.isRead) return state;
+
+          return {
+            notifications: state.notifications.map((n) =>
+              n.id === notificationId ?  { ...n, isRead: true, readAt: new Date(). toISOString() } : n
+            ),
+            unreadCount: Math.max(0, state.unreadCount - 1),
+          };
+        }),
 
       markAllAsRead: () =>
         set((state) => ({
@@ -81,16 +93,21 @@ export const useNotificationStore = create<NotificationState>()(
 
       deleteNotification: (notificationId) =>
         set((state) => {
-          const notification = state.notifications.find((n) => n.id === notificationId);
+          const notification = state.notifications. find((n) => n.id === notificationId);
           return {
             notifications: state.notifications.filter((n) => n. id !== notificationId),
-            unreadCount: notification && !notification.isRead
-              ? Math.max(0, state.unreadCount - 1)
-              : state.unreadCount,
+            unreadCount:
+              notification && !notification.isRead
+                ? Math.max(0, state.unreadCount - 1)
+                : state.unreadCount,
           };
         }),
 
       setUnreadCount: (count) => set({ unreadCount: count }),
+
+      setLoading: (isLoading) => set({ isLoading }),
+
+      setHasLoaded: (hasLoaded) => set({ hasLoaded }),
 
       reset: () => set(initialState),
     }),
@@ -98,7 +115,7 @@ export const useNotificationStore = create<NotificationState>()(
       name: 'notification-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        unreadCount: state.unreadCount,
+        unreadCount: state. unreadCount,
       }),
     }
   )

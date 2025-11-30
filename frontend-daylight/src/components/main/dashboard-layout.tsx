@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { UserMenu } from './user-menu';
 import { BottomNav } from './bottom-nav';
 import { EmailVerificationBanner } from './email-verification-banner';
-import { NotificationBell } from './notification-bell';
+import { NotificationBell } from '../notifications/notification-bell';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;

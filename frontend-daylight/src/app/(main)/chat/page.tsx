@@ -1,144 +1,145 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useChat } from '@/hooks/use-chat';
+import { useChatStore } from '@/store/chat-store';
 import { DashboardLayout } from '@/components/main/dashboard-layout';
-import { MessageCircle, Users, Sparkles, Clock } from 'lucide-react';
+import { MessageCircle, Users, Loader2, WifiOff, RefreshCw } from 'lucide-react';
+import { ChatGroupList } from '@/components/chat/chat-group-list';
+import { ChatWindow } from '@/components/chat/chat-window';
+import { ChatEmptyState } from '@/components/chat/chat-empty-state';
 
 export default function ChatPage() {
   useAuth();
+  const { groups, isConnected, loadGroups } = useChat();
+  const { activeGroupId, setActiveGroup } = useChatStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  // Load groups ONCE on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    setIsLoading(true);
+    setLoadError(false);
+
+    loadGroups()
+      .then(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setIsLoading(false);
+          setLoadError(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty deps - only run once
+
+  const activeGroup = groups.find((g) => g.id === activeGroupId);
+
+  const handleRetry = () => {
+    setIsLoading(true);
+    setLoadError(false);
+    loadGroups()
+      .then(() => setIsLoading(false))
+      .catch(() => {
+        setIsLoading(false);
+        setLoadError(true);
+      });
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
-              <MessageCircle className="w-5 h-5 text-brand" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Chat</h1>
-              <p className="text-sm text-muted-foreground">
-                Connect with your friends
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Coming Soon Content */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          {/* Hero Section */}
-          <div className="relative bg-linear-to-br from-brand/5 via-white to-brand/10 p-8 md:p-12 text-center">
-            <div className="max-w-2xl mx-auto space-y-6">
-              {/* Icon */}
-              <div className="flex justify-center">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
-                    <MessageCircle className="w-10 h-10 text-brand" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-brand flex items-center justify-center">
-                    <Sparkles className="w-3 h-3 text-white" />
-                  </div>
-                </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-brand" />
               </div>
-
-              {/* Title */}
-              <div className="space-y-3">
-                <h2 className="text-2xl md:text-3xl font-bold">
-                  Real-Time Chat Coming Soon
-                </h2>
-                <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
-                  We're building something special. Connect with friends, share moments, 
-                  and keep the conversation flowing—all within DayLight.
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Chat</h1>
+                <p className="text-sm text-muted-foreground">
+                  Connect with your group members
                 </p>
               </div>
-
-              {/* Status Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-brand/20 text-sm font-medium text-brand">
-                <Clock className="w-4 h-4" />
-                In Development
-              </div>
             </div>
-          </div>
 
-          {/* Features Preview */}
-          <div className="p-6 md:p-8 border-t border-gray-200">
-            <div className="max-w-3xl mx-auto">
-              <h3 className="text-lg font-semibold mb-6 text-center">
-                What to Expect
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Feature 1 */}
-                <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                      <MessageCircle className="w-5 h-5 text-brand" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium mb-1">Real-Time Messaging</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Instant communication with friends in your DayLight community
-                      </p>
-                    </div>
-                  </div>
+            {/* Connection Status */}
+            <div className="flex items-center gap-2">
+              {isConnected ? (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse" />
+                  Connected
                 </div>
-
-                {/* Feature 2 */}
-                <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                      <Users className="w-5 h-5 text-brand" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium mb-1">Group Conversations</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Create group chats to plan activities and stay connected
-                      </p>
-                    </div>
-                  </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-orange-600">
+                  <WifiOff className="w-4 h-4" />
+                  Connecting...
                 </div>
-
-                {/* Feature 3 */}
-                <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                      <Sparkles className="w-5 h-5 text-brand" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium mb-1">Rich Media Sharing</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Share photos, videos, and moments from your gatherings
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Feature 4 */}
-                <div className="border border-gray-200 rounded-lg p-4 hover:border-brand/30 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-brand" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium mb-1">Event Coordination</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Coordinate meetups and activities directly in chat
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-          </div>
-
-          {/* Bottom CTA */}
-          <div className="bg-gray-50 border-t border-gray-200 p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Stay tuned! We'll notify you when chat becomes available. 🚀
-            </p>
           </div>
         </div>
+
+        {/* Chat Interface */}
+        {isLoading ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 flex flex-col items-center justify-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-brand" />
+            <p className="text-muted-foreground">Loading your chats...</p>
+          </div>
+        ) : loadError ?  (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 flex flex-col items-center justify-center gap-4">
+            <WifiOff className="w-12 h-12 text-gray-400" />
+            <p className="text-muted-foreground">Failed to load chat groups</p>
+            <button
+              onClick={handleRetry}
+              className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-dark transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+          </div>
+        ) : groups.length === 0 ? (
+          <ChatEmptyState />
+        ) : (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 h-[calc(100vh-300px)] min-h-[500px]">
+              {/* Group List */}
+              <div className="border-r border-gray-200 overflow-y-auto">
+                <ChatGroupList
+                  groups={groups}
+                  activeGroupId={activeGroupId}
+                  onSelectGroup={setActiveGroup}
+                />
+              </div>
+
+              {/* Chat Window */}
+              <div className="col-span-2">
+                {activeGroup ? (
+                  <ChatWindow group={activeGroup} />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-center p-6">
+                    <div className="space-y-3">
+                      <Users className="w-12 h-12 text-gray-400 mx-auto" />
+                      <p className="text-muted-foreground">
+                        Select a group to start chatting
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

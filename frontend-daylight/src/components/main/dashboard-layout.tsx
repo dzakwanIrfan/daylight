@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { UserMenu } from './user-menu';
 import { BottomNav } from './bottom-nav';
 import { EmailVerificationBanner } from './email-verification-banner';
+import { NotificationBell } from './notification-bell';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,7 +23,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </h1>
             </Link>
 
-            <UserMenu />
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <UserMenu />
+            </div>
           </div>
         </div>
       </header>

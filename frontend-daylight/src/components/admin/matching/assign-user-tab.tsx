@@ -40,7 +40,7 @@ export function AssignUserTab({ eventId, groups }: AssignUserTabProps) {
 
   const filteredUnassigned = unassigned.filter(
     (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -116,8 +116,8 @@ export function AssignUserTab({ eventId, groups }: AssignUserTabProps) {
             </Label>
             <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg p-2">
               {filteredUnassigned.map((participant) => {
-                const initials = participant.name
-                  .split(' ')
+                const initials = [participant.firstName, participant.lastName]
+                  .filter(Boolean)
                   .map((n) => n[0])
                   .join('')
                   .toUpperCase()
@@ -146,7 +146,7 @@ export function AssignUserTab({ eventId, groups }: AssignUserTabProps) {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {participant.name}
+                        {participant.firstName} {participant.lastName}
                       </p>
                       <p className="text-xs text-gray-500 truncate">
                         {participant.email}

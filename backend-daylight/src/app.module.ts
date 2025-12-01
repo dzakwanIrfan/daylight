@@ -26,6 +26,7 @@ import { BlogModule } from './blog/blog.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ChatModule } from './chat/chat.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { LocationModule } from './location/location.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AnalyticsModule,
     ChatModule,
     NotificationsModule,
+    LocationModule
   ],
   providers: [
     {

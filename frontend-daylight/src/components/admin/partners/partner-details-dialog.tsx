@@ -98,7 +98,15 @@ export function PartnerDetailsDialog({ partner, open, onOpenChange }: PartnerDet
                   <MapPin className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-gray-900">{partner.address}</p>
-                    <p className="text-gray-600">{partner.city}</p>
+                    {/* Show cityRelation if available */}
+                    <p className="text-gray-600">
+                      {partner.cityRelation?.name || partner.city}
+                      {partner.cityRelation?.country && (
+                        <span className="text-gray-500">
+                          {' '}• {partner.cityRelation.country.name}
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
                 {partner.googleMapsUrl && (

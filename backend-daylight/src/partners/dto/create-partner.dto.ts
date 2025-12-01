@@ -10,7 +10,8 @@ import {
   MinLength,
   MaxLength,
   IsJSON,
-  ValidateIf
+  ValidateIf,
+  IsUUID
 } from 'class-validator';
 import { PartnerType, PartnerStatus } from '@prisma/client';
 
@@ -37,15 +38,19 @@ export class CreatePartnerDto {
   @MinLength(10)
   address: string;
 
+  // Legacy city string (kept for backward compatibility)
   @IsString()
   @MinLength(2)
   city: string;
+
+  // Required cityId relation
+  @IsUUID()
+  cityId: string;
 
   @IsOptional()
   @IsString()
   phoneNumber?: string;
 
-  // Only validate email format if it's not empty
   @IsOptional()
   @ValidateIf((o) => o.email !== '' && o.email !== null && o.email !== undefined)
   @IsEmail()

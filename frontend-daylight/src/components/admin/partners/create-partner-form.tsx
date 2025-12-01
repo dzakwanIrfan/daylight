@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, X, Upload, Image as ImageIcon, MapPin } from 'lucide-react';
 import { useAdminPartnerMutations } from '@/hooks/use-partners';
+import { useCityOptions } from '@/hooks/use-admin-locations';
 import { PartnerType, PartnerStatus, CreatePartnerInput } from '@/types/partner.types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
@@ -30,6 +31,9 @@ export function CreatePartnerForm() {
   const [tagInput, setTagInput] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [amenityInput, setAmenityInput] = useState('');
+
+  // Fetch cities using existing hook
+  const { data: cities, isLoading: citiesLoading } = useCityOptions();
 
   // Image upload states
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -49,6 +53,8 @@ export function CreatePartnerForm() {
     handleSubmit,
     formState: { errors },
     control,
+    watch,
+    setValue,
   } = useForm<CreatePartnerInput>({
     defaultValues: {
       type: PartnerType.BRAND,
@@ -58,6 +64,17 @@ export function CreatePartnerForm() {
       isFeatured: false,
     },
   });
+
+  // Watch cityId to auto-fill city name
+  const selectedCityId = watch('cityId');
+  useEffect(() => {
+    if (selectedCityId && cities && cities.length > 0) {
+      const selectedCity = cities.find((c) => c.id === selectedCityId);
+      if (selectedCity) {
+        setValue('city', selectedCity.name);
+      }
+    }
+  }, [selectedCityId, cities, setValue]);
 
   useEffect(() => {
     if (createPartner.isSuccess) {
@@ -180,6 +197,12 @@ export function CreatePartnerForm() {
   };
 
   const onSubmit = async (data: CreatePartnerInput) => {
+    // Validate cityId is selected
+    if (!data.cityId) {
+      toast.error('Please select a city');
+      return;
+    }
+
     try {
       setIsUploading(true);
 
@@ -416,7 +439,7 @@ export function CreatePartnerForm() {
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value={PartnerStatus.PENDING}>Pending</SelectItem>
-                    <SelectItem value={PartnerStatus.ACTIVE}>Active</SelectItem>
+                    <SelectItem value={PartnerStatus. ACTIVE}>Active</SelectItem>
                     <SelectItem value={PartnerStatus.INACTIVE}>Inactive</SelectItem>
                     <SelectItem value={PartnerStatus.REJECTED}>Rejected</SelectItem>
                   </SelectContent>
@@ -446,11 +469,63 @@ export function CreatePartnerForm() {
         </div>
       </div>
 
-      {/* Location */}
+      {/* Location City Selector */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Location</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* City Selector (Required) */}
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="cityId">City *</Label>
+            <Controller
+              name="cityId"
+              control={control}
+              rules={{ required: 'City is required' }}
+              render={({ field }) => (
+                <Select 
+                  value={field.value} 
+                  onValueChange={field.onChange}
+                  disabled={citiesLoading}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={citiesLoading ? "Loading cities..." : "Select a city"}>
+                      {field.value && cities && cities.length > 0 ?  (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <span>{cities.find((c) => c.id === field.value)?.name}</span>
+                        </div>
+                      ) : (
+                        "Select a city"
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white max-h-[300px]">
+                    {! cities || cities.length === 0 ? (
+                      <div className="p-4 text-sm text-gray-500 text-center">
+                        No cities available
+                      </div>
+                    ) : (
+                      cities.map((city) => (
+                        <SelectItem key={city.id} value={city.id}>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-gray-400" />
+                            <span>{city.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.cityId && (
+              <p className="text-xs text-red-600">{errors. cityId.message}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              Select the city where this partner is located.  This ensures partners appear in the correct location when creating events.
+            </p>
+          </div>
+
           <div className="md:col-span-2 space-y-2">
             <Label htmlFor="address">Address *</Label>
             <Textarea
@@ -461,18 +536,6 @@ export function CreatePartnerForm() {
             />
             {errors.address && (
               <p className="text-xs text-red-600">{errors.address.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="city">City *</Label>
-            <Input
-              id="city"
-              placeholder="e.g., Jakarta"
-              {...register('city', { required: 'City is required', minLength: 2 })}
-            />
-            {errors.city && (
-              <p className="text-xs text-red-600">{errors.city.message}</p>
             )}
           </div>
 
@@ -699,7 +762,7 @@ export function CreatePartnerForm() {
                   htmlFor="isPreferred"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Preferred Partner (show green badge)
+                  Preferred Partner (show badge)
                 </Label>
               </div>
             )}
@@ -748,6 +811,9 @@ export function CreatePartnerForm() {
           {isUploading ? 'Uploading...' : 'Create Partner'}
         </Button>
       </div>
+
+      {/* Hidden field for city name (auto-filled) */}
+      <input type="hidden" {... register('city')} />
     </form>
   );
 }

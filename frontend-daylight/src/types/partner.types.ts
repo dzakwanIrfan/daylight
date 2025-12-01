@@ -10,6 +10,22 @@ export enum PartnerStatus {
   REJECTED = 'REJECTED',
 }
 
+// City relation type
+export interface CityRelation {
+  id: string;
+  name: string;
+  slug: string;
+  timezone?: string;
+  countryId?: string;
+  country?: {
+    id: string;
+    code: string;
+    name: string;
+    currency: string;
+    phoneCode: string;
+  };
+}
+
 export interface Partner {
   id: string;
   name: string;
@@ -19,6 +35,8 @@ export interface Partner {
   shortDescription?: string;
   address: string;
   city: string;
+  cityId?: string;
+  cityRelation?: CityRelation;
   phoneNumber?: string;
   email?: string;
   website?: string;
@@ -51,6 +69,7 @@ export interface CreatePartnerInput {
   shortDescription?: string;
   address: string;
   city: string;
+  cityId: string;
   phoneNumber?: string;
   email?: string;
   website?: string;
@@ -86,6 +105,7 @@ export interface QueryPartnersParams {
   isPreferred?: boolean;
   isFeatured?: boolean;
   city?: string;
+  cityId?: string; // Filter by cityId
 }
 
 export interface QueryPartnersResponse {
@@ -159,7 +179,22 @@ export interface AvailablePartner {
   name: string;
   type: PartnerType;
   city: string;
+  cityId?: string;
   address: string;
   logo?: string;
   isPreferred: boolean;
+  latitude?: number;
+  longitude?: number;
+  googleMapsUrl?: string;
+}
+
+// Response for getPartnersByCity endpoint
+export interface PartnersByCityResponse {
+  city: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  partners: AvailablePartner[];
+  total: number;
 }

@@ -124,8 +124,11 @@ export const columns: ColumnDef<Event>[] = [
       <DataTableColumnHeader column={column} title="City" />
     ),
     cell: ({ row }) => {
+      const event = row.original;
       return (
-        <span className="text-sm text-gray-900">{row.getValue('city')}</span>
+        <span className="text-sm text-gray-900">
+          {event.cityRelation?.name || event.city}
+        </span>
       );
     },
   },

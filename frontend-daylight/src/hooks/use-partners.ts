@@ -18,6 +18,7 @@ export const partnerKeys = {
   publicDetail: (slug: string) => [...partnerKeys.all, 'public', slug] as const,
   stats: () => [...partnerKeys.all, 'stats'] as const,
   available: () => [...partnerKeys.all, 'available'] as const,
+  byCity: (cityId: string) => [...partnerKeys.all, 'by-city', cityId] as const,
 };
 
 // PUBLIC HOOKS
@@ -64,6 +65,19 @@ export function useAvailablePartners() {
   });
 }
 
+/**
+ * Get partners filtered by city (for Event Form)
+ * Used when admin selects a city in event creation/edit form
+ */
+export function usePartnersByCity(cityId: string | null | undefined) {
+  return useQuery({
+    queryKey: partnerKeys.byCity(cityId || ''),
+    queryFn: () => partnerService.getPartnersByCity(cityId! ),
+    enabled: !!cityId, // Only fetch when cityId is provided
+    staleTime: 60000, // 1 minute
+  });
+}
+
 export function usePartnerDashboardStats() {
   return useQuery({
     queryKey: partnerKeys.stats(),
@@ -83,6 +97,8 @@ export function useAdminPartnerMutations() {
       queryClient.invalidateQueries({ queryKey: partnerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: partnerKeys.stats() });
       queryClient.invalidateQueries({ queryKey: partnerKeys.available() });
+      // Invalidate all by-city queries
+      queryClient.invalidateQueries({ queryKey: [...partnerKeys.all, 'by-city'] });
       toast.success(data.message || 'Partner created successfully');
     },
     onError: (error: any) => {
@@ -98,6 +114,8 @@ export function useAdminPartnerMutations() {
       queryClient.invalidateQueries({ queryKey: partnerKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: partnerKeys.stats() });
       queryClient.invalidateQueries({ queryKey: partnerKeys.available() });
+      // Invalidate all by-city queries
+      queryClient.invalidateQueries({ queryKey: [...partnerKeys.all, 'by-city'] });
       toast.success(data.message || 'Partner updated successfully');
     },
     onError: (error: any) => {
@@ -112,6 +130,7 @@ export function useAdminPartnerMutations() {
       queryClient.invalidateQueries({ queryKey: partnerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: partnerKeys.stats() });
       queryClient.invalidateQueries({ queryKey: partnerKeys.available() });
+      queryClient.invalidateQueries({ queryKey: [...partnerKeys.all, 'by-city'] });
       toast.success(data.message || 'Partner deleted successfully');
     },
     onError: (error: any) => {
@@ -124,6 +143,7 @@ export function useAdminPartnerMutations() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: partnerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: partnerKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: [...partnerKeys.all, 'by-city'] });
       toast.success(data.message || 'Bulk action completed successfully');
     },
     onError: (error: any) => {

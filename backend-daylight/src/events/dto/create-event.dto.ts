@@ -9,7 +9,9 @@ import {
   Min,
   IsUrl,
   MinLength,
-  MaxLength
+  MaxLength,
+  IsUUID,
+  ValidateIf
 } from 'class-validator';
 import { EventCategory, EventStatus } from '@prisma/client';
 
@@ -40,17 +42,32 @@ export class CreateEventDto {
   @IsDateString()
   endTime: string;
 
+  // Required cityId (normalized location)
+  @IsUUID()
+  cityId: string;
+
+  // partnerId (will auto-fill venue data if provided)
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
+
+  // Manual venue input (required if no partnerId)
+  @IsOptional()
+  @ValidateIf((o) => ! o.partnerId)
   @IsString()
   @MinLength(3)
-  venue: string;
+  venue?: string;
 
+  @IsOptional()
+  @ValidateIf((o) => ! o.partnerId)
   @IsString()
   @MinLength(10)
-  address: string;
+  address?: string;
 
+  // Legacy city string (auto-filled from City relation)
+  @IsOptional()
   @IsString()
-  @MinLength(2)
-  city: string;
+  city?: string;
 
   @IsOptional()
   @IsUrl()
@@ -106,8 +123,4 @@ export class CreateEventDto {
   @IsOptional()
   @IsString()
   organizerContact?: string;
-
-  @IsOptional()
-  @IsString()
-  partnerId?: string;
 }

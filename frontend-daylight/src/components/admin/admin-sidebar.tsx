@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { X, LayoutDashboard, Users, Calendar, Handshake, Crown, Settings, FileText, CreditCard, BookText, Folder, Tags, Sparkles, Sparkle, BarChart3 } from 'lucide-react';
+import { X, LayoutDashboard, Users, Calendar, Handshake, Crown, Settings, FileText, CreditCard, BookText, Folder, Tags, Sparkles, Sparkle, BarChart3, Globe, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -55,6 +55,21 @@ const menuSections: MenuSection[] = [
         title: 'Partners',
         href: '/admin/partners',
         icon: Handshake,
+      },
+    ],
+  },
+  {
+    title: 'Locations',
+    items: [
+      {
+        title: 'Countries',
+        href: '/admin/locations/countries',
+        icon: Globe,
+      },
+      {
+        title: 'Cities',
+        href: '/admin/locations/cities',
+        icon: MapPin,
       },
     ],
   },
@@ -142,20 +157,30 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
     // Special handling for blog routes
     if (href === '/admin/blog') {
-      // Only active if exactly /admin/blog or /admin/blog/new or /admin/blog/[id]/edit
       return pathname === '/admin/blog' || 
              pathname === '/admin/blog/new' ||
-             pathname.match(/^\/admin\/blog\/[^/]+\/edit$/);
+             pathname. match(/^\/admin\/blog\/[^/]+\/edit$/);
     }
 
     if (href === '/admin/blog/categories') {
-      // Only active if exactly /admin/blog/categories
       return pathname === '/admin/blog/categories';
     }
 
     if (href === '/admin/blog/tags') {
-      // Only active if exactly /admin/blog/tags
       return pathname === '/admin/blog/tags';
+    }
+
+    // Special handling for location routes
+    if (href === '/admin/locations/countries') {
+      return pathname === '/admin/locations/countries' || 
+             pathname === '/admin/locations/countries/new' ||
+             pathname. match(/^\/admin\/locations\/countries\/[^/]+\/edit$/);
+    }
+
+    if (href === '/admin/locations/cities') {
+      return pathname === '/admin/locations/cities' || 
+             pathname === '/admin/locations/cities/new' ||
+             pathname.match(/^\/admin\/locations\/cities\/[^/]+\/edit$/);
     }
     
     // For other routes, exact match or starts with href + /

@@ -76,8 +76,10 @@ model User {
   posts             BlogPost[]
   pageViews         PageView[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  messages      Message[]
+  notifications Notification[]
 
   @@index([email])
   @@index([googleId])
@@ -535,8 +537,9 @@ model MatchingGroup {
   tableNumber String?
   venueName   String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  Message[]
 
   @@unique([eventId, groupNumber])
   @@index([eventId])
@@ -807,4 +810,72 @@ model DailyAnalytics {
   updatedAt DateTime @updatedAt
 
   @@index([date])
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  GROUP_MATCHED
+  EVENT_REMINDER
+  SYSTEM
+}
+
+model Message {
+  id      String        @id @default(uuid())
+  content String        @db.Text
+  status  MessageStatus @default(SENT)
+
+  // Relations
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  groupId String
+  group   MatchingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  isEdited Boolean   @default(false)
+  editedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model Notification {
+  id      String           @id @default(uuid())
+  type    NotificationType
+  title   String
+  message String           @db.Text
+
+  // Target user
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Status
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  // Optional reference data
+  referenceId   String? // ID of related entity (message, event, etc)
+  referenceType String? // Type of entity (message, event, matching_group)
+
+  // Additional data
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
 }

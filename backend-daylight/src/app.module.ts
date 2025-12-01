@@ -24,6 +24,8 @@ import { MatchingModule } from './matching/matching.module';
 import { PartnersModule } from './partners/partners.module';
 import { BlogModule } from './blog/blog.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ChatModule } from './chat/chat.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -59,6 +61,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     PartnersModule,
     BlogModule,
     AnalyticsModule,
+    ChatModule,
+    NotificationsModule,
   ],
   providers: [
     {

@@ -2,6 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/auth-store';
 import { usePersonalityTestStore } from '@/store/personality-test-store';
 import { parseApiError } from './api-error';
+import { disconnectAllSockets } from '@/hooks/use-socket';
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
@@ -44,6 +45,7 @@ const clearAuthCookies = () => {
 const handleCompleteLogout = () => {
   useAuthStore.getState().clearAuth();
   usePersonalityTestStore.getState().reset();
+  disconnectAllSockets();
   if (typeof window !== 'undefined') {
     localStorage.removeItem('personality-test-storage');
   }

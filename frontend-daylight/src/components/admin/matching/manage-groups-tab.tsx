@@ -143,8 +143,8 @@ export function ManageGroupsTab({ eventId, groups }: ManageGroupsTabProps) {
             {/* Members List */}
             <div className="space-y-2">
               {group.members.map((member) => {
-                const initials = member.user.name
-                  .split(' ')
+                const initials = [member.user.firstName, member.user.lastName]
+                  .filter(Boolean)
                   .map((n) => n[0])
                   .join('')
                   .toUpperCase()
@@ -160,7 +160,7 @@ export function ManageGroupsTab({ eventId, groups }: ManageGroupsTabProps) {
                         {member.user.profilePicture ? (
                           <AvatarImage
                             src={member.user.profilePicture}
-                            alt={member.user.name}
+                            alt={member.user.firstName + ' ' + member.user.lastName}
                             crossOrigin="anonymous"
                             referrerPolicy="no-referrer"
                           />
@@ -173,7 +173,7 @@ export function ManageGroupsTab({ eventId, groups }: ManageGroupsTabProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {member.user.name}
+                            {[member.user.firstName, member.user.lastName].filter(Boolean).join(' ')}
                           </p>
                           {member.isManuallyAssigned && (
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
@@ -199,7 +199,7 @@ export function ManageGroupsTab({ eventId, groups }: ManageGroupsTabProps) {
                           onClick={() =>
                             handleMoveClick(
                               member.userId,
-                              member.user.name,
+                              member.user.firstName + ' ' + member.user.lastName,
                               group.id,
                               group.groupNumber
                             )
@@ -213,7 +213,7 @@ export function ManageGroupsTab({ eventId, groups }: ManageGroupsTabProps) {
                           onClick={() =>
                             handleRemoveClick(
                               member.userId,
-                              member.user.name,
+                              member.user.firstName + ' ' + member.user.lastName,
                               group.id,
                               group.groupNumber
                             )

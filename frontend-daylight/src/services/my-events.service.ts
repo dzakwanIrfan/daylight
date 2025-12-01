@@ -35,7 +35,7 @@ class MyEventsService {
    */
   async getMyMatchingGroup(eventId: string): Promise<MatchingGroup> {
     const response = await apiClient.get(`/matching/events/${eventId}/my-group`);
-    return response.data;
+    return response.data.group;
   }
 }
 

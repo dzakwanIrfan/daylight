@@ -9,4 +9,5 @@ export interface SubmitPersonalityTestDto {
   relationshipStatus?: 'SINGLE' | 'MARRIED' | 'PREFER_NOT_SAY';
   intentOnDaylight?: string[];
   genderMixComfort?: 'TOTALLY_FINE' | 'PREFER_SAME_GENDER' | 'DEPENDS';
+  currentCityId?: string;
 }

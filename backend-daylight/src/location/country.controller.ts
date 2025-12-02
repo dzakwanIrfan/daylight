@@ -13,6 +13,13 @@ import { BulkActionCountryDto } from './dto/bulk-action-country.dto';
 export class CountryController {
   constructor(private readonly countryService: CountryService) {}
 
+  // PUBLIC ENDPOINT
+  @Get('options')
+  async getCountryOptions() {
+    return this.countryService. getCountryOptions();
+  }
+
+  // PROTECTED ENDPOINTS
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole. ADMIN)
   @Get()
@@ -27,12 +34,6 @@ export class CountryController {
     return this.countryService.exportCountries(queryDto);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Get('options')
-  async getCountryOptions() {
-    return this.countryService. getCountryOptions();
-  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)

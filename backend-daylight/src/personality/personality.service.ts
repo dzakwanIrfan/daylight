@@ -189,21 +189,32 @@ export class PersonalityService {
       relationshipStatus?: string;
       intentOnDaylight?: string[];
       genderMixComfort?: string;
+      currentCityId?: string;
     },
   ) {
     const calculation = await this.calculatePersonality(answers);
 
-    // Convert answers to proper JSON format for Prisma
     const answersJson: AnswerJson = answers.map(a => ({
       questionNumber: a.questionNumber,
       selectedOption: a.selectedOption,
     }));
 
-    // Parse context data with proper type checking
     const relationshipStatus = this.parseRelationshipStatus(contextData?.relationshipStatus);
     const genderMixComfort = this.parseGenderMixComfort(contextData?.genderMixComfort);
 
-    // Check if result already exists for this session
+    if (contextData?.currentCityId) {
+      const city = await this.prisma.city.findFirst({
+        where: { 
+          id: contextData.currentCityId,
+          isActive: true,
+        },
+      });
+
+      if (!city) {
+        throw new BadRequestException('Invalid or inactive city');
+      }
+    }
+
     const existing = await this.prisma.personalityResult.findUnique({
       where: { sessionId },
     });
@@ -226,6 +237,7 @@ export class PersonalityService {
       relationshipStatus,
       intentOnDaylight: contextData?.intentOnDaylight || [],
       genderMixComfort,
+      currentCity: contextData?.currentCityId ? { connect: { id: contextData.currentCityId } } : undefined,
       answers: answersJson,
     };
 
@@ -341,6 +353,7 @@ export class PersonalityService {
         relationshipStatus: result.relationshipStatus,
         intentOnDaylight: result.intentOnDaylight,
         genderMixComfort: result.genderMixComfort,
+        currentCityId: result.currentCityId,
       },
       createdAt: result.createdAt,
     };

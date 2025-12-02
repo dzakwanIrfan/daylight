@@ -43,11 +43,11 @@ const categoryConfig = {
 
 export function EventCard({ event }: EventCardProps) {
   const formatDate = (date: string) => {
-    return format(new Date(date), 'EEE, dd MMM', { locale: idLocale });
+    return format(new Date(date), 'EEE, dd MMM');
   };
 
   const formatTime = (time: string) => {
-    return format(new Date(time), 'HH:mm', { locale: idLocale });
+    return format(new Date(time), 'hh:mm a');
   };
 
   const categoryInfo = categoryConfig[event.category];

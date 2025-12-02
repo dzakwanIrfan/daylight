@@ -1,4 +1,4 @@
-import { Partner } from "./partner.types";
+import { Partner, CityRelation } from "./partner.types";
 
 export enum EventCategory {
   DAYBREAK = 'DAYBREAK',
@@ -35,6 +35,8 @@ export interface Event {
   venue: string;
   address: string;
   city: string;
+  cityId?: string;
+  cityRelation?: CityRelation;
   googleMapsUrl?: string;
   latitude?: number;
   longitude?: number;
@@ -52,6 +54,7 @@ export interface Event {
   createdAt: string;
   updatedAt: string;
   partner: Partner | null;
+  partnerId?: string | null;
 }
 
 export interface EventPurchaseStatus {
@@ -77,9 +80,11 @@ export interface CreateEventInput {
   eventDate: string;
   startTime: string;
   endTime: string;
-  venue: string;
-  address: string;
-  city: string;
+  cityId: string;
+  partnerId?: string;
+  venue?: string;
+  address?: string;
+  city?: string;
   googleMapsUrl?: string;
   latitude?: number;
   longitude?: number;
@@ -93,7 +98,6 @@ export interface CreateEventInput {
   highlights?: string[];
   organizerName?: string;
   organizerContact?: string;
-  partnerId?: string;
 }
 
 export interface UpdateEventInput extends Partial<CreateEventInput> {}
@@ -109,6 +113,7 @@ export interface QueryEventsParams {
   isActive?: boolean;
   isFeatured?: boolean;
   city?: string;
+  cityId?: string; // Filter by cityId
   dateFrom?: string;
   dateTo?: string;
 }

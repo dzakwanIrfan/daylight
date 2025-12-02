@@ -33,13 +33,8 @@ export class PartnersController {
     private uploadService: UploadService,
   ) {}
 
-  // ============================================
   // PUBLIC ENDPOINTS
-  // ============================================
 
-  /**
-   * Get all public partners (no auth required)
-   */
   @Public()
   @Get('public')
   async getPublicPartners(@Query() queryDto: QueryPartnersDto) {
@@ -50,28 +45,31 @@ export class PartnersController {
     });
   }
 
-  /**
-   * Get partner by slug (no auth required)
-   */
   @Public()
   @Get('public/:slug')
   async getPublicPartnerBySlug(@Param('slug') slug: string) {
     return this.partnersService.getPartnerBySlug(slug);
   }
 
+  // ADMIN ENDPOINTS
+
   /**
-   * Get available partners for event selection (Admin use)
+   * Get partners by city (Helper for Event Form)
+   * Admin only - Used when creating/editing events
    */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('by-city/:cityId')
+  async getPartnersByCity(@Param('cityId') cityId: string) {
+    return this.partnersService.getPartnersByCity(cityId);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Get('available')
   async getAvailablePartnersForEvent() {
     return this.partnersService.getAvailablePartnersForEvent();
   }
-
-  // ============================================
-  // ADMIN ENDPOINTS
-  // ============================================
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -135,9 +133,6 @@ export class PartnersController {
     return this.partnersService.bulkAction(bulkActionDto);
   }
 
-  /**
-   * Upload partner logo
-   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post(':id/upload/logo')
@@ -148,36 +143,30 @@ export class PartnersController {
   ) {
     const uploadResult = await this.uploadService.uploadFile(file, {
       allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
-      maxSize: 5 * 1024 * 1024, // 5MB
+      maxSize: 5 * 1024 * 1024,
       folder: 'logos',
     });
 
     return this.partnersService.uploadPartnerImage(id, 'logo', uploadResult.url);
   }
 
-  /**
-   * Upload partner cover image
-   */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole. ADMIN)
   @Post(':id/upload/cover')
   @UseInterceptors(FileInterceptor('cover'))
   async uploadCover(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express. Multer.File,
   ) {
     const uploadResult = await this.uploadService.uploadFile(file, {
       allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
-      maxSize: 10 * 1024 * 1024, // 10MB
+      maxSize: 10 * 1024 * 1024,
       folder: 'covers',
     });
 
     return this.partnersService.uploadPartnerImage(id, 'cover', uploadResult.url);
   }
 
-  /**
-   * Upload gallery image
-   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post(':id/upload/gallery')
@@ -188,16 +177,13 @@ export class PartnersController {
   ) {
     const uploadResult = await this.uploadService.uploadFile(file, {
       allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
-      maxSize: 10 * 1024 * 1024, // 10MB
+      maxSize: 10 * 1024 * 1024,
       folder: 'gallery',
     });
 
     return this.partnersService.uploadPartnerImage(id, 'gallery', uploadResult.url);
   }
 
-  /**
-   * Remove image from gallery
-   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Delete(':id/gallery/image')

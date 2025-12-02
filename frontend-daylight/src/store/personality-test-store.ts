@@ -14,6 +14,7 @@ interface PersonalityTestState {
   relationshipStatus?: 'SINGLE' | 'MARRIED' | 'PREFER_NOT_SAY';
   intentOnDaylight?: string[];
   genderMixComfort?: 'TOTALLY_FINE' | 'PREFER_SAME_GENDER' | 'DEPENDS';
+  currentCityId?: string; 
   isTestCompleted: boolean;
   completedAt?: number;
   setSessionId: (sessionId: string) => void;
@@ -23,6 +24,7 @@ interface PersonalityTestState {
     relationshipStatus?: 'SINGLE' | 'MARRIED' | 'PREFER_NOT_SAY';
     intentOnDaylight?: string[];
     genderMixComfort?: 'TOTALLY_FINE' | 'PREFER_SAME_GENDER' | 'DEPENDS';
+    currentCityId?: string; 
   }) => void;
   setTestCompleted: () => void;
   reset: () => void;
@@ -39,6 +41,7 @@ export const usePersonalityTestStore = create<PersonalityTestState>()(
       relationshipStatus: undefined,
       intentOnDaylight: undefined,
       genderMixComfort: undefined,
+      currentCityId: undefined, 
       isTestCompleted: false,
       completedAt: undefined,
       
@@ -80,6 +83,7 @@ export const usePersonalityTestStore = create<PersonalityTestState>()(
           relationshipStatus: undefined,
           intentOnDaylight: undefined,
           genderMixComfort: undefined,
+          currentCityId: undefined, 
           isTestCompleted: false,
           completedAt: undefined,
         });
@@ -90,7 +94,6 @@ export const usePersonalityTestStore = create<PersonalityTestState>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         
-        // Auto-clear data jika sudah lebih dari 7 hari sejak completed
         if (state.isTestCompleted && state.completedAt) {
           const daysSinceCompletion = Date.now() - state.completedAt;
           

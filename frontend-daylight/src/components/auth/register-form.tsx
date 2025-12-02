@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Eye, EyeOff, CheckCircle2, XCircle, Mail, Sparkles } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle2, XCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import { personalityService } from '@/services/personality.service';
 import { usePersonalityTestStore } from '@/store/personality-test-store';
 
 const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.email('Invalid email address'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -198,7 +198,7 @@ export function RegisterForm() {
             <p className="font-semibold text-gray-900">{userEmail}</p>
           </div>
           <p className="text-sm text-gray-500">
-            Click the link in the email to verify your account and start using DayLight.
+            Click the link in the email to verify your account and start using DayLight. 
           </p>
         </div>
 
@@ -212,7 +212,7 @@ export function RegisterForm() {
             {resendMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
+                Sending... 
               </>
             ) : (
               'Resend Verification Email'
@@ -461,7 +461,7 @@ export function RegisterForm() {
       )}
 
       <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
+        Already have an account? {' '}
         <Link href="/auth/login" className="text-brand hover:underline font-medium">
           Sign in
         </Link>

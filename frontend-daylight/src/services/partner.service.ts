@@ -9,6 +9,7 @@ import type {
   BulkActionPartnerPayload,
   BulkActionPartnerResponse,
   AvailablePartner,
+  PartnersByCityResponse,
 } from '@/types/partner.types';
 
 class PartnerService {
@@ -50,7 +51,16 @@ class PartnerService {
    * ADMIN: Get available partners for event selection
    */
   async getAvailablePartnersForEvent(): Promise<AvailablePartner[]> {
-    const response = await apiClient.get(`${this.baseURL}/available`);
+    const response = await apiClient. get(`${this.baseURL}/available`);
+    return response.data;
+  }
+
+  /**
+   * ADMIN: Get partners by city (Helper for Event Form)
+   * Used when creating/editing events to filter partners by selected city
+   */
+  async getPartnersByCity(cityId: string): Promise<PartnersByCityResponse> {
+    const response = await apiClient.get(`${this.baseURL}/by-city/${cityId}`);
     return response.data;
   }
 

@@ -55,27 +55,17 @@ export const columns: ColumnDef<Partner>[] = [
       return (
         <div className="flex items-center gap-3 max-w-[300px]">
           {partner.logo && (
-            // <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-            //   {/* <Image
-            //     src={partner.logo}
-            //     alt={partner.name}
-            //     fill
-            //     className="object-cover"
-            //     crossOrigin="anonymous"
-            //     referrerPolicy="no-referrer"
-            //   /> */}
-            // </div>
-              <Avatar className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                <AvatarImage 
-                  src={partner.logo}
-                  alt={partner.name} 
-                  crossOrigin='anonymous'
-                  referrerPolicy='no-referrer'
-                />
-                <AvatarFallback className="bg-brand/10 text-brand text-sm font-medium">
-                  {partner.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+            <Avatar className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+              <AvatarImage 
+                src={partner.logo}
+                alt={partner.name} 
+                crossOrigin='anonymous'
+                referrerPolicy='no-referrer'
+              />
+              <AvatarFallback className="bg-brand/10 text-brand text-sm font-medium">
+                {partner.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
           )}
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
@@ -86,7 +76,10 @@ export const columns: ColumnDef<Partner>[] = [
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
               <MapPin className="h-3 w-3" />
-              <span className="truncate">{partner.city}</span>
+              {/* Show cityRelation name if available, fallback to legacy city */}
+              <span className="truncate">
+                {partner.cityRelation?.name || partner.city}
+              </span>
             </div>
           </div>
         </div>
@@ -114,7 +107,13 @@ export const columns: ColumnDef<Partner>[] = [
     accessorKey: 'city',
     header: ({ column }) => <DataTableColumnHeader column={column} title="City" />,
     cell: ({ row }) => {
-      return <span className="text-sm text-gray-900">{row.getValue('city')}</span>;
+      const partner = row.original;
+      // Show cityRelation name if available
+      return (
+        <span className="text-sm text-gray-900">
+          {partner.cityRelation?.name || partner.city}
+        </span>
+      );
     },
   },
   {

@@ -74,8 +74,10 @@ model City {
   users  User[]
   events Event[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  partners           Partner[]
+  personalityResults PersonalityResult[]
 
   @@index([slug])
   @@index([countryId])
@@ -88,10 +90,10 @@ model City {
 model User {
   id              String       @id @default(uuid())
   email           String       @unique
-  password        String? 
+  password        String?
   firstName       String?
-  lastName        String? 
-  phoneNumber     String? 
+  lastName        String?
+  phoneNumber     String?
   profilePicture  String?
   role            UserRole     @default(USER)
   provider        AuthProvider @default(LOCAL)
@@ -111,13 +113,13 @@ model User {
 
   // Password reset - HASHED TOKEN
   resetPasswordTokenHash String?   @unique
-  resetPasswordExpires   DateTime? 
+  resetPasswordExpires   DateTime?
 
   // Refresh token version for revocation
   refreshTokenVersion Int @default(0)
 
   subscriptions     UserSubscription[]
-  personalityResult PersonalityResult? 
+  personalityResult PersonalityResult?
   refreshTokens     RefreshToken[]
   matchingMembers   MatchingMember[]
   posts             BlogPost[]
@@ -154,10 +156,10 @@ model RefreshToken {
 
 model PersonalityResult {
   id     String  @id @default(uuid())
-  userId String?  @unique
-  user   User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  sessionId String?  @unique
+  sessionId String? @unique
 
   energyRaw    Float
   opennessRaw  Float
@@ -176,9 +178,12 @@ model PersonalityResult {
   profileScore Float
   archetype    PersonalityArchetype
 
-  relationshipStatus RelationshipStatus? 
+  relationshipStatus RelationshipStatus?
   intentOnDaylight   String[]
-  genderMixComfort   GenderMixComfort? 
+  genderMixComfort   GenderMixComfort?
+
+  currentCityId String?
+  currentCity   City?   @relation(fields: [currentCityId], references: [id], onDelete: SetNull)
 
   answers Json
 
@@ -187,6 +192,7 @@ model PersonalityResult {
 
   @@index([sessionId])
   @@index([userId])
+  @@index([currentCityId])
 }
 
 model ArchetypeDetail {
@@ -258,7 +264,7 @@ model Event {
   slug             String        @unique
   category         EventCategory
   description      String        @db.Text
-  shortDescription String?        @db.Text
+  shortDescription String?       @db.Text
 
   // Date & Time
   eventDate DateTime
@@ -269,12 +275,12 @@ model Event {
   venue         String
   address       String  @db.Text
   city          String // Legacy string field - DO NOT REMOVE
-  googleMapsUrl String?  @db.Text
-  latitude      Float? 
+  googleMapsUrl String? @db.Text
+  latitude      Float?
   longitude     Float?
 
   // Location - New normalized relation (International Support)
-  cityId      String?
+  cityId       String?
   cityRelation City?   @relation(fields: [cityId], references: [id], onDelete: SetNull)
 
   // Pricing & Capacity
@@ -293,8 +299,8 @@ model Event {
   highlights   String[] @default([])
 
   // Organizer
-  organizerName    String? 
-  organizerContact String? 
+  organizerName    String?
+  organizerContact String?
 
   transactions     Transaction[]
   matchingGroups   MatchingGroup[]
@@ -335,8 +341,8 @@ model PaymentMethod {
   feeCustomerPercent Float @default(0)
 
   // Limits
-  minimumFee    Float? 
-  maximumFee    Float? 
+  minimumFee    Float?
+  maximumFee    Float?
   minimumAmount Float
   maximumAmount Float
 
@@ -369,15 +375,15 @@ model Transaction {
   // User & Event
   userId  String
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventId String? 
-  event   Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   // Tripay References
   tripayReference String @unique
   merchantRef     String @unique
 
   // Payment Details
-  paymentMethodCode String? 
+  paymentMethodCode String?
   paymentMethod     String
   paymentName       String
   paymentStatus     PaymentStatus @default(PENDING)
@@ -394,21 +400,21 @@ model Transaction {
 
   // Payment Info
   payCode     String?
-  payUrl      String?  @db.Text
+  payUrl      String? @db.Text
   checkoutUrl String? @db.Text
-  qrString    String?  @db.Text
+  qrString    String? @db.Text
   qrUrl       String? @db.Text
 
   // Customer Info
   customerName  String
   customerEmail String
-  customerPhone String? 
+  customerPhone String?
 
-  matchingMember MatchingMember? 
+  matchingMember MatchingMember?
 
   // Timestamps
   expiredAt      DateTime?
-  paidAt         DateTime? 
+  paidAt         DateTime?
   reminderSentAt DateTime?
 
   // Metadata
@@ -456,7 +462,7 @@ model SubscriptionPlan {
   // Plan Details
   name        String // "1 Month Plan"
   type        SubscriptionPlanType
-  description String?               @db.Text
+  description String?              @db.Text
 
   // Pricing
   price    Float
@@ -499,15 +505,15 @@ model UserSubscription {
   transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
   // Dates
-  startDate   DateTime?  // When subscription becomes active
+  startDate   DateTime? // When subscription becomes active
   endDate     DateTime? // When it expires
-  cancelledAt DateTime? 
+  cancelledAt DateTime?
 
   // Auto-renewal (for future implementation)
   autoRenew Boolean @default(false)
 
   // Metadata
-  metadata Json?  // For storing additional info
+  metadata Json? // For storing additional info
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -550,9 +556,9 @@ model MatchingMember {
 
   // Manual assignment tracking
   isManuallyAssigned Boolean   @default(false)
-  assignedBy         String?  // Admin user ID who manually assigned
+  assignedBy         String? // Admin user ID who manually assigned
   assignedAt         DateTime? // When manually assigned
-  previousGroupId    String?  // Track if moved from another group
+  previousGroupId    String? // Track if moved from another group
   assignmentNote     String? // Optional note from admin
 
   createdAt DateTime @default(now())
@@ -578,17 +584,17 @@ model MatchingGroup {
   groupSize         Int
   thresholdUsed     Float // What threshold was used (70, 65, 60, etc.)
 
-  // NEW: Manual modification tracking
+  // Manual modification tracking
   hasManualChanges Boolean   @default(false)
-  lastModifiedBy   String?  // Admin user ID
+  lastModifiedBy   String? // Admin user ID
   lastModifiedAt   DateTime? // Last manual modification time
 
   // Group members
   members MatchingMember[]
 
   // Table assignment (optional)
-  tableNumber String? 
-  venueName   String? 
+  tableNumber String?
+  venueName   String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -599,7 +605,7 @@ model MatchingGroup {
   @@index([status])
 }
 
-// NEW: Store matching attempts history
+// Store matching attempts history
 model MatchingAttempt {
   id      String @id @default(uuid())
   eventId String
@@ -613,7 +619,7 @@ model MatchingAttempt {
   matchedCount      Int
   unmatchedCount    Int
   groupsFormed      Int
-  averageMatchScore Float? 
+  averageMatchScore Float?
   highestThreshold  Float // Highest threshold that worked
   lowestThreshold   Float // Lowest threshold needed
 
@@ -622,7 +628,7 @@ model MatchingAttempt {
   unmatchedUsers Json // Users who couldn't be matched
 
   // Metadata
-  executedBy    String?  // Admin user ID
+  executedBy    String? // Admin user ID
   executionTime Float // Time taken in seconds
 
   createdAt DateTime @default(now())
@@ -652,20 +658,25 @@ model Partner {
   slug             String      @unique
   type             PartnerType
   description      String?     @db.Text
-  shortDescription String? 
+  shortDescription String?
 
   // Contact & Location
-  address       String  @db.Text
-  city          String
-  phoneNumber   String? 
-  email         String? 
-  website       String? 
-  googleMapsUrl String?  @db.Text
-  latitude      Float? 
+  address String @db.Text
+  city    String
+
+  // Normalized city relation
+  cityId       String
+  cityRelation City   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+
+  phoneNumber   String?
+  email         String?
+  website       String?
+  googleMapsUrl String? @db.Text
+  latitude      Float?
   longitude     Float?
 
   // Media
-  logo       String?  // Main logo/photo
+  logo       String? // Main logo/photo
   coverImage String? // Cover/banner image
   gallery    String[] @default([]) // Additional photos
 
@@ -676,12 +687,12 @@ model Partner {
   isFeatured  Boolean       @default(false)
 
   // Operating Hours (JSON)
-  operatingHours Json?  // { "monday": "09:00-18:00", ...  }
+  operatingHours Json? // { "monday": "09:00-18:00", ...  }
 
   // Social Media
   instagram String?
   facebook  String?
-  twitter   String? 
+  twitter   String?
 
   // Metadata
   tags      String[] @default([])
@@ -700,6 +711,7 @@ model Partner {
   @@index([slug])
   @@index([type])
   @@index([city])
+  @@index([cityId])
   @@index([status])
   @@index([isPreferred])
   @@index([isActive])
@@ -709,7 +721,7 @@ model BlogCategory {
   id          String  @id @default(uuid())
   name        String  @unique
   slug        String  @unique
-  description String?  @db.Text
+  description String? @db.Text
 
   posts BlogPost[]
 
@@ -743,22 +755,22 @@ model BlogPost {
   title      String
   slug       String  @unique
   content    String  @db.Text
-  excerpt    String?  @db.Text
-  coverImage String? 
+  excerpt    String? @db.Text
+  coverImage String?
 
   status      BlogPostStatus @default(DRAFT)
-  publishedAt DateTime? 
+  publishedAt DateTime?
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
 
-  categoryId String? 
-  category   BlogCategory?  @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  category   BlogCategory? @relation(fields: [categoryId], references: [id])
 
   tags BlogTag[]
 
   viewCount Int  @default(0)
-  readTime  Int?  // Estimated read time in minutes
+  readTime  Int? // Estimated read time in minutes
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -784,30 +796,30 @@ model PageView {
 
   // Session tracking
   sessionId   String // Anonymous session ID (from cookie)
-  fingerprint String?  // Browser fingerprint for better tracking
+  fingerprint String? // Browser fingerprint for better tracking
 
   // User (optional - null for non-logged in users)
-  userId String? 
-  user   User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Page info
   path        String // e.g., "/events", "/auth/login"
-  referrer    String?  // Where they came from
+  referrer    String? // Where they came from
   queryParams Json? // URL query parameters
 
   // Device & Browser info
-  userAgent  String?     @db.Text
+  userAgent  String?    @db.Text
   deviceType DeviceType @default(UNKNOWN)
-  browser    String? 
-  os         String? 
+  browser    String?
+  os         String?
 
   // Location (from IP)
   country String?
   city    String?
-  ip      String?  // Hashed for privacy
+  ip      String? // Hashed for privacy
 
   // Timing
-  duration  Int?  // Time spent on page in seconds
+  duration  Int? // Time spent on page in seconds
   enteredAt DateTime  @default(now())
   exitedAt  DateTime?
 
@@ -815,7 +827,7 @@ model PageView {
   utmSource   String?
   utmMedium   String?
   utmCampaign String?
-  utmTerm     String? 
+  utmTerm     String?
   utmContent  String?
 
   createdAt DateTime @default(now())
@@ -846,7 +858,7 @@ model DailyAnalytics {
   tabletViews  Int @default(0)
 
   // Top pages (JSON array)
-  topPages Json?  // [{ path: string, views: number }]
+  topPages Json? // [{ path: string, views: number }]
 
   // Top referrers
   topReferrers Json? // [{ referrer: string, count: number }]
@@ -890,7 +902,7 @@ model Message {
 
   // Metadata
   isEdited Boolean   @default(false)
-  editedAt DateTime? 
+  editedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -916,7 +928,7 @@ model Notification {
   readAt DateTime?
 
   // Optional reference data
-  referenceId   String?  // ID of related entity (message, event, etc)
+  referenceId   String? // ID of related entity (message, event, etc)
   referenceType String? // Type of entity (message, event, matching_group)
 
   // Additional data

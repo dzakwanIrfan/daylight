@@ -12,14 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, CheckCircle2, Loader2, X, AlertCircle } from 'lucide-react';
+import { Building2, CheckCircle2, Loader2, X, AlertCircle, MapPin } from 'lucide-react';
 import { useAdminEventMutations } from '@/hooks/use-admin-events';
+import { useCityOptions } from '@/hooks/use-admin-locations'; 
+import { usePartnersByCity } from '@/hooks/use-partners'; 
 import { EventCategory, EventStatus, CreateEventInput } from '@/types/event.types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { useAvailablePartners } from '@/hooks/use-partners';
 import { 
   localDateTimeToISO, 
   getCurrentLocalDate, 
@@ -41,7 +42,17 @@ export function CreateEventForm() {
   const [requirementInput, setRequirementInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>([]);
   const [highlightInput, setHighlightInput] = useState('');
-  const { data: availablePartners, isLoading: isLoadingPartners } = useAvailablePartners();
+  
+  // Fetch cities
+  const { data: cities, isLoading: citiesLoading } = useCityOptions();
+  
+  // Selected city state
+  const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
+  
+  // Fetch partners by selected city
+  const { data: partnersByCityResponse, isLoading: isLoadingPartners } = usePartnersByCity(selectedCityId);
+  const availablePartners = partnersByCityResponse?.partners || [];
+  
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
   const [timeValidationError, setTimeValidationError] = useState<string>('');
   const [generalError, setGeneralError] = useState<string>('');
@@ -76,6 +87,27 @@ export function CreateEventForm() {
 
   const startTime = watch('startTime');
   const endTime = watch('endTime');
+  const watchedCityId = watch('cityId');
+
+  // Watch cityId and update selectedCityId for partner fetching
+  useEffect(() => {
+    if (watchedCityId && watchedCityId !== selectedCityId) {
+      setSelectedCityId(watchedCityId);
+      // Reset partner when city changes
+      setSelectedPartner(null);
+      setValue('partnerId', undefined);
+    }
+  }, [watchedCityId, selectedCityId, setValue]);
+
+  // Auto-fill city name from cityId
+  useEffect(() => {
+    if (watchedCityId && cities && cities.length > 0) {
+      const selectedCity = cities.find((c) => c.id === watchedCityId);
+      if (selectedCity) {
+        setValue('city', selectedCity.name);
+      }
+    }
+  }, [watchedCityId, cities, setValue]);
 
   // Validate time range
   useEffect(() => {
@@ -111,10 +143,29 @@ export function CreateEventForm() {
     setGeneralError('');
     clearErrors();
 
+    // Validate cityId
+    if (!data.cityId) {
+      setError('cityId', { message: 'City is required' });
+      setGeneralError('Please select a city');
+      return;
+    }
+
     // Validate times
     if (!isEndTimeAfterStartTime(data.startTime, data.endTime)) {
       setTimeValidationError('End time must be after start time');
       return;
+    }
+
+    // Validate venue/address (required if no partnerId)
+    if (!data.partnerId) {
+      if (!data.venue || data.venue.trim(). length < 3) {
+        setError('venue', { message: 'Venue is required when no partner is selected' });
+        return;
+      }
+      if (!data.address || data.address.trim().length < 10) {
+        setError('address', { message: 'Address is required when no partner is selected' });
+        return;
+      }
     }
 
     // Convert local datetime to ISO with timezone
@@ -165,15 +216,28 @@ export function CreateEventForm() {
     setHighlights(highlights.filter((h) => h !== highlight));
   };
 
+  // Handle partner selection
   const handlePartnerSelect = (partnerId: string) => {
+    if (partnerId === '') {
+      setSelectedPartner(null);
+      setValue('partnerId', undefined);
+      return;
+    }
+
     const partner = availablePartners?.find(p => p.id === partnerId);
     if (partner) {
       setSelectedPartner(partnerId);
+      setValue('partnerId', partnerId);
       setValue('venue', partner.name);
       setValue('address', partner.address);
-      setValue('city', partner.city);
+      
+      // Auto-fill optional fields if available
+      if (partner.latitude) setValue('latitude', partner.latitude);
+      if (partner.longitude) setValue('longitude', partner.longitude);
+      if (partner.googleMapsUrl) setValue('googleMapsUrl', partner.googleMapsUrl);
+      
       // Clear related errors
-      clearErrors(['venue', 'address', 'city']);
+      clearErrors(['venue', 'address']);
     }
   };
 
@@ -331,54 +395,118 @@ export function CreateEventForm() {
         )}
       </div>
 
-      {/* Location */}
+      {/* Location - City Selector First, Then Partner By City */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Location</h3>
 
-        {/* Partner Selection */}
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+        {/* STEP 1: City Selection (REQUIRED) */}
+        <div className="p-4 bg-brand/5 border border-brand/20 rounded-lg space-y-3">
           <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-brand" />
+            <MapPin className="h-5 w-5 text-brand" />
             <Label className="text-sm font-semibold text-gray-900">
-              Select from Partners (Optional)
+              Select City (Required)
             </Label>
           </div>
           <p className="text-xs text-gray-600">
-            Choose a partner to auto-fill venue details
+            Choose the city where this event will take place
           </p>
           
-          {isLoadingPartners ? (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading partners...
-            </div>
-          ) : (
-            <Select value={selectedPartner || ''} onValueChange={handlePartnerSelect}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Select a partner" />
-              </SelectTrigger>
-              <SelectContent className="bg-white max-h-[300px]">
-                {availablePartners?.map((partner) => (
-                  <SelectItem key={partner.id} value={partner.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{partner.name}</span>
-                      {partner.isPreferred && (
-                        <Badge className={cn("bg-green-100 text-green-700 border-green-200 text-xs px-1.5 py-0",
-                          partner?.type === PartnerType.BRAND ? "bg-green-100 text-green-700 border-green-200" : "bg-amber-50 text-amber-400 border-amber-300"
-                        )}>
-                          <CheckCircle2 className="h-3 w-3 mr-0.5" />
-                          Preferred {partner.type === PartnerType.BRAND ? 'Brand' : 'Community'}
-                        </Badge>
-                      )}
-                      <span className="text-xs text-gray-500">• {partner.city}</span>
+          <Controller
+            name="cityId"
+            control={control}
+            rules={{ required: 'City is required' }}
+            render={({ field }) => (
+              <Select 
+                value={field.value} 
+                onValueChange={field.onChange}
+                disabled={citiesLoading}
+              >
+                <SelectTrigger className={cn("bg-white", errors.cityId && 'border-red-500')}>
+                  <SelectValue placeholder={citiesLoading ? "Loading cities..." : "Select a city"}>
+                    {field.value && cities && cities.length > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span>{cities.find((c) => c.id === field.value)?.name}</span>
+                      </div>
+                    ) : (
+                      "Select a city"
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="bg-white max-h-[300px]">
+                  {!cities || cities.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-500 text-center">
+                      No cities available
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+                  ) : (
+                    cities.map((city) => (
+                      <SelectItem key={city.id} value={city.id}>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-gray-400" />
+                          <span>{city.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          <FormFieldError message={errors.cityId?.message} />
         </div>
 
+        {/* STEP 2: Partner Selection (Optional, only shown after city selected) */}
+        {selectedCityId && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-brand" />
+              <Label className="text-sm font-semibold text-gray-900">
+                Select Partner in {cities?. find(c => c.id === selectedCityId)?.name} (Optional)
+              </Label>
+            </div>
+            <p className="text-xs text-gray-600">
+              Choose a partner to auto-fill venue details, or leave empty to enter manually
+            </p>
+            
+            {isLoadingPartners ?  (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading partners...
+              </div>
+            ) : availablePartners. length === 0 ? (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                No partners available in this city yet.  You can enter venue details manually below.
+              </div>
+            ) : (
+              <Select value={selectedPartner || ''} onValueChange={handlePartnerSelect}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Select a partner (optional)" />
+                </SelectTrigger>
+                <SelectContent className="bg-white max-h-[300px]">
+                  {availablePartners.map((partner) => (
+                    <SelectItem key={partner.id} value={partner.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{partner.name}</span>
+                        {partner.isPreferred && (
+                          <Badge className={cn("text-xs px-1.5 py-0",
+                            partner.type === PartnerType.BRAND 
+                              ? "bg-amber-50 text-amber-700 border-amber-300" 
+                              : "bg-green-100 text-green-700 border-green-200"
+                          )}>
+                            <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                            Preferred
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+
+        {/* STEP 3: Venue Details (Manual or Auto-filled) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="venue">Venue Name *</Label>
@@ -387,25 +515,15 @@ export function CreateEventForm() {
               placeholder="e.g., Ubud Yoga Studio"
               className={cn(errors.venue && 'border-red-500 focus-visible:ring-red-500')}
               {...register('venue', { 
-                required: 'Venue is required', 
+                required: !selectedPartner ? 'Venue is required when no partner is selected' : false,
                 minLength: { value: 3, message: 'Venue must be at least 3 characters' } 
               })}
+              disabled={!!selectedPartner}
             />
             <FormFieldError message={errors.venue?.message} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="city">City *</Label>
-            <Input
-              id="city"
-              placeholder="e.g., Bali"
-              className={cn(errors.city && 'border-red-500 focus-visible:ring-red-500')}
-              {...register('city', { 
-                required: 'City is required', 
-                minLength: { value: 2, message: 'City must be at least 2 characters' } 
-              })}
-            />
-            <FormFieldError message={errors.city?.message} />
+            {selectedPartner && (
+              <p className="text-xs text-green-600">✓ Auto-filled from partner</p>
+            )}
           </div>
 
           <div className="md:col-span-2 space-y-2">
@@ -416,11 +534,15 @@ export function CreateEventForm() {
               placeholder="Complete address with street, district, etc."
               className={cn(errors.address && 'border-red-500 focus-visible:ring-red-500')}
               {...register('address', { 
-                required: 'Address is required', 
+                required: !selectedPartner ? 'Address is required when no partner is selected' : false,
                 minLength: { value: 10, message: 'Address must be at least 10 characters' } 
               })}
+              disabled={!!selectedPartner}
             />
             <FormFieldError message={errors.address?.message} />
+            {selectedPartner && (
+              <p className="text-xs text-green-600">✓ Auto-filled from partner</p>
+            )}
           </div>
 
           <div className="md:col-span-2 space-y-2">
@@ -463,9 +585,9 @@ export function CreateEventForm() {
         </div>
       </div>
 
-      {/* Pricing & Capacity */}
+      {/* Pricing */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Pricing & Capacity</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Pricing</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
@@ -718,6 +840,10 @@ export function CreateEventForm() {
           Create Event
         </Button>
       </div>
+
+      {/* Hidden fields for auto-filled values */}
+      <input type="hidden" {...register('city')} />
+      <input type="hidden" {...register('partnerId')} />
     </form>
   );
 }

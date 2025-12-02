@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEnum, IsInt, Min, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min, IsBoolean, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EventCategory, EventStatus } from '@prisma/client';
 
@@ -62,6 +62,11 @@ export class QueryEventsDto {
   @IsOptional()
   @IsString()
   city?: string;
+
+  // Filter by cityId (normalized)
+  @IsOptional()
+  @IsUUID()
+  cityId?: string;
 
   @IsOptional()
   @IsString()

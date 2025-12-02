@@ -15,6 +15,7 @@ interface CreateUserData {
   isEmailVerified?: boolean;
   profilePicture?: string;
   role?: string;
+  currentCityId?: string;
 }
 
 @Injectable()
@@ -28,6 +29,20 @@ export class UsersService {
 
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
+    }
+
+    // Validate city if provided
+    if (data.currentCityId) {
+      const city = await this.prisma. city.findFirst({
+        where: { 
+          id: data.currentCityId,
+          isActive: true,
+        },
+      });
+
+      if (! city) {
+        throw new BadRequestException('Invalid or inactive city');
+      }
     }
 
     let hashedPassword: string | undefined;
@@ -47,6 +62,7 @@ export class UsersService {
         isEmailVerified: data.isEmailVerified || false,
         profilePicture: data.profilePicture,
         role: UserRole.USER,
+        currentCityId: data.currentCityId, 
       },
       select: {
         id: true,
@@ -59,6 +75,23 @@ export class UsersService {
         isEmailVerified: true,
         refreshTokenVersion: true,
         createdAt: true,
+        currentCityId: true, 
+        currentCity: { 
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -68,6 +101,24 @@ export class UsersService {
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
+      include: {
+        currentCity: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -88,6 +139,23 @@ export class UsersService {
         createdAt: true,
         personalityResult: true,
         role: true,
+        currentCityId: true,
+        currentCity: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -95,6 +163,24 @@ export class UsersService {
   async findByGoogleId(googleId: string) {
     return this.prisma.user.findUnique({
       where: { googleId },
+      include: {
+        currentCity: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -118,6 +204,24 @@ export class UsersService {
         resetPasswordTokenHash: tokenHash,
         resetPasswordExpires: {
           gte: new Date(),
+        },
+      },
+      include: {
+        currentCity: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
         },
       },
     });
@@ -208,6 +312,23 @@ export class UsersService {
         isEmailVerified: true,
         createdAt: true,
         role: true,
+        currentCityId: true,
+        currentCity: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -254,12 +375,10 @@ export class UsersService {
   }
 
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
-    // Validate new password matches confirmation
     if (changePasswordDto.newPassword !== changePasswordDto.confirmPassword) {
       throw new BadRequestException('New passwords do not match');
     }
 
-    // Get user with password
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -268,12 +387,10 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Check if user has password (not OAuth user)
     if (!user.password) {
       throw new BadRequestException('Cannot change password for OAuth accounts');
     }
 
-    // Validate current password
     const isValidPassword = await this.validatePassword(
       changePasswordDto.currentPassword,
       user.password
@@ -283,7 +400,6 @@ export class UsersService {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
-    // Check if new password is different from current
     const isSamePassword = await this.validatePassword(
       changePasswordDto.newPassword,
       user.password
@@ -293,7 +409,6 @@ export class UsersService {
       throw new BadRequestException('New password must be different from current password');
     }
 
-    // Update password
     await this.updatePassword(userId, changePasswordDto.newPassword);
 
     return {
@@ -317,6 +432,24 @@ export class UsersService {
         emailVerificationTokenHash: tokenHash,
         emailVerificationExpires: {
           gte: new Date(),
+        },
+      },
+      include: {
+        currentCity: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
         },
       },
     });
@@ -348,6 +481,49 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id: userId },
       data: { googleId },
+    });
+  }
+
+  // Update user's current city
+  async updateCurrentCity(userId: string, cityId: string) {
+    // Validate city exists and is active
+    const city = await this.prisma.city.findFirst({
+      where: { 
+        id: cityId,
+        isActive: true,
+      },
+    });
+
+    if (! city) {
+      throw new BadRequestException('Invalid or inactive city');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { currentCityId: cityId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        currentCityId: true,
+        currentCity: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            timezone: true,
+            country: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                currency: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 }

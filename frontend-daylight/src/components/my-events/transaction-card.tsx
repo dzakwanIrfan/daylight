@@ -100,7 +100,6 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
             {format(
               new Date(transaction.event.eventDate),
               'EEE, dd MMM yyyy',
-              { locale: idLocale }
             )}
           </span>
         </div>
@@ -143,9 +142,7 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <span className="text-xs text-gray-600">
-          {format(new Date(transaction.createdAt), 'dd MMM yyyy, HH:mm', {
-            locale: idLocale,
-          })}
+          {format(new Date(transaction.createdAt), 'dd MMM yyyy, hh:mm a')}
         </span>
 
         <Link

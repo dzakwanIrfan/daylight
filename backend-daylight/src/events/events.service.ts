@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, EventStatus, PaymentStatus, TransactionType, EventCategory } from '@prisma/client';
+import type { User } from '@prisma/client';
 import { QueryEventsDto, SortOrder } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -488,7 +489,7 @@ export class EventsService {
     };
   }
 
-  async getPublicEvents(queryDto: QueryEventsDto, userId?: string) {
+  async getPublicEvents(queryDto: QueryEventsDto, user?: User) {
     const {
       page = 1,
       limit = 10,
@@ -511,7 +512,7 @@ export class EventsService {
     };
 
     if (search) {
-      where. OR = [
+      where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
         { venue: { contains: search, mode: 'insensitive' } },
@@ -520,6 +521,16 @@ export class EventsService {
       ];
     }
 
+    // Filter by user's current country (derived from currentCityId)
+    if (user?.currentCityId) {
+      const userCity = await this.prisma.city.findUnique({
+        where: { id: user.currentCityId },
+        select: { countryId: true },
+      });
+      if (userCity) {
+        where.cityRelation = { countryId: userCity.countryId };
+      }
+    }
     if (category) where.category = category;
     if (status) where.status = status;
     if (typeof isActive === 'boolean') where.isActive = isActive;
@@ -566,10 +577,10 @@ export class EventsService {
 
     let filteredEvents = events;
     
-    if (userId) {
+    if (user?.id) {
       const userPurchasedEvents = await this.prisma.transaction.findMany({
         where: {
-          userId,
+          userId: user.id,
           paymentStatus: PaymentStatus.PAID,
         },
         select: {
@@ -627,7 +638,7 @@ export class EventsService {
     };
   }
 
-  async getNextWeekEvents(userId?: string) {
+  async getNextWeekEvents(user?: User) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -635,18 +646,32 @@ export class EventsService {
     nextWeek.setDate(now.getDate() + 7);
     nextWeek.setHours(23, 59, 59, 999);
 
-    const events = await this.prisma.event.findMany({
-      where: {
-        eventDate: {
-          gte: now,
-          lte: nextWeek,
-        },
-        status: EventStatus.PUBLISHED,
-        isActive: true,
-        category: {
-          not: EventCategory.DAYDREAM,
-        }
+    // Base where clause
+    const where: Prisma.EventWhereInput = {
+      eventDate: {
+        gte: now,
+        lte: nextWeek,
       },
+      status: EventStatus.PUBLISHED,
+      isActive: true,
+      category: {
+        not: EventCategory.DAYDREAM,
+      },
+    };
+
+    // If user has current city, filter by its country
+    if (user?.currentCityId) {
+      const userCity = await this.prisma.city.findUnique({
+        where: { id: user.currentCityId },
+        select: { countryId: true },
+      });
+      if (userCity) {
+        where.cityRelation = { countryId: userCity.countryId };
+      }
+    }
+
+    const events = await this.prisma.event.findMany({
+      where,
       orderBy: {
         eventDate: 'asc',
       },
@@ -654,15 +679,15 @@ export class EventsService {
       include: {
         partner: true,
         cityRelation: true,
-      }
+      },
     });
 
     let filteredEvents = events;
     
-    if (userId) {
-      const userPurchasedEvents = await this.prisma.transaction. findMany({
+    if (user?.id) {
+      const userPurchasedEvents = await this.prisma.transaction.findMany({
         where: {
-          userId,
+          userId: user.id,
           paymentStatus: PaymentStatus.PAID,
         },
         select: {
@@ -691,7 +716,7 @@ export class EventsService {
     return {
       data: filteredEvents,
       dateRange: {
-        from: now. toISOString(),
+        from: now.toISOString(),
         to: nextWeek.toISOString(),
       },
       total: filteredEvents.length,

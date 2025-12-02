@@ -18,7 +18,6 @@ import {
   Crown,
   Gift,
   Building2,
-  Verified,
 } from 'lucide-react';
 import { FaCircleCheck } from "react-icons/fa6";
 import { format } from 'date-fns';
@@ -27,7 +26,6 @@ import { PaymentStatus } from '@/types/event.types';
 import { toast } from 'sonner';
 import { SubscriptionUpsellModal } from '@/components/subscriptions/subscription-upsell-modal';
 import Image from 'next/image';
-import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { PartnerType } from '@/types/partner.types';
 import { cn } from '@/lib/utils';
@@ -115,11 +113,11 @@ export default function EventDetailPage() {
   }
 
   const formatDate = (date: string) => {
-    return format(new Date(date), 'EEEE, dd MMMM yyyy', { locale: idLocale });
+    return format(new Date(date), 'EEEE, dd MMMM yyyy');
   };
 
   const formatTime = (time: string) => {
-    return format(new Date(time), 'HH:mm', { locale: idLocale });
+    return format(new Date(time), 'hh:mm a');
   };
 
   // Purchase Status

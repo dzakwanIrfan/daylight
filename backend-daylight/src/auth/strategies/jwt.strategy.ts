@@ -46,6 +46,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         role: true,
         isActive: true,
         isEmailVerified: true,
+        currentCity: true,
+        currentCityId: true,
       },
     });
 
@@ -60,6 +62,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       lastName: user.lastName,
       role: user.role,
       isEmailVerified: user.isEmailVerified,
+      currentCity: user.currentCity,
+      currentCityId: user.currentCityId,
     };
   }
 }

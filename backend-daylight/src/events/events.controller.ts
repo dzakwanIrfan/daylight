@@ -36,22 +36,22 @@ export class EventsController {
    * Get all public events (with 24h restriction)
    * Can be accessed without auth, but userId helps with filtering
    */
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Get('public')
   async getPublicEvents(
     @Query() queryDto: QueryEventsDto,
     @CurrentUser() user?: User,
   ) {
-    return this.eventsService.getPublicEvents(queryDto, user?.id);
+    return this.eventsService.getPublicEvents(queryDto, user);
   }
 
   /**
    * Get events for next week (with 24h restriction)
    */
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Get('public/next-week')
   async getNextWeekEvents(@CurrentUser() user?: User) {
-    return this.eventsService.getNextWeekEvents(user?.id);
+    return this.eventsService.getNextWeekEvents(user);
   }
 
   /**

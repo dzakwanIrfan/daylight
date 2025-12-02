@@ -26,11 +26,11 @@ export function MyEventCard({ event, isPast = false }: MyEventCardProps) {
   );
 
   const formatDate = (date: string) => {
-    return format(new Date(date), 'EEE, dd MMM yyyy', { locale: idLocale });
+    return format(new Date(date), 'EEE, yyyy-MM-dd');
   };
 
   const formatTime = (time: string) => {
-    return format(new Date(time), 'HH:mm', { locale: idLocale });
+    return format(new Date(time), 'hh:mm a');
   };
 
   const hasMatchingGroup = matchingGroup && matchingGroup.groupSize > 0;
@@ -46,12 +46,6 @@ export function MyEventCard({ event, isPast = false }: MyEventCardProps) {
               <h3 className="font-semibold text-lg text-gray-900 line-clamp-1 flex-1">
                 {event.title}
               </h3>
-              {!isPast && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200 shrink-0">
-                  <CheckCircle2 className="w-3 h-3" />
-                  Confirmed
-                </span>
-              )}
             </div>
 
             <div className="flex flex-col gap-2 text-sm text-gray-600">
@@ -80,11 +74,6 @@ export function MyEventCard({ event, isPast = false }: MyEventCardProps) {
               </div>
             </div>
           </div>
-
-          {/* Category Badge */}
-          <span className="inline-block px-3 py-1 bg-brand/10 text-brand text-xs font-medium rounded-full shrink-0">
-            {event.category}
-          </span>
         </div>
 
         {/* Matching Group Preview */}

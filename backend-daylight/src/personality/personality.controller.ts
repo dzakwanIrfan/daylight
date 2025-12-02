@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { PersonalityService } from './personality.service';
 import { SubmitPersonalityTestDto } from './dto/submit-personality-test.dto';
-import { GetResultDto } from './dto/get-result.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -26,6 +25,7 @@ export class PersonalityController {
         relationshipStatus: submitDto.relationshipStatus,
         intentOnDaylight: submitDto.intentOnDaylight,
         genderMixComfort: submitDto.genderMixComfort,
+        currentCityId: submitDto.currentCityId,
       },
     );
 
@@ -38,7 +38,6 @@ export class PersonalityController {
     return this.personalityService.getResultBySession(sessionId);
   }
 
-  // Get current user's personality result
   @UseGuards(JwtAuthGuard)
   @Get('my-result')
   async getMyResult(@CurrentUser() user: any) {

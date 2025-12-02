@@ -33,4 +33,9 @@ export const userService = {
     const response = await apiClient.delete('/users/profile');
     return response.data;
   },
+
+  updateCurrentCity: async (cityId: string) => {
+    const response = await apiClient.put('/users/current-city', { cityId });
+    return response.data;
+  },
 };

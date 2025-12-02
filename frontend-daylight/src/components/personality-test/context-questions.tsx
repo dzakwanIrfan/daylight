@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -11,9 +11,18 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { personalityService } from '@/services/personality.service';
+import { locationService } from '@/services/location.service';
 import { usePersonalityTestStore } from '@/store/personality-test-store';
 import { cn } from '@/lib/utils';
+import type { CityOption } from '@/types/admin-location.types';
 
 const intentOptions = [
   { value: 'NEW_FRIENDS', label: 'New friends' },
@@ -30,17 +39,21 @@ export function ContextQuestions() {
     relationshipStatus,
     intentOnDaylight,
     genderMixComfort,
+    currentCityId,
     setContextData,
     setTestCompleted,
   } = usePersonalityTestStore();
 
   const [localRelationshipStatus, setLocalRelationshipStatus] = useState<'SINGLE' | 'MARRIED' | 'PREFER_NOT_SAY' | undefined>(relationshipStatus);
-
-  const [localIntentOnDaylight, setLocalIntentOnDaylight] = useState<string[]>(
-    intentOnDaylight || []
-  );
-
+  const [localIntentOnDaylight, setLocalIntentOnDaylight] = useState<string[]>(intentOnDaylight || []);
   const [localGenderMixComfort, setLocalGenderMixComfort] = useState<'TOTALLY_FINE' | 'PREFER_SAME_GENDER' | 'DEPENDS' | undefined>(genderMixComfort);
+  const [localCurrentCityId, setLocalCurrentCityId] = useState<string | undefined>(currentCityId);
+
+  // Wrap queryFn properly for React Query v5
+  const { data: cityOptions, isLoading: isLoadingCities } = useQuery<CityOption[]>({
+    queryKey: ['city-options'],
+    queryFn: () => locationService.getCityOptions(),
+  });
 
   const submitMutation = useMutation({
     mutationFn: personalityService.submitTest,
@@ -49,16 +62,15 @@ export function ContextQuestions() {
         relationshipStatus: localRelationshipStatus,
         intentOnDaylight: localIntentOnDaylight,
         genderMixComfort: localGenderMixComfort,
+        currentCityId: localCurrentCityId,
       });
       
-      // Mark test as completed
       setTestCompleted();
       
       toast.success('Test completed!', {
         description: 'Create an account to see your full results and join events!',
       });
       
-      // Redirect langsung ke register page
       router.push('/auth/register');
     },
     onError: (error: any) => {
@@ -84,12 +96,18 @@ export function ContextQuestions() {
       return;
     }
 
+    if (!localCurrentCityId) {
+      toast.error('Please select your city');
+      return;
+    }
+
     submitMutation.mutate({
       sessionId,
       answers,
       relationshipStatus: localRelationshipStatus,
       intentOnDaylight: localIntentOnDaylight,
       genderMixComfort: localGenderMixComfort,
+      currentCityId: localCurrentCityId,
     });
   };
 
@@ -104,7 +122,6 @@ export function ContextQuestions() {
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl logo-text font-bold text-brand">
             DayLight
@@ -125,7 +142,38 @@ export function ContextQuestions() {
             </p>
           </div>
 
-          {/* Question 6: Relationship Status */}
+          {/* Question 1: Current City */}
+          <div className="space-y-4">
+            <Label className="text-lg font-semibold">
+              Which city are you currently in?  *
+            </Label>
+            <div className="flex flex-col space-y-2">
+              <Select
+                value={localCurrentCityId}
+                onValueChange={setLocalCurrentCityId}
+                disabled={isLoadingCities}
+              >
+                <SelectTrigger className={cn(
+                  'w-full h-14 text-base',
+                  localCurrentCityId ? 'border-brand' : ''
+                )}>
+                  <SelectValue placeholder={isLoadingCities ? 'Loading cities...' : 'Select your city'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {cityOptions && cityOptions.map((city) => (
+                    <SelectItem key={city.id} value={city.id}>
+                      {city.name}, {city.country?.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                We'll show you events happening in your city
+              </p>
+            </div>
+          </div>
+
+          {/* Question 2: Relationship Status */}
           <div className="space-y-4">
             <Label className="text-lg font-semibold">
               What's your current relationship status?
@@ -163,7 +211,7 @@ export function ContextQuestions() {
             </RadioGroup>
           </div>
 
-          {/* Question 7: Intent on DayLight */}
+          {/* Question 3: Intent on DayLight */}
           <div className="space-y-4">
             <Label className="text-lg font-semibold">
               What are you looking for on DayLight? (Select all that apply)
@@ -196,7 +244,7 @@ export function ContextQuestions() {
             </div>
           </div>
 
-          {/* Question 8: Gender Mix Comfort */}
+          {/* Question 4: Gender Mix Comfort */}
           <div className="space-y-4">
             <Label className="text-lg font-semibold">
               How comfortable are you in mixed-gender groups?
@@ -252,6 +300,7 @@ export function ContextQuestions() {
               !localRelationshipStatus ||
               localIntentOnDaylight.length === 0 ||
               !localGenderMixComfort ||
+              !localCurrentCityId ||
               submitMutation.isPending
             }
             className="bg-brand hover:bg-brand-orange-dark border border-r-4 border-b-4 border-black rounded-full font-bold text-white"

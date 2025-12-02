@@ -53,9 +53,6 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
-  /**
-   * Get user subscription status
-   */
   private async getUserSubscriptionStatus(userId: string) {
     const now = new Date();
     
@@ -113,7 +110,10 @@ export class AuthService {
         throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
       }
 
-      const user = await this.usersService.createUser({
+      // Get currentCityId from personality result
+      const currentCityId = personalityResult.context?.currentCityId;
+
+      const user = await this.usersService. createUser({
         email,
         password,
         firstName,
@@ -121,19 +121,17 @@ export class AuthService {
         phoneNumber,
         provider: AuthProvider.LOCAL,
         isEmailVerified: false,
+        currentCityId,
       });
 
-      // Link personality result to user
       await this.personalityService.linkResultToUser(sessionId, user.id);
 
-      // Generate verification token
       const verificationToken = crypto.randomBytes(32).toString('hex');
       const tokenHash = this.hashToken(verificationToken);
       const expires = new Date(Date.now() + 24 * 3600000);
 
       await this.usersService.updateEmailVerificationToken(user.id, tokenHash, expires);
 
-      // Send verification email
       await this.emailService.sendVerificationEmail(
         user.email,
         verificationToken,
@@ -150,6 +148,8 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
           isEmailVerified: false,
+          currentCityId: user.currentCityId, 
+          currentCity: user.currentCity, 
         },
       };
     } catch (error) {
@@ -165,7 +165,7 @@ export class AuthService {
     const user = await this.usersService.findByVerificationToken(tokenHash);
 
     if (!user) {
-      throw new BadRequestException(AuthErrorMessages.INVALID_TOKEN);
+      throw new BadRequestException(AuthErrorMessages. INVALID_TOKEN);
     }
 
     await this.usersService.verifyEmail(user.id);
@@ -176,28 +176,28 @@ export class AuthService {
       await this.emailService.sendWelcomeEmail(
         user.email,
         user.firstName || 'User',
-        personalityResult.archetype.name,
+        personalityResult.archetype. name,
       );
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
-
-    // Get subscription status
+    const tokens = await this.generateTokens(user. id, user.email, user.refreshTokenVersion);
     const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
 
     return {
       success: true,
-      message: 'Email verified successfully!',
+      message: 'Email verified successfully! ',
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        id: user. id,
+        email: user. email,
+        firstName: user. firstName,
+        lastName: user. lastName,
         isEmailVerified: true,
         role: user.role,
-        ...subscriptionStatus,
+        currentCityId: user.currentCityId, 
+        currentCity: user.currentCity, 
+        ... subscriptionStatus,
       },
-      ...tokens,
+      ... tokens,
     };
   }
 
@@ -261,8 +261,6 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
-
-    // Get subscription status
     const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
 
     return {
@@ -274,6 +272,8 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: user.isEmailVerified,
         role: user.role,
+        currentCityId: user.currentCityId, 
+        currentCity: user.currentCity, 
         ...subscriptionStatus,
       },
       ...tokens,
@@ -281,40 +281,31 @@ export class AuthService {
   }
 
   async googleLogin(profile: any) {
-    // Check if user exists by Google ID
     let user = await this.usersService.findByGoogleId(profile.id);
 
     if (!user) {
-      // Check if user exists by email
       user = await this.usersService.findByEmail(profile.email);
 
       if (user) {
-        // User exists with this email but different provider
         if (user.provider === AuthProvider.LOCAL) {
           throw new ConflictException(
             'An account with this email already exists. Please login with your password.',
           );
         }
         
-        // User exists with email but no Google ID linked (shouldn't happen normally)
         if (user.provider === AuthProvider.GOOGLE && !user.googleId) {
-          // Link Google ID to existing account
           await this.usersService.updateGoogleId(user.id, profile.id);
         }
       } else {
-        // User doesn't exist - require persona test for registration
         throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
       }
     }
 
-    // Check if account is active
     if (!user.isActive) {
       throw new UnauthorizedException(AuthErrorMessages.ACCOUNT_DEACTIVATED);
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
-
-    // Get subscription status
     const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
 
     return {
@@ -326,6 +317,8 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: user.isEmailVerified,
         role: user.role,
+        currentCityId: user.currentCityId, 
+        currentCity: user.currentCity, 
         ...subscriptionStatus,
       },
       ...tokens,
@@ -333,26 +326,25 @@ export class AuthService {
   }
 
   async registerWithGoogle(sessionId: string, profile: any) {
-    // Verify persona test was completed
     const personalityResult = await this.personalityService.getResultBySession(sessionId);
 
     if (!personalityResult) {
       throw new BadRequestException(AuthErrorMessages.PERSONALITY_TEST_REQUIRED);
     }
 
-    // Check if user already exists
     const existingUserByEmail = await this.usersService.findByEmail(profile.email);
     if (existingUserByEmail) {
       throw new ConflictException(AuthErrorMessages.EMAIL_ALREADY_EXISTS);
     }
 
-    // Check if Google ID already linked
     const existingUserByGoogleId = await this.usersService.findByGoogleId(profile.id);
     if (existingUserByGoogleId) {
       throw new ConflictException('This Google account is already registered');
     }
 
-    // Create new user with Google provider
+    // Get currentCityId from personality result
+    const currentCityId = personalityResult.context?.currentCityId;
+
     const user = await this.usersService.createUser({
       email: profile.email,
       firstName: profile.firstName,
@@ -360,14 +352,13 @@ export class AuthService {
       profilePicture: profile.picture,
       provider: AuthProvider.GOOGLE,
       googleId: profile.id,
-      isEmailVerified: true, // Google emails are pre-verified
+      isEmailVerified: true,
       role: UserRole.USER,
+      currentCityId,
     });
 
-    // Link personality result to user
     await this.personalityService.linkResultToUser(sessionId, user.id);
 
-    // Send welcome email
     await this.emailService.sendWelcomeEmail(
       user.email,
       user.firstName || 'User',
@@ -375,8 +366,6 @@ export class AuthService {
     );
 
     const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
-
-    // Get subscription status (new user, so no subscription yet)
     const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
 
     return {
@@ -388,6 +377,8 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: true,
         role: UserRole.USER,
+        currentCityId: user.currentCityId, 
+        currentCity: user.currentCity, 
         ...subscriptionStatus,
       },
       ...tokens,
@@ -406,7 +397,7 @@ export class AuthService {
 
     if (user.provider !== AuthProvider.LOCAL) {
       throw new BadRequestException(
-        `${AuthErrorMessages.PROVIDER_MISMATCH}: Please login with ${user.provider}.`,
+        `${AuthErrorMessages.PROVIDER_MISMATCH}: Please login with ${user.provider}. `,
       );
     }
 

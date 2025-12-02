@@ -3,6 +3,7 @@ import { UserRole } from '@prisma/client';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Public } from 'src/common/decorators/public.decorator';
 import { CityService } from './city.service';
 import { QueryCityDto } from './dto/query-city.dto';
 import { CreateCityDto } from './dto/create-city.dto';
@@ -13,11 +14,18 @@ import { BulkActionCityDto } from './dto/bulk-action-city.dto';
 export class CityController {
   constructor(private readonly cityService: CityService) {}
 
+  // PUBLIC ENDPOINT untuk frontend
+  @Public()
+  @Get('options')
+  async getCityOptionsPublic(@Query('countryId') countryId?: string) {
+    return this.cityService.getCityOptions(countryId);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Get()
   async getCityAll(@Query() queryDto: QueryCityDto) {
-    return this.cityService. getCityAll(queryDto);
+    return this.cityService.getCityAll(queryDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -25,13 +33,6 @@ export class CityController {
   @Get('export')
   async exportCities(@Query() queryDto: QueryCityDto) {
     return this.cityService.exportCities(queryDto);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Get('options')
-  async getCityOptions(@Query('countryId') countryId?: string) {
-    return this.cityService.getCityOptions(countryId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -44,13 +45,13 @@ export class CityController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole. ADMIN)
   @Post()
-  @HttpCode(HttpStatus. CREATED)
+  @HttpCode(HttpStatus.CREATED)
   async createCity(@Body() createDto: CreateCityDto) {
-    return this. cityService.createCity(createDto);
+    return this.cityService.createCity(createDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole. ADMIN)
+  @Roles(UserRole.ADMIN)
   @Put(':id')
   async updateCity(@Param('id') id: string, @Body() updateDto: UpdateCityDto) {
     return this.cityService. updateCity(id, updateDto);
@@ -60,11 +61,11 @@ export class CityController {
   @Roles(UserRole. ADMIN)
   @Delete(':id')
   async deleteCity(@Param('id') id: string) {
-    return this. cityService.deleteCity(id);
+    return this.cityService.deleteCity(id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole. ADMIN)
+  @Roles(UserRole.ADMIN)
   @Post('bulk')
   @HttpCode(HttpStatus.OK)
   async bulkAction(@Body() bulkActionDto: BulkActionCityDto) {

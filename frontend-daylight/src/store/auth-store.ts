@@ -11,6 +11,19 @@ interface SubscriptionInfo {
   endDate: string | null;
 }
 
+interface CityInfo {
+  id: string;
+  slug: string;
+  name: string;
+  timezone: string;
+  country: {
+    id: string;
+    code: string;
+    name: string;
+    currency: string;
+  };
+}
+
 interface User {
   id: string;
   email: string;
@@ -24,15 +37,14 @@ interface User {
   role?: 'USER' | 'ADMIN';
   hasActiveSubscription?: boolean;
   subscription?: SubscriptionInfo | null;
+  currentCityId?: string | null;
+  currentCity?: CityInfo | null;
 }
 
 interface AuthState {
   user: User | null;
-  // accessToken removed, using HttpOnly cookies
-
   isHydrated: boolean;
   setAuth: (user: User) => void;
-
   clearAuth: () => void;
   isAuthenticated: () => boolean;
   setHydrated: () => void;
@@ -44,7 +56,6 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isHydrated: false,
 
-      // Bisa dipanggil dengan setAuth(user)
       setAuth: (user) => {
         set({ user });
       },
@@ -55,13 +66,9 @@ export const useAuthStore = create<AuthState>()(
 
       isAuthenticated: () => {
         const state = get();
-
-        // hindari false positive sebelum hydrate
         if (!state.isHydrated && typeof window !== 'undefined') {
           return false;
         }
-
-        // Cukup cek ada user atau tidak
         return !!state.user;
       },
 
@@ -74,10 +81,9 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
-
       }),
       onRehydrateStorage: () => (state) => {
-        state?.setHydrated();
+        state?. setHydrated();
       },
     }
   )

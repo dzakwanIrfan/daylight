@@ -1,34 +1,45 @@
-import { IsEmail, IsString, MinLength, IsOptional, Matches } from 'class-validator';
-import { Match } from '../../common/decorators/match.decorator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  Matches,
+  IsOptional,
+} from 'class-validator';
 
 export class RegisterDto {
-  @IsEmail()
+  @IsEmail({}, { message: 'Invalid email address' })
+  @IsNotEmpty({ message: 'Email is required' })
   email: string;
 
   @IsString()
-  @MinLength(8)
+  @IsNotEmpty({ message: 'Password is required' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-    message: 'Password must contain uppercase, lowercase, number and special character',
+    message:
+      'Password must contain uppercase, lowercase, number and special character',
   })
   password: string;
 
   @IsString()
-  @MinLength(8)
-  @Match('password', { message: 'Passwords do not match' })
+  @IsNotEmpty({ message: 'Password confirmation is required' })
   confirmPassword: string;
 
   @IsString()
-  @MinLength(2)
+  @IsNotEmpty({ message: 'First name is required' })
+  @MinLength(2, { message: 'First name must be at least 2 characters' })
   firstName: string;
 
   @IsString()
-  @MinLength(2)
+  @IsNotEmpty({ message: 'Last name is required' })
+  @MinLength(2, { message: 'Last name must be at least 2 characters' })
   lastName: string;
 
   @IsOptional()
   @IsString()
   phoneNumber?: string;
 
+  @IsNotEmpty({ message: 'Session ID is required' })
   @IsString()
-  sessionId: string; // Link personality result
+  sessionId: string;
 }

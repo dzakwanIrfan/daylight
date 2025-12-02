@@ -1,38 +1,50 @@
-import { IsArray, IsString, IsOptional, IsEnum, ValidateNested, ArrayMinSize, ArrayMaxSize, IsNumber, Min, Max } from 'class-validator';
+import { 
+  IsNotEmpty, 
+  IsArray, 
+  ValidateNested, 
+  IsEnum, 
+  IsOptional, 
+  IsString,
+  IsUUID,
+  ArrayMinSize 
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { RelationshipStatus, GenderMixComfort } from '@prisma/client';
 
-export class AnswerDto {
-  @IsNumber()
-  @Min(1)
-  @Max(12)
+class AnswerDto {
+  @IsNotEmpty({ message: 'Question number is required' })
   questionNumber: number;
 
+  @IsNotEmpty({ message: 'Selected option is required' })
   @IsString()
   selectedOption: string;
 }
 
 export class SubmitPersonalityTestDto {
+  @IsNotEmpty({ message: 'Session ID is required' })
   @IsString()
   sessionId: string;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'At least one answer is required' })
   @ValidateNested({ each: true })
   @Type(() => AnswerDto)
-  @ArrayMinSize(12) 
-  @ArrayMaxSize(12)
   answers: AnswerDto[];
 
   @IsOptional()
-  @IsEnum(['SINGLE', 'MARRIED', 'PREFER_NOT_SAY'])
-  relationshipStatus?: 'SINGLE' | 'MARRIED' | 'PREFER_NOT_SAY';
+  @IsEnum(RelationshipStatus, { message: 'Invalid relationship status' })
+  relationshipStatus?: RelationshipStatus;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @ArrayMinSize(1, { message: 'Please select at least one intent' })
   intentOnDaylight?: string[];
 
   @IsOptional()
-  @IsEnum(['TOTALLY_FINE', 'PREFER_SAME_GENDER', 'DEPENDS'])
-  genderMixComfort?: 'TOTALLY_FINE' | 'PREFER_SAME_GENDER' | 'DEPENDS';
+  @IsEnum(GenderMixComfort, { message: 'Invalid gender mix comfort level' })
+  genderMixComfort?: GenderMixComfort;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'Invalid city ID format' })
+  currentCityId?: string;
 }

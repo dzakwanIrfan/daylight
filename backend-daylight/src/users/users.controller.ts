@@ -46,9 +46,9 @@ export class UsersController {
   @Put('current-city')
   @HttpCode(HttpStatus.OK)
   async updateCurrentCity(
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
     @Body() updateCityDto: UpdateCurrentCityDto,
   ) {
-    return this.usersService.updateCurrentCity(user.id, updateCityDto. cityId);
+    return this.usersService.updateCurrentCity(user.id, updateCityDto.cityId);
   }
 }

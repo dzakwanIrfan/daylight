@@ -73,7 +73,7 @@ export class EventsService {
     // VALIDATE: Partner must be in the same city as event
     if (partner.cityId !== eventCityId) {
       throw new ConflictException(
-        `Partner location mismatch.  Partner "${partner.name}" is located in ${partner.cityRelation. name}, but event is in a different city.`
+        `Partner location mismatch.  Partner "${partner.name}" is located in ${partner?.cityRelation?.name}, but event is in a different city.`
       );
     }
 

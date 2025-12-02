@@ -25,6 +25,8 @@ const cityMappings: Record<string, string> = {
   probolinggo: 'probolinggo',
   'kepulauan seribu': 'kepulauan-seribu',
   'pulau seribu': 'kepulauan-seribu',
+  tangerang: 'jakarta', // Map Tangerang to Jakarta for now
+  banten: 'jakarta', // Map Banten to Jakarta for now
 
   // Singapore
   singapore: 'singapore',

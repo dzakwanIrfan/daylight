@@ -664,9 +664,9 @@ model Partner {
   address String @db.Text
   city    String
 
-  // Normalized city relation
-  cityId       String
-  cityRelation City   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  // Normalized city relation (nullable during migration)
+  cityId       String?
+  cityRelation City?   @relation(fields: [cityId], references: [id], onDelete: Restrict)
 
   phoneNumber   String?
   email         String?

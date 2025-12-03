@@ -832,8 +832,15 @@ export class PaymentService {
   ) {
     const { planId, paymentMethod, customerName, customerEmail, customerPhone } = dto;
 
+    // Get user details
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     // Get subscription plan
-    const planResult = await this.subscriptionsService.getPlanById(planId);
+    const planResult = await this.subscriptionsService.getPlanById(planId, user);
     const plan = planResult.data;
 
     if (!plan.isActive) {
@@ -846,21 +853,6 @@ export class PaymentService {
       throw new ConflictException(
         'You already have an active subscription. Please wait until it expires.'
       );
-    }
-
-    // Get user details
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
     }
 
     // Validate payment method

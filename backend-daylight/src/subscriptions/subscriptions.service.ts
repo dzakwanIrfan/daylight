@@ -11,15 +11,15 @@ import {
   SubscriptionPlanType,
   TransactionType,
   PaymentStatus,
-  Prisma 
+  Prisma,
+  User,
 } from '@prisma/client';
 import { 
   CreateSubscriptionPlanDto, 
   UpdateSubscriptionPlanDto 
 } from './dto/subscription-plan.dto';
-import { CreateSubscriptionDto } from './dto/subscribe.dto';
 import { QueryUserSubscriptionsDto } from './dto/query-subscriptions.dto';
-import { addMonths, isAfter, isBefore } from 'date-fns';
+import { addMonths } from 'date-fns';
 import { QueryAdminSubscriptionsDto, SortOrder } from './dto/query-admin-subscriptions.dto';
 import { BulkSubscriptionActionDto, BulkSubscriptionActionType } from './dto/bulk-subscription-action.dto';
 
@@ -30,57 +30,188 @@ export class SubscriptionsService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * SUBSCRIPTION PLANS (ADMIN)
+   * SUBSCRIPTION PLANS (USER)
    */
 
-  async getActivePlans() {
-    const plans = await this.prisma.subscriptionPlan.findMany({
+  /**
+   * Get active plans with pricing based on user's location
+   */
+  async getActivePlans(user: User) {
+    // Get user with city and country data
+    const userWithLocation = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        currentCity: {
+          include: {
+            country: true,
+          },
+        },
+      },
+    });
+
+    // Extract currency and countryCode from user's location
+    const currency = userWithLocation?.currentCity?.country?.currency;
+    console.log('User currency:', currency);
+    const countryCode = userWithLocation?.currentCity?.country?.code;
+
+    const plans = await this.prisma. subscriptionPlan.findMany({
       where: { isActive: true },
+      include: {
+        prices: {
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            countryCode: 'asc', // Country-specific prices first
+          },
+        },
+      },
       orderBy: { sortOrder: 'asc' },
+    });
+
+    // Transform to include best price for each plan
+    const plansWithPricing = plans.map((plan) => {
+      // Get the best matching price based on user's location
+      const price = this.getBestPrice(plan. prices, currency, countryCode);
+
+      return {
+        ...plan,
+        // Current price based on user's location
+        currentPrice: price?. amount || plan.price,
+        currentCurrency: price?.currency || plan.currency,
+        // User's detected location
+        userLocation: {
+          currency,
+          countryCode,
+          cityId: userWithLocation?.currentCityId,
+          cityName: userWithLocation?.currentCity?.name,
+          countryName: userWithLocation?.currentCity?. country?.name,
+        },
+        // All available prices (for transparency)
+        availablePrices: plan.prices,
+      };
     });
 
     return {
       success: true,
-      data: plans,
+      data: plansWithPricing,
     };
   }
 
-  async getAllPlans(isActive?: boolean) {
-    const where: Prisma.SubscriptionPlanWhereInput = {};
-    if (typeof isActive === 'boolean') {
-      where.isActive = isActive;
-    }
-
-    const plans = await this.prisma.subscriptionPlan.findMany({
-      where,
-      orderBy: { sortOrder: 'asc' },
+  /**
+   * Get plan by ID with pricing based on user's location
+   */
+  async getPlanById(planId: string, user: User) {
+    // Get user with city and country data
+    const userWithLocation = await this. prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        currentCity: {
+          include: {
+            country: true,
+          },
+        },
+      },
     });
 
-    return {
-      success: true,
-      data: plans,
-    };
-  }
+    // Extract currency and countryCode from user's location
+    const currency = userWithLocation?.currentCity?.country?.currency;
+    const countryCode = userWithLocation?.currentCity?.country?.code;
 
-  async getPlanById(planId: string) {
-    const plan = await this.prisma.subscriptionPlan.findUnique({
+    const plan = await this.prisma. subscriptionPlan.findUnique({
       where: { id: planId },
+      include: {
+        prices: {
+          where: { isActive: true },
+          orderBy: [
+            { countryCode: 'asc' },
+            { currency: 'asc' },
+          ],
+        },
+      },
     });
 
     if (!plan) {
       throw new NotFoundException('Subscription plan not found');
     }
 
+    // Get the best matching price
+    const price = this.getBestPrice(plan.prices, currency, countryCode);
+
     return {
       success: true,
-      data: plan,
+      data: {
+        ...plan,
+        currentPrice: price?.amount || plan. price,
+        currentCurrency: price?.currency || plan.currency,
+        selectedPrice: price, // Full price object with details
+        userLocation: {
+          currency,
+          countryCode,
+          cityId: userWithLocation?.currentCityId,
+          cityName: userWithLocation?.currentCity?.name,
+          countryName: userWithLocation?.currentCity?.country?.name,
+        },
+      },
+    };
+  }
+
+  /**
+   * ADMIN: Get all plans with all pricing options
+   */
+  async getAllPlans(isActive?: boolean) {
+    const where: Prisma. SubscriptionPlanWhereInput = {};
+    if (typeof isActive === 'boolean') {
+      where.isActive = isActive;
+    }
+
+    const plans = await this.prisma.subscriptionPlan.findMany({
+      where,
+      include: {
+        prices: {
+          orderBy: [
+            { countryCode: 'asc' },
+            { currency: 'asc' },
+          ],
+        },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: plans,
     };
   }
 
   async createPlan(dto: CreateSubscriptionPlanDto) {
+    const { prices, price, currency, ... planData } = dto;
+
+    // Create plan with nested prices
     const plan = await this.prisma.subscriptionPlan.create({
-      data: dto,
+      data: {
+        ...planData,
+        // Legacy fields for backward compatibility
+        price: price || (prices && prices[0]?.amount) || 0,
+        currency: currency || (prices && prices[0]?.currency) || 'IDR',
+        // Create multi-currency prices
+        prices: prices
+          ? {
+              create: prices.map((p) => ({
+                currency: p.currency,
+                amount: p.amount,
+                countryCode: p.countryCode || null,
+                isActive: p.isActive !== false,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        prices: true,
+      },
     });
+
+    this.logger.log(`Created subscription plan ${plan.id} with ${plan.prices.length} price(s)`);
 
     return {
       success: true,
@@ -90,9 +221,57 @@ export class SubscriptionsService {
   }
 
   async updatePlan(planId: string, dto: UpdateSubscriptionPlanDto) {
-    const plan = await this.prisma.subscriptionPlan.update({
+    const { prices, price, currency, ...planData } = dto;
+
+    // If prices array is provided, replace all existing prices
+    if (prices) {
+      // Delete existing prices and create new ones
+      await this. prisma.subscriptionPlanPrice.deleteMany({
+        where: { subscriptionPlanId: planId },
+      });
+
+      const plan = await this.prisma.subscriptionPlan.update({
+        where: { id: planId },
+        data: {
+          ... planData,
+          // Update legacy fields if provided
+          ...(price !== undefined && { price }),
+          ...(currency && { currency }),
+          // Create new prices
+          prices: {
+            create: prices.map((p) => ({
+              currency: p.currency,
+              amount: p.amount,
+              countryCode: p.countryCode || null,
+              isActive: p.isActive !== false,
+            })),
+          },
+        },
+        include: {
+          prices: true,
+        },
+      });
+
+      this.logger.log(`Updated subscription plan ${plan.id} with ${plan.prices.length} price(s)`);
+
+      return {
+        success: true,
+        message: 'Subscription plan updated successfully',
+        data: plan,
+      };
+    }
+
+    // If only legacy fields provided, update those
+    const plan = await this. prisma.subscriptionPlan. update({
       where: { id: planId },
-      data: dto,
+      data: {
+        ...planData,
+        ...(price !== undefined && { price }),
+        ...(currency && { currency }),
+      },
+      include: {
+        prices: true,
+      },
     });
 
     return {
@@ -113,10 +292,11 @@ export class SubscriptionsService {
 
     if (activeSubscriptions > 0) {
       throw new BadRequestException(
-        'Cannot delete plan with active subscriptions'
+        'Cannot delete plan with active subscriptions',
       );
     }
 
+    // Cascade delete will remove associated prices
     await this.prisma.subscriptionPlan.delete({
       where: { id: planId },
     });
@@ -125,6 +305,59 @@ export class SubscriptionsService {
       success: true,
       message: 'Subscription plan deleted successfully',
     };
+  }
+
+  /**
+   * Helper: Get best matching price for currency and country
+   * Priority: Exact match > Currency default > Country match > First active
+   */
+  private getBestPrice(
+    prices: any[],
+    currency?: string,
+    countryCode?: string,
+  ) {
+    if (!prices || prices.length === 0) return null;
+
+    // Priority 1: Exact match (currency + country)
+    if (currency && countryCode) {
+      const exactMatch = prices.find(
+        (p) =>
+          p.currency === currency &&
+          p.countryCode === countryCode &&
+          p.isActive,
+      );
+      if (exactMatch) {
+        this.logger.debug(`Exact match found: ${currency} for ${countryCode}`);
+        return exactMatch;
+      }
+    }
+
+    // Priority 2: Currency match with no country (default pricing)
+    if (currency) {
+      const currencyMatch = prices.find(
+        (p) => p.currency === currency && ! p.countryCode && p.isActive,
+      );
+      if (currencyMatch) {
+        this.logger.debug(`Currency default match found: ${currency}`);
+        return currencyMatch;
+      }
+    }
+
+    // Priority 3: Country match (any currency)
+    if (countryCode) {
+      const countryMatch = prices.find(
+        (p) => p.countryCode === countryCode && p. isActive,
+      );
+      if (countryMatch) {
+        this.logger.debug(`Country match found: ${countryCode}`);
+        return countryMatch;
+      }
+    }
+
+    // Priority 4: First active price (fallback)
+    const fallback = prices.find((p) => p.isActive) || prices[0];
+    this.logger.debug('Using fallback price');
+    return fallback;
   }
 
   /**
@@ -144,10 +377,8 @@ export class SubscriptionsService {
       dateTo,
     } = queryDto;
 
-    // Build where clause
     const where: Prisma.UserSubscriptionWhereInput = {};
 
-    // Search across user email and name
     if (search) {
       where.OR = [
         { user: { email: { contains: search, mode: 'insensitive' } } },
@@ -157,37 +388,19 @@ export class SubscriptionsService {
       ];
     }
 
-    // Filter by status
-    if (status) {
-      where.status = status;
-    }
+    if (status) where.status = status;
+    if (userId) where.userId = userId;
+    if (planId) where.planId = planId;
 
-    // Filter by user
-    if (userId) {
-      where.userId = userId;
-    }
-
-    // Filter by plan
-    if (planId) {
-      where.planId = planId;
-    }
-
-    // Date range filter
     if (dateFrom || dateTo) {
-      where.createdAt = {};
-      if (dateFrom) {
-        where.createdAt.gte = new Date(dateFrom);
-      }
-      if (dateTo) {
-        where.createdAt.lte = new Date(dateTo);
-      }
+      where. createdAt = {};
+      if (dateFrom) where.createdAt. gte = new Date(dateFrom);
+      if (dateTo) where.createdAt.lte = new Date(dateTo);
     }
 
-    // Calculate pagination
     const skip = (page - 1) * limit;
     const take = limit;
 
-    // Execute queries
     const [subscriptions, total] = await Promise.all([
       this.prisma.userSubscription.findMany({
         where,
@@ -210,6 +423,7 @@ export class SubscriptionsService {
               type: true,
               price: true,
               durationInMonths: true,
+              prices: true, // Include multi-currency prices
             },
           },
           transaction: {
@@ -226,7 +440,6 @@ export class SubscriptionsService {
       this.prisma.userSubscription.count({ where }),
     ]);
 
-    // Calculate pagination metadata
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
@@ -257,14 +470,10 @@ export class SubscriptionsService {
     };
   }
 
-  /**
-   * Bulk actions on subscriptions (Admin)
-   */
   async bulkSubscriptionAction(bulkActionDto: BulkSubscriptionActionDto) {
     const { subscriptionIds, action } = bulkActionDto;
 
-    // Validate subscription IDs
-    const subscriptions = await this.prisma.userSubscription.findMany({
+    const subscriptions = await this.prisma. userSubscription.findMany({
       where: { id: { in: subscriptionIds } },
       select: { id: true, status: true },
     });
@@ -277,9 +486,9 @@ export class SubscriptionsService {
 
     switch (action) {
       case BulkSubscriptionActionType.CANCEL:
-        result = await this.prisma.userSubscription.updateMany({
+        result = await this. prisma.userSubscription.updateMany({
           where: { id: { in: subscriptionIds } },
-          data: { 
+          data: {
             status: SubscriptionStatus.CANCELLED,
             cancelledAt: new Date(),
           },
@@ -287,21 +496,19 @@ export class SubscriptionsService {
         this.logger.log(`Bulk cancelled ${result.count} subscriptions`);
         break;
 
-      case BulkSubscriptionActionType.ACTIVATE:
-        // Only activate PENDING subscriptions
+      case BulkSubscriptionActionType. ACTIVATE:
         const pendingIds = subscriptions
-          .filter(s => s.status === SubscriptionStatus.PENDING)
-          .map(s => s.id);
-        
+          .filter((s) => s.status === SubscriptionStatus.PENDING)
+          .map((s) => s. id);
+
         if (pendingIds.length === 0) {
           throw new BadRequestException('No pending subscriptions to activate');
         }
 
-        // Activate each one properly with dates
         for (const id of pendingIds) {
           await this.activateSubscription(id);
         }
-        
+
         result = { count: pendingIds.length };
         this.logger.log(`Bulk activated ${result.count} subscriptions`);
         break;
@@ -317,13 +524,9 @@ export class SubscriptionsService {
     };
   }
 
-  /**
-   * Export subscriptions data (Admin)
-   */
   async exportSubscriptions(queryDto: QueryAdminSubscriptionsDto) {
     const { search, status, userId, planId, dateFrom, dateTo } = queryDto;
 
-    // Build where clause (without pagination)
     const where: Prisma.UserSubscriptionWhereInput = {};
 
     if (search) {
@@ -337,11 +540,11 @@ export class SubscriptionsService {
 
     if (status) where.status = status;
     if (userId) where.userId = userId;
-    if (planId) where.planId = planId;
+    if (planId) where. planId = planId;
 
     if (dateFrom || dateTo) {
       where.createdAt = {};
-      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateFrom) where.createdAt. gte = new Date(dateFrom);
       if (dateTo) where.createdAt.lte = new Date(dateTo);
     }
 
@@ -363,6 +566,7 @@ export class SubscriptionsService {
             type: true,
             price: true,
             durationInMonths: true,
+            prices: true,
           },
         },
         transaction: {
@@ -381,13 +585,6 @@ export class SubscriptionsService {
     return subscriptions;
   }
 
-  /**
-   * USER SUBSCRIPTIONS
-   */
-
-  /**
-   * Get user's current active subscription
-   */
   async getUserActiveSubscription(userId: string) {
     const now = new Date();
 
@@ -399,7 +596,11 @@ export class SubscriptionsService {
         endDate: { gte: now },
       },
       include: {
-        plan: true,
+        plan: {
+          include: {
+            prices: true,
+          },
+        },
         transaction: {
           select: {
             id: true,
@@ -420,16 +621,13 @@ export class SubscriptionsService {
     };
   }
 
-  /**
-   * Check if user has valid subscription (for event access)
-   */
   async hasValidSubscription(userId: string): Promise<boolean> {
     const now = new Date();
 
     const count = await this.prisma.userSubscription.count({
       where: {
         userId,
-        status: SubscriptionStatus.ACTIVE,
+        status: SubscriptionStatus. ACTIVE,
         startDate: { lte: now },
         endDate: { gte: now },
       },
@@ -438,10 +636,10 @@ export class SubscriptionsService {
     return count > 0;
   }
 
-  /**
-   * Get user's subscription history
-   */
-  async getUserSubscriptions(userId: string, queryDto: QueryUserSubscriptionsDto) {
+  async getUserSubscriptions(
+    userId: string,
+    queryDto: QueryUserSubscriptionsDto,
+  ) {
     const { page = 1, limit = 10, status, sortOrder = 'desc' } = queryDto;
 
     const where: Prisma.UserSubscriptionWhereInput = { userId };
@@ -451,13 +649,17 @@ export class SubscriptionsService {
     const take = limit;
 
     const [subscriptions, total] = await Promise.all([
-      this.prisma.userSubscription.findMany({
+      this.prisma.userSubscription. findMany({
         where,
         skip,
         take,
         orderBy: { createdAt: sortOrder },
         include: {
-          plan: true,
+          plan: {
+            include: {
+              prices: true,
+            },
+          },
           transaction: {
             select: {
               id: true,
@@ -469,7 +671,7 @@ export class SubscriptionsService {
           },
         },
       }),
-      this.prisma.userSubscription.count({ where }),
+      this.prisma. userSubscription.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -488,17 +690,18 @@ export class SubscriptionsService {
     };
   }
 
-  /**
-   * Get subscription by ID
-   */
   async getSubscriptionById(subscriptionId: string, userId: string) {
-    const subscription = await this.prisma.userSubscription.findFirst({
+    const subscription = await this.prisma. userSubscription.findFirst({
       where: {
         id: subscriptionId,
         userId,
       },
       include: {
-        plan: true,
+        plan: {
+          include: {
+            prices: true,
+          },
+        },
         transaction: true,
       },
     });
@@ -513,24 +716,15 @@ export class SubscriptionsService {
     };
   }
 
-  /**
-   * SUBSCRIPTION PURCHASE (handled by PaymentService)
-   * But we need helper methods here
-   */
-
-  /**
-   * Create pending subscription (called by PaymentService)
-   */
   async createPendingSubscription(
     userId: string,
     planId: string,
-    transactionId: string
+    transactionId: string,
   ) {
-    // Check if user already has active subscription
     const hasActive = await this.hasValidSubscription(userId);
     if (hasActive) {
       throw new ConflictException(
-        'You already have an active subscription. Please wait until it expires.'
+        'You already have an active subscription.  Please wait until it expires.',
       );
     }
 
@@ -538,7 +732,7 @@ export class SubscriptionsService {
       where: { id: planId },
     });
 
-    if (!plan || !plan.isActive) {
+    if (!plan || ! plan.isActive) {
       throw new NotFoundException('Subscription plan not found or inactive');
     }
 
@@ -555,15 +749,12 @@ export class SubscriptionsService {
     });
 
     this.logger.log(
-      `Created pending subscription ${subscription.id} for user ${userId}`
+      `Created pending subscription ${subscription.id} for user ${userId}`,
     );
 
     return subscription;
   }
 
-  /**
-   * Activate subscription (called when payment is confirmed)
-   */
   async activateSubscription(subscriptionId: string) {
     const subscription = await this.prisma.userSubscription.findUnique({
       where: { id: subscriptionId },
@@ -575,14 +766,12 @@ export class SubscriptionsService {
     }
 
     if (subscription.status === SubscriptionStatus.ACTIVE) {
-      this.logger.warn(
-        `Subscription ${subscriptionId} is already active`
-      );
+      this.logger.warn(`Subscription ${subscriptionId} is already active`);
       return subscription;
     }
 
     const startDate = new Date();
-    const endDate = addMonths(startDate, subscription.plan.durationInMonths);
+    const endDate = addMonths(startDate, subscription. plan.durationInMonths);
 
     const updated = await this.prisma.userSubscription.update({
       where: { id: subscriptionId },
@@ -597,17 +786,18 @@ export class SubscriptionsService {
       },
     });
 
-    this.logger.log(
-      `Activated subscription ${subscriptionId} for user ${subscription.userId}`
+    this.logger. log(
+      `Activated subscription ${subscriptionId} for user ${subscription.userId}`,
     );
 
     return updated;
   }
 
-  /**
-   * Cancel subscription
-   */
-  async cancelSubscription(subscriptionId: string, userId: string, reason?: string) {
+  async cancelSubscription(
+    subscriptionId: string,
+    userId: string,
+    reason?: string,
+  ) {
     const subscription = await this.prisma.userSubscription.findFirst({
       where: {
         id: subscriptionId,
@@ -627,10 +817,10 @@ export class SubscriptionsService {
       throw new BadRequestException('Subscription has already expired');
     }
 
-    const updated = await this.prisma.userSubscription.update({
+    const updated = await this.prisma. userSubscription.update({
       where: { id: subscriptionId },
       data: {
-        status: SubscriptionStatus.CANCELLED,
+        status: SubscriptionStatus. CANCELLED,
         cancelledAt: new Date(),
         metadata: reason
           ? { ...(subscription.metadata as any), cancelReason: reason }
@@ -648,13 +838,6 @@ export class SubscriptionsService {
     };
   }
 
-  /**
-   * CRON JOBS / BACKGROUND TASKS
-   */
-
-  /**
-   * Auto-expire subscriptions (run daily via cron)
-   */
   async autoExpireSubscriptions() {
     const now = new Date();
 
@@ -676,7 +859,7 @@ export class SubscriptionsService {
       });
 
       this.logger.log(
-        `Auto-expired subscription ${subscription.id} for user ${subscription.userId}`
+        `Auto-expired subscription ${subscription.id} for user ${subscription.userId}`,
       );
     }
 
@@ -685,10 +868,6 @@ export class SubscriptionsService {
       expiredCount: expiredSubscriptions.length,
     };
   }
-
-  /**
-   * ADMIN QUERIES
-   */
 
   async getAllSubscriptions(queryDto: any) {
     const { page = 1, limit = 10, status, userId } = queryDto;
@@ -701,13 +880,17 @@ export class SubscriptionsService {
     const take = limit;
 
     const [subscriptions, total] = await Promise.all([
-      this.prisma.userSubscription.findMany({
+      this.prisma. userSubscription.findMany({
         where,
         skip,
         take,
         orderBy: { createdAt: 'desc' },
         include: {
-          plan: true,
+          plan: {
+            include: {
+              prices: true,
+            },
+          },
           user: {
             select: {
               id: true,
@@ -761,7 +944,7 @@ export class SubscriptionsService {
       this.prisma.userSubscription.count({
         where: { status: SubscriptionStatus.EXPIRED },
       }),
-      this.prisma.userSubscription.count({
+      this. prisma.userSubscription.count({
         where: { status: SubscriptionStatus.CANCELLED },
       }),
       this.prisma.userSubscription.groupBy({

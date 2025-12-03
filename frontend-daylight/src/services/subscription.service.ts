@@ -1,18 +1,27 @@
-import apiClient from '@/lib/axios';
-import { AdminSubscription, AdminSubscriptionPlan, BulkSubscriptionActionPayload, CreateSubscriptionPlanDto, QuerySubscriptionsParams, QuerySubscriptionsResponse, SubscriptionStats, UpdateSubscriptionPlanDto } from '@/types/admin-subscription.types';
+import apiClient from "@/lib/axios";
+import {
+  AdminSubscription,
+  AdminSubscriptionPlan,
+  BulkSubscriptionActionPayload,
+  CreateSubscriptionPlanDto,
+  QuerySubscriptionsParams,
+  QuerySubscriptionsResponse,
+  SubscriptionStats,
+  UpdateSubscriptionPlanDto,
+} from "@/types/admin-subscription.types";
 import type {
   SubscriptionPlan,
   UserSubscription,
   QueryUserSubscriptionsParams,
   QueryUserSubscriptionsResponse,
   CreateSubscriptionPaymentDto,
-} from '@/types/subscription.types';
+} from "@/types/subscription.types";
 
 class SubscriptionService {
-  private readonly baseURL = '/subscriptions';
+  private readonly baseURL = "/subscriptions";
 
   /**
-   * Get all active subscription plans (Public)
+   * Get all active subscription plans (AUTHENTICATED - uses user location)
    */
   async getActivePlans(): Promise<{
     success: boolean;
@@ -23,7 +32,7 @@ class SubscriptionService {
   }
 
   /**
-   * Get plan by ID (Public)
+   * Get plan by ID (AUTHENTICATED - uses user location)
    */
   async getPlanById(planId: string): Promise<{
     success: boolean;
@@ -91,9 +100,7 @@ class SubscriptionService {
   /**
    * Create subscription payment
    */
-  async createSubscriptionPayment(
-    dto: CreateSubscriptionPaymentDto
-  ): Promise<{
+  async createSubscriptionPayment(dto: CreateSubscriptionPaymentDto): Promise<{
     success: boolean;
     message: string;
     data: {
@@ -101,7 +108,7 @@ class SubscriptionService {
       plan: SubscriptionPlan;
     };
   }> {
-    const response = await apiClient.post('/payment/subscribe', dto);
+    const response = await apiClient.post("/payment/subscribe", dto);
     return response.data;
   }
 
@@ -111,7 +118,7 @@ class SubscriptionService {
   async getAdminSubscriptions(
     params: QuerySubscriptionsParams
   ): Promise<QuerySubscriptionsResponse> {
-    const response = await apiClient.get('/subscriptions/admin/subscriptions', {
+    const response = await apiClient.get("/subscriptions/admin/subscriptions", {
       params,
     });
     return response.data;
@@ -124,7 +131,7 @@ class SubscriptionService {
     success: boolean;
     data: SubscriptionStats;
   }> {
-    const response = await apiClient.get('/subscriptions/admin/stats');
+    const response = await apiClient.get("/subscriptions/admin/stats");
     return response.data;
   }
 
@@ -139,7 +146,7 @@ class SubscriptionService {
     affectedCount: number;
   }> {
     const response = await apiClient.post(
-      '/subscriptions/admin/subscriptions/bulk',
+      "/subscriptions/admin/subscriptions/bulk",
       payload
     );
     return response.data;
@@ -152,7 +159,7 @@ class SubscriptionService {
     params: QuerySubscriptionsParams
   ): Promise<AdminSubscription[]> {
     const response = await apiClient.get(
-      '/subscriptions/admin/subscriptions/export',
+      "/subscriptions/admin/subscriptions/export",
       { params }
     );
     return response.data;
@@ -165,7 +172,7 @@ class SubscriptionService {
     success: boolean;
     data: any[];
   }> {
-    const response = await apiClient.get('/subscriptions/admin/plans', {
+    const response = await apiClient.get("/subscriptions/admin/plans", {
       params: { isActive },
     });
     return response.data;
@@ -174,14 +181,12 @@ class SubscriptionService {
   /**
    * Create subscription plan (Admin)
    */
-  async createPlan(
-    dto: CreateSubscriptionPlanDto
-  ): Promise<{
+  async createPlan(dto: CreateSubscriptionPlanDto): Promise<{
     success: boolean;
     message: string;
     data: AdminSubscriptionPlan;
   }> {
-    const response = await apiClient.post('/subscriptions/admin/plans', dto);
+    const response = await apiClient.post("/subscriptions/admin/plans", dto);
     return response.data;
   }
 

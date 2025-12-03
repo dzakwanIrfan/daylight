@@ -16,8 +16,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
 import {
   CreateSubscriptionPlanDto,
   UpdateSubscriptionPlanDto,
@@ -31,35 +31,36 @@ import { BulkSubscriptionActionDto } from './dto/bulk-subscription-action.dto';
 export class SubscriptionsController {
   constructor(private subscriptionsService: SubscriptionsService) {}
 
-  // PUBLIC ENDPOINTS
+  // USER ENDPOINTS (Protected with JwtAuthGuard)
 
   /**
-   * Get all active subscription plans
+   * Get all active subscription plans with pricing based on user's location
    */
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Get('plans')
-  async getActivePlans() {
-    return this.subscriptionsService.getActivePlans();
+  async getActivePlans(@CurrentUser() user: User) {
+    return this.subscriptionsService.getActivePlans(user);
   }
 
   /**
-   * Get plan by ID
+   * Get plan by ID with pricing based on user's location
    */
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Get('plans/:id')
-  async getPlanById(@Param('id') id: string) {
-    return this.subscriptionsService.getPlanById(id);
+  async getPlanById(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.subscriptionsService. getPlanById(id, user);
   }
-
-  // USER ENDPOINTS
 
   /**
    * Get user's active subscription
    */
   @UseGuards(JwtAuthGuard)
   @Get('my-subscription')
-  async getMyActiveSubscription(@CurrentUser() user: any) {
-    return this.subscriptionsService.getUserActiveSubscription(user.id);
+  async getMyActiveSubscription(@CurrentUser() user: User) {
+    return this. subscriptionsService.getUserActiveSubscription(user. id);
   }
 
   /**
@@ -68,8 +69,8 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   @Get('my-subscriptions')
   async getMySubscriptions(
-    @CurrentUser() user: any,
-    @Query() queryDto: QueryUserSubscriptionsDto
+    @CurrentUser() user: User,
+    @Query() queryDto: QueryUserSubscriptionsDto,
   ) {
     return this.subscriptionsService.getUserSubscriptions(user.id, queryDto);
   }
@@ -80,10 +81,10 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   @Get('my-subscriptions/:id')
   async getMySubscriptionById(
-    @CurrentUser() user: any,
-    @Param('id') id: string
+    @CurrentUser() user: User,
+    @Param('id') id: string,
   ) {
-    return this.subscriptionsService.getSubscriptionById(id, user.id);
+    return this.subscriptionsService. getSubscriptionById(id, user. id);
   }
 
   /**
@@ -93,15 +94,11 @@ export class SubscriptionsController {
   @Post('my-subscriptions/:id/cancel')
   @HttpCode(HttpStatus.OK)
   async cancelSubscription(
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body() dto: CancelSubscriptionDto
+    @Body() dto: CancelSubscriptionDto,
   ) {
-    return this.subscriptionsService.cancelSubscription(
-      id,
-      user.id,
-      dto.reason
-    );
+    return this. subscriptionsService.cancelSubscription(id, user.id, dto. reason);
   }
 
   // ADMIN ENDPOINTS
@@ -110,7 +107,7 @@ export class SubscriptionsController {
    * Get all plans (Admin)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole. ADMIN)
   @Get('admin/plans')
   async getAllPlans(@Query('isActive') isActive?: string) {
     const active =
@@ -137,7 +134,7 @@ export class SubscriptionsController {
   @Put('admin/plans/:id')
   async updatePlan(
     @Param('id') id: string,
-    @Body() dto: UpdateSubscriptionPlanDto
+    @Body() dto: UpdateSubscriptionPlanDto,
   ) {
     return this.subscriptionsService.updatePlan(id, dto);
   }
@@ -179,7 +176,7 @@ export class SubscriptionsController {
   @Roles(UserRole.ADMIN)
   @Get('admin/subscriptions')
   async getAdminSubscriptions(@Query() queryDto: QueryAdminSubscriptionsDto) {
-    return this.subscriptionsService.getAdminSubscriptions(queryDto);
+    return this.subscriptionsService. getAdminSubscriptions(queryDto);
   }
 
   /**

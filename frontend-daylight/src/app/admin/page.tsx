@@ -97,7 +97,7 @@ export default function AdminDashboardPage() {
       DAYBREAK: 'from-orange-500 to-yellow-500',
       DAYTRIP: 'from-blue-500 to-cyan-500',
       DAYCARE: 'from-green-500 to-emerald-500',
-      // DAYDREAM: 'from-purple-500 to-pink-500',
+      DAYDREAM: 'from-purple-500 to-pink-500',
     };
     return colors[category] || 'from-brand to-brand/80';
   };

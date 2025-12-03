@@ -1,10 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { DashboardLayout } from '@/components/main/dashboard-layout';
-import { useAuth } from '@/hooks/use-auth';
-import { useActivePlans, useMyActiveSubscription } from '@/hooks/use-subscriptions';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { DashboardLayout } from "@/components/main/dashboard-layout";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  useActivePlans,
+  useMyActiveSubscription,
+} from "@/hooks/use-subscriptions";
+import { useRouter } from "next/navigation";
 import {
   Crown,
   Loader2,
@@ -17,51 +20,63 @@ import {
   Sparkles,
   AlertCircle,
   RefreshCcw,
-} from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+  MapPin,
+  Globe,
+} from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { format } from "date-fns";
+import { toast } from "sonner";
 
 export default function SubscriptionsPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { data: plansResponse, isLoading } = useActivePlans();
+  const { data: plansResponse, isLoading, error } = useActivePlans();
   const { data: activeSubscription } = useMyActiveSubscription();
 
   const plans = plansResponse?.data || [];
-  const hasActiveSubscription = activeSubscription?.hasActiveSubscription ?? false;
+  const hasActiveSubscription =
+    activeSubscription?.hasActiveSubscription ?? false;
   const currentSubscription = activeSubscription?.data;
+
+  // Get user location from first plan (all plans return same location)
+  const userLocation = plans[0]?.userLocation;
 
   const handleSelectPlan = (planId: string) => {
     if (!user) {
-      router.push('/auth/login?redirect=/subscriptions');
+      router.push("/auth/login? redirect=/subscriptions");
       return;
     }
     router.push(`/subscriptions/${planId}/checkout`);
   };
 
   const handleOneTime = () => {
-    router.push('/events');
-    toast.success('Explore events and pay per event you join!');
-  }
+    router.push("/events");
+    toast.success("Explore events and pay per event you join!");
+  };
 
   const planConfig = {
     MONTHLY_1: {
       icon: Zap,
-      gradient: 'from-orange-500 to-orange-600',
-      badge: 'Popular',
+      gradient: "from-orange-500 to-orange-600",
+      badge: "Popular",
     },
     MONTHLY_3: {
       icon: Star,
-      gradient: 'from-purple-500 to-purple-600',
+      gradient: "from-purple-500 to-purple-600",
       badge: null,
     },
-    // MONTHLY_6: {
-    //   icon: Sparkles,
-    //   gradient: 'from-pink-500 to-orange-500',
-    //   badge: 'Best Value',
-    // },
+    MONTHLY_6: {
+      icon: Sparkles,
+      gradient: "from-pink-500 to-orange-500",
+      badge: "Best Value",
+    },
   };
+
+  // Handle authentication redirect
+  if (error && !user) {
+    router.push("/auth/login?redirect=/subscriptions");
+    return null;
+  }
 
   if (isLoading) {
     return (
@@ -107,13 +122,16 @@ export default function SubscriptionsPage() {
                   </p>
                   {currentSubscription.endDate && (
                     <p>
-                      <span className="font-medium">Valid until:</span>{' '}
-                      {format(new Date(currentSubscription.endDate), 'dd MMM yyyy')}
+                      <span className="font-medium">Valid until:</span>{" "}
+                      {format(
+                        new Date(currentSubscription.endDate),
+                        "dd MMM yyyy"
+                      )}
                     </p>
                   )}
                 </div>
                 <button
-                  onClick={() => router.push('/my-subscriptions')}
+                  onClick={() => router.push("/my-subscriptions")}
                   className="mt-3 text-brand hover:text-brand/80 font-medium text-sm inline-flex items-center gap-1.5 transition-colors"
                 >
                   Manage Subscription
@@ -170,10 +188,11 @@ export default function SubscriptionsPage() {
 
         {/* Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="relative bg-white rounded-lg border-2 transition-all hover:shadow-lg border-gray-200 hover:black">
+          {/* One-Time Payment Option */}
+          <div className="relative bg-white rounded-lg border-2 transition-all hover:shadow-lg border-gray-200 hover:border-black">
             <div className="p-6 space-y-5">
               {/* Icon */}
-              <div className={`w-12 h-12 rounded-lg bg-black flex items-center justify-center`}>
+              <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
                 <RefreshCcw className="w-6 h-6 text-white" />
               </div>
 
@@ -182,16 +201,21 @@ export default function SubscriptionsPage() {
                 <h3 className="text-xl font-bold text-gray-900 mb-1">
                   One Time Payment
                 </h3>
-                  <p className="text-sm text-gray-600">Pay for every event you join</p>
+                <p className="text-sm text-gray-600">
+                  Pay for every event you join
+                </p>
               </div>
 
               {/* Price */}
               <div className="space-y-1">
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-bold text-gray-900">
-                    Rp100.000
+                    {userLocation?.currency
+                      ? `${userLocation.currency} 100.000`
+                      : "Rp 100.000"}
                   </span>
                 </div>
+                <p className="text-xs text-gray-500">Per event</p>
               </div>
 
               {/* Features */}
@@ -218,16 +242,16 @@ export default function SubscriptionsPage() {
 
               {/* CTA Button */}
               <button
-                onClick={() => handleOneTime()}
+                onClick={handleOneTime}
                 disabled={hasActiveSubscription}
                 className={`w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
                   hasActiveSubscription
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                    : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-md'
+                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                    : "bg-gray-900 text-white hover:bg-gray-800 hover:shadow-md"
                 }`}
               >
                 {hasActiveSubscription ? (
-                  'Already Subscribed'
+                  "Already Subscribed"
                 ) : (
                   <>
                     Explore Events
@@ -237,10 +261,14 @@ export default function SubscriptionsPage() {
               </button>
             </div>
           </div>
+
+          {/* Subscription Plans */}
           {plans.map((plan) => {
             const config = planConfig[plan.type] || planConfig.MONTHLY_1;
             const PlanIcon = config.icon;
-            const monthlyPrice = plan.price / plan.durationInMonths;
+            const displayPrice = plan.currentPrice || plan.price;
+            const displayCurrency = plan.currentCurrency || plan.currency;
+            const monthlyPrice = displayPrice / plan.durationInMonths;
             const hasBadge = !!config.badge;
 
             return (
@@ -248,8 +276,8 @@ export default function SubscriptionsPage() {
                 key={plan.id}
                 className={`relative bg-white rounded-lg border-2 transition-all hover:shadow-lg ${
                   hasBadge
-                    ? 'border-brand shadow-md scale-105'
-                    : 'border-gray-200 hover:border-brand/30'
+                    ? "border-brand shadow-md scale-105"
+                    : "border-gray-200 hover:border-brand/30"
                 }`}
               >
                 {/* Badge */}
@@ -275,23 +303,25 @@ export default function SubscriptionsPage() {
                       {plan.name}
                     </h3>
                     {plan.description && (
-                      <p className="text-sm text-gray-600">{plan.description}</p>
+                      <p className="text-sm text-gray-600">
+                        {plan.description}
+                      </p>
                     )}
                   </div>
 
-                  {/* Price */}
+                  {/* Price - Using backend-calculated price */}
                   <div className="space-y-1">
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-bold text-gray-900">
-                        {formatCurrency(plan.price, plan.currency)}
+                        {formatCurrency(displayPrice, displayCurrency)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">
-                      {formatCurrency(monthlyPrice, plan.currency)}/month
+                      {formatCurrency(monthlyPrice, displayCurrency)}/month
                     </p>
                     <p className="text-xs text-gray-500">
                       Billed every {plan.durationInMonths} month
-                      {plan.durationInMonths > 1 ? 's' : ''}
+                      {plan.durationInMonths > 1 ? "s" : ""}
                     </p>
                   </div>
 
@@ -311,10 +341,14 @@ export default function SubscriptionsPage() {
                   <button
                     onClick={() => handleSelectPlan(plan.id)}
                     disabled={hasActiveSubscription}
-                    className="w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 bg-gray-900 text-white hover:bg-gray-800 hover:shadow-md bg-linear-to-r from-brand to-orange-600 hover:scale-[1.02]"
+                    className={`w-full py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                      hasActiveSubscription
+                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                        : "bg-linear-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white hover:shadow-md"
+                    }`}
                   >
                     {hasActiveSubscription ? (
-                      'Already Subscribed'
+                      "Already Subscribed"
                     ) : (
                       <>
                         Get Started
@@ -339,8 +373,8 @@ export default function SubscriptionsPage() {
                 Can I cancel my subscription anytime?
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Yes! You can cancel your subscription at any time. You'll continue
-                to have access until the end of your billing period.
+                Yes! You can cancel your subscription at any time. You'll
+                continue to have access until the end of your billing period.
               </p>
             </div>
 
@@ -349,18 +383,19 @@ export default function SubscriptionsPage() {
                 What payment methods do you accept?
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                We accept various payment methods including bank transfer, e-wallet,
-                and credit card through our secure payment gateway.
+                We accept various payment methods including bank transfer,
+                e-wallet, and credit card through our secure payment gateway.
               </p>
             </div>
 
             <div className="bg-white rounded-lg border border-gray-200 p-5">
               <h3 className="font-semibold text-gray-900 mb-2 text-sm">
-                Can I upgrade or downgrade my plan?
+                Why are prices shown in different currencies?
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
-                Currently, you can purchase a new plan once your current subscription
-                ends. Future updates will support plan upgrades.
+                We automatically show prices in your local currency based on
+                your location to make it easier for you. The price you see is
+                the final price you'll pay.
               </p>
             </div>
           </div>
@@ -375,8 +410,8 @@ export default function SubscriptionsPage() {
                 Need Help?
               </p>
               <p className="text-sm text-blue-700 leading-relaxed">
-                If you have any questions about our subscription plans, feel free to
-                contact our support team.
+                If you have any questions about our subscription plans or
+                pricing, feel free to contact our support team.
               </p>
             </div>
           </div>

@@ -399,9 +399,7 @@ export class EventsService {
       dateTo,
     } = queryDto;
 
-    const where: Prisma.EventWhereInput = {
-      NOT: { category: EventCategory.DAYDREAM }
-    };
+    const where: Prisma.EventWhereInput = {};
 
     if (search) {
       where.OR = [

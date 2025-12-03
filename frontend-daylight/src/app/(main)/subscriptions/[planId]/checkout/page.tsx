@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { DashboardLayout } from '@/components/main/dashboard-layout';
-import { useAuth } from '@/hooks/use-auth';
-import { usePlanById, useCreateSubscriptionPayment } from '@/hooks/use-subscriptions';
-import { usePaymentChannels, useCalculateFee } from '@/hooks/use-payment';
-import { useParams, useRouter } from 'next/navigation';
+import { useState } from "react";
+import { DashboardLayout } from "@/components/main/dashboard-layout";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  usePlanById,
+  useCreateSubscriptionPayment,
+} from "@/hooks/use-subscriptions";
+import { usePaymentChannels, useCalculateFee } from "@/hooks/use-payment";
+import { useParams, useRouter } from "next/navigation";
 import {
   Loader2,
   ArrowLeft,
@@ -16,13 +19,14 @@ import {
   User,
   Mail,
   Phone,
-} from 'lucide-react';
-import { PaymentMethodSelector } from '@/components/payment/payment-method-selector';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { formatCurrency } from '@/lib/utils';
-import { toast } from 'sonner';
-import { ApiError, getUserFriendlyErrorMessage } from '@/lib/api-error';
+  MapPin,
+} from "lucide-react";
+import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
+import { ApiError, getUserFriendlyErrorMessage } from "@/lib/api-error";
 
 export default function SubscriptionCheckoutPage() {
   const params = useParams();
@@ -31,19 +35,26 @@ export default function SubscriptionCheckoutPage() {
   const planId = params.planId as string;
 
   const { data: planResponse, isLoading: isLoadingPlan } = usePlanById(planId);
-  const { data: paymentChannels, isLoading: isLoadingChannels } = usePaymentChannels();
+  const { data: paymentChannels, isLoading: isLoadingChannels } =
+    usePaymentChannels();
 
   const plan = planResponse?.data;
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    string | null
+  >(null);
   const [customerName, setCustomerName] = useState(
-    user ? `${user.firstName} ${user.lastName}` : ''
+    user ? `${user.firstName} ${user.lastName}` : ""
   );
-  const [customerPhone, setCustomerPhone] = useState(user?.phoneNumber || '');
+  const [customerPhone, setCustomerPhone] = useState(user?.phoneNumber || "");
+
+  // Use currentPrice from backend (already calculated)
+  const displayPrice = plan?.currentPrice || plan?.price || 0;
+  const displayCurrency = plan?.currentCurrency || plan?.currency || "IDR";
 
   // Calculate fee
   const { data: feeCalculation } = useCalculateFee(
-    plan?.price || 0,
+    displayPrice,
     selectedPaymentMethod || undefined
   );
 
@@ -53,12 +64,12 @@ export default function SubscriptionCheckoutPage() {
     e.preventDefault();
 
     if (!plan || !selectedPaymentMethod || !user) {
-      toast.error('Please complete all required fields');
+      toast.error("Please complete all required fields");
       return;
     }
 
     if (!customerName.trim()) {
-      toast.error('Please enter your name');
+      toast.error("Please enter your name");
       return;
     }
 
@@ -72,16 +83,16 @@ export default function SubscriptionCheckoutPage() {
       });
 
       if (result.success) {
-        toast.success('Payment created! Redirecting...');
+        toast.success("Payment created! Redirecting...");
         router.push(`/payment/${result.data.transaction.id}`);
       }
     } catch (error: any) {
-      console.error('Payment creation error:', error);
+      console.error("Payment creation error:", error);
       if (error instanceof ApiError) {
         const friendlyMessage = getUserFriendlyErrorMessage(error);
         toast.error(friendlyMessage);
       } else {
-        toast.error('Failed to create payment. Please try again.');
+        toast.error("Failed to create payment. Please try again.");
       }
     }
   };
@@ -104,7 +115,7 @@ export default function SubscriptionCheckoutPage() {
         <div className="text-center py-12">
           <h3 className="text-lg font-semibold mb-2">Plan not found</h3>
           <button
-            onClick={() => router.push('/subscriptions')}
+            onClick={() => router.push("/subscriptions")}
             className="text-brand hover:underline"
           >
             Back to Plans
@@ -114,14 +125,15 @@ export default function SubscriptionCheckoutPage() {
     );
   }
 
-  const monthlyPrice = plan.price / plan.durationInMonths;
+  const monthlyPrice = displayPrice / plan.durationInMonths;
+  const userLocation = plan.userLocation;
 
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-5xl mx-auto py-4 px-4 sm:px-6">
         {/* Back Button */}
         <button
-          onClick={() => router.push('/subscriptions')}
+          onClick={() => router.push("/subscriptions")}
           className="inline-flex items-center gap-2 text-gray-600 hover:text-brand transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -139,8 +151,30 @@ export default function SubscriptionCheckoutPage() {
                 Complete Your Subscription
               </h1>
               <p className="text-sm text-gray-600">
-                You're upgrading to <span className="font-semibold">{plan.name}</span>
+                You're upgrading to{" "}
+                <span className="font-semibold">{plan.name}</span>
               </p>
+
+              {/* Location Badge */}
+              {userLocation &&
+                (userLocation.cityName || userLocation.currency) && (
+                  <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs">
+                    <MapPin className="w-3 h-3 text-blue-600" />
+                    <span className="text-blue-900">
+                      {userLocation.cityName && (
+                        <span className="font-medium">
+                          {userLocation.cityName}
+                        </span>
+                      )}
+                      {userLocation.cityName && userLocation.currency && (
+                        <span className="text-blue-600 mx-1">•</span>
+                      )}
+                      {userLocation.currency && (
+                        <span>Pricing in {userLocation.currency}</span>
+                      )}
+                    </span>
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -166,15 +200,16 @@ export default function SubscriptionCheckoutPage() {
 
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(plan.price, plan.currency)}
+                    {formatCurrency(displayPrice, displayCurrency)}
                   </span>
                   <span className="text-sm text-gray-600">
-                    / {plan.durationInMonths} month{plan.durationInMonths > 1 ? 's' : ''}
+                    / {plan.durationInMonths} month
+                    {plan.durationInMonths > 1 ? "s" : ""}
                   </span>
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  Only {formatCurrency(monthlyPrice, plan.currency)}/month
+                  Only {formatCurrency(monthlyPrice, displayCurrency)}/month
                 </p>
 
                 <div className="pt-4 border-t border-gray-200">
@@ -202,7 +237,10 @@ export default function SubscriptionCheckoutPage() {
                 </h2>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="customerName" className="text-sm font-medium">
+                    <Label
+                      htmlFor="customerName"
+                      className="text-sm font-medium"
+                    >
                       Full Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -217,7 +255,10 @@ export default function SubscriptionCheckoutPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="customerEmail" className="text-sm font-medium">
+                    <Label
+                      htmlFor="customerEmail"
+                      className="text-sm font-medium"
+                    >
                       Email Address
                     </Label>
                     <div className="relative mt-1.5">
@@ -225,7 +266,7 @@ export default function SubscriptionCheckoutPage() {
                       <Input
                         id="customerEmail"
                         type="email"
-                        value={user?.email || ''}
+                        value={user?.email || ""}
                         disabled
                         className="pl-10 bg-gray-50"
                       />
@@ -233,8 +274,12 @@ export default function SubscriptionCheckoutPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="customerPhone" className="text-sm font-medium">
-                      Phone Number <span className="text-gray-500">(Optional)</span>
+                    <Label
+                      htmlFor="customerPhone"
+                      className="text-sm font-medium"
+                    >
+                      Phone Number{" "}
+                      <span className="text-gray-500">(Optional)</span>
                     </Label>
                     <div className="relative mt-1.5">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -277,7 +322,7 @@ export default function SubscriptionCheckoutPage() {
                   !customerName.trim() ||
                   createPaymentMutation.isPending
                 }
-                className="w-full bg-linear-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-3.5 font-semibold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                className="w-full bg-linear-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-3.5 font-semibold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {createPaymentMutation.isPending ? (
                   <>
@@ -306,7 +351,7 @@ export default function SubscriptionCheckoutPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Subscription Price</span>
                     <span className="font-medium text-gray-900">
-                      {formatCurrency(plan.price, plan.currency)}
+                      {formatCurrency(displayPrice, displayCurrency)}
                     </span>
                   </div>
 
@@ -314,9 +359,10 @@ export default function SubscriptionCheckoutPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Payment Fee</span>
                       <span className="font-medium text-brand">
-                        + {formatCurrency(
+                        +{" "}
+                        {formatCurrency(
                           (feeCalculation.data as any).fee.customer.total,
-                          plan.currency
+                          displayCurrency
                         )}
                       </span>
                     </div>
@@ -325,11 +371,13 @@ export default function SubscriptionCheckoutPage() {
                   <div className="border-t border-gray-200 pt-3 mt-3"></div>
 
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-900">Total Payment</span>
+                    <span className="font-semibold text-gray-900">
+                      Total Payment
+                    </span>
                     <span className="font-bold text-lg text-brand">
                       {formatCurrency(
                         (feeCalculation.data as any).finalAmount,
-                        plan.currency
+                        displayCurrency
                       )}
                     </span>
                   </div>
@@ -346,9 +394,9 @@ export default function SubscriptionCheckoutPage() {
                     Secure Payment
                   </p>
                   <p className="text-blue-700 leading-relaxed">
-                    Your payment is processed securely through our trusted payment
-                    gateway. Your subscription will activate immediately after payment
-                    confirmation.
+                    Your payment is processed securely through our trusted
+                    payment gateway. Your subscription will activate immediately
+                    after payment confirmation.
                   </p>
                 </div>
               </div>

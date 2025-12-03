@@ -1,14 +1,35 @@
 export enum SubscriptionPlanType {
-  MONTHLY_1 = 'MONTHLY_1',
-  MONTHLY_3 = 'MONTHLY_3',
-  // MONTHLY_6 = 'MONTHLY_6',
+  MONTHLY_1 = "MONTHLY_1",
+  MONTHLY_3 = "MONTHLY_3",
+  MONTHLY_6 = "MONTHLY_6",
 }
 
 export enum SubscriptionStatus {
-  ACTIVE = 'ACTIVE',
-  EXPIRED = 'EXPIRED',
-  CANCELLED = 'CANCELLED',
-  PENDING = 'PENDING',
+  ACTIVE = "ACTIVE",
+  EXPIRED = "EXPIRED",
+  CANCELLED = "CANCELLED",
+  PENDING = "PENDING",
+}
+
+// NEW: Multi-currency price structure
+export interface SubscriptionPlanPrice {
+  id: string;
+  subscriptionPlanId: string;
+  currency: string;
+  amount: number;
+  countryCode: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// NEW: User location info returned from API
+export interface UserLocation {
+  currency?: string;
+  countryCode?: string;
+  cityId?: string;
+  cityName?: string;
+  countryName?: string;
 }
 
 export interface SubscriptionPlan {
@@ -18,6 +39,12 @@ export interface SubscriptionPlan {
   description: string | null;
   price: number;
   currency: string;
+  currentPrice: number; // Price based on user's location
+  currentCurrency: string; // Currency based on user's location
+  userLocation?: UserLocation; // User's detected location
+  availablePrices?: SubscriptionPlanPrice[]; // All available prices
+  prices?: SubscriptionPlanPrice[]; // Alias for availablePrices
+
   durationInMonths: number;
   features: string[];
   isActive: boolean;
@@ -53,7 +80,7 @@ export interface QueryUserSubscriptionsParams {
   page?: number;
   limit?: number;
   status?: SubscriptionStatus;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface QueryUserSubscriptionsResponse {

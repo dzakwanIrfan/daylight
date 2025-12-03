@@ -1,28 +1,30 @@
 import apiClient from "@/lib/axios";
-import {
-  AdminSubscription,
-  AdminSubscriptionPlan,
-  BulkSubscriptionActionPayload,
-  CreateSubscriptionPlanDto,
-  QuerySubscriptionsParams,
-  QuerySubscriptionsResponse,
-  SubscriptionStats,
-  UpdateSubscriptionPlanDto,
-} from "@/types/admin-subscription.types";
 import type {
   SubscriptionPlan,
   UserSubscription,
   QueryUserSubscriptionsParams,
   QueryUserSubscriptionsResponse,
   CreateSubscriptionPaymentDto,
+  CreateSubscriptionPlanDto,
+  UpdateSubscriptionPlanDto,
+  UpdateSubscriptionPlanPricesDto,
+  CreateSubscriptionPlanPriceDto,
+  SubscriptionPlanPrice,
+  UpdateSubscriptionPlanPriceDto,
 } from "@/types/subscription.types";
+import {
+  AdminSubscription,
+  BulkSubscriptionActionPayload,
+  QuerySubscriptionsParams,
+  QuerySubscriptionsResponse,
+  SubscriptionStats,
+} from "@/types/admin-subscription.types";
 
 class SubscriptionService {
   private readonly baseURL = "/subscriptions";
 
-  /**
-   * Get all active subscription plans (AUTHENTICATED - uses user location)
-   */
+  // USER ENDPOINTS
+
   async getActivePlans(): Promise<{
     success: boolean;
     data: SubscriptionPlan[];
@@ -31,20 +33,14 @@ class SubscriptionService {
     return response.data;
   }
 
-  /**
-   * Get plan by ID (AUTHENTICATED - uses user location)
-   */
   async getPlanById(planId: string): Promise<{
     success: boolean;
     data: SubscriptionPlan;
   }> {
     const response = await apiClient.get(`${this.baseURL}/plans/${planId}`);
-    return response.data;
+    return response. data;
   }
 
-  /**
-   * Get user's active subscription
-   */
   async getMyActiveSubscription(): Promise<{
     success: boolean;
     data: UserSubscription | null;
@@ -54,21 +50,15 @@ class SubscriptionService {
     return response.data;
   }
 
-  /**
-   * Get user's subscription history
-   */
   async getMySubscriptions(
     params?: QueryUserSubscriptionsParams
   ): Promise<QueryUserSubscriptionsResponse> {
-    const response = await apiClient.get(`${this.baseURL}/my-subscriptions`, {
+    const response = await apiClient. get(`${this.baseURL}/my-subscriptions`, {
       params,
     });
     return response.data;
   }
 
-  /**
-   * Get subscription detail
-   */
   async getMySubscriptionById(subscriptionId: string): Promise<{
     success: boolean;
     data: UserSubscription;
@@ -79,9 +69,6 @@ class SubscriptionService {
     return response.data;
   }
 
-  /**
-   * Cancel subscription
-   */
   async cancelSubscription(
     subscriptionId: string,
     reason?: string
@@ -97,9 +84,6 @@ class SubscriptionService {
     return response.data;
   }
 
-  /**
-   * Create subscription payment
-   */
   async createSubscriptionPayment(dto: CreateSubscriptionPaymentDto): Promise<{
     success: boolean;
     message: string;
@@ -109,35 +93,151 @@ class SubscriptionService {
     };
   }> {
     const response = await apiClient.post("/payment/subscribe", dto);
+    return response. data;
+  }
+
+  // ADMIN - SUBSCRIPTION PLANS CRUD
+
+  async getAllPlans(isActive?: boolean): Promise<{
+    success: boolean;
+    data: SubscriptionPlan[];
+  }> {
+    const response = await apiClient.get(`${this.baseURL}/admin/plans`, {
+      params: { isActive },
+    });
     return response.data;
   }
 
-  /**
-   * Get all subscriptions with filtering (Admin)
-   */
+  async getPlanByIdAdmin(planId: string): Promise<{
+    success: boolean;
+    data: SubscriptionPlan;
+  }> {
+    const response = await apiClient.get(
+      `${this.baseURL}/admin/plans/${planId}`
+    );
+    return response. data;
+  }
+
+  async createPlan(dto: CreateSubscriptionPlanDto): Promise<{
+    success: boolean;
+    message: string;
+    data: SubscriptionPlan;
+  }> {
+    const response = await apiClient.post(`${this.baseURL}/admin/plans`, dto);
+    return response.data;
+  }
+
+  async updatePlan(
+    planId: string,
+    dto: UpdateSubscriptionPlanDto
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: SubscriptionPlan;
+  }> {
+    const response = await apiClient.put(
+      `${this.baseURL}/admin/plans/${planId}`,
+      dto
+    );
+    return response.data;
+  }
+
+  async updatePlanPrices(
+    planId: string,
+    dto: UpdateSubscriptionPlanPricesDto
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: SubscriptionPlan;
+  }> {
+    const response = await apiClient.put(
+      `${this.baseURL}/admin/plans/${planId}/prices`,
+      dto
+    );
+    return response.data;
+  }
+
+  async deletePlan(planId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const response = await apiClient.delete(
+      `${this.baseURL}/admin/plans/${planId}`
+    );
+    return response. data;
+  }
+
+  // ADMIN - SUBSCRIPTION PLAN PRICES CRUD
+
+  async getPlanPrices(planId: string): Promise<{
+    success: boolean;
+    data: SubscriptionPlanPrice[];
+  }> {
+    const response = await apiClient. get(
+      `${this. baseURL}/admin/plans/${planId}/prices`
+    );
+    return response.data;
+  }
+
+  async addPriceToPlan(
+    planId: string,
+    dto: CreateSubscriptionPlanPriceDto
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: SubscriptionPlanPrice;
+  }> {
+    const response = await apiClient.post(
+      `${this.baseURL}/admin/plans/${planId}/prices`,
+      dto
+    );
+    return response.data;
+  }
+
+  async updatePrice(
+    priceId: string,
+    dto: UpdateSubscriptionPlanPriceDto
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: SubscriptionPlanPrice;
+  }> {
+    const response = await apiClient.put(
+      `${this.baseURL}/admin/prices/${priceId}`,
+      dto
+    );
+    return response.data;
+  }
+
+  async deletePrice(priceId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const response = await apiClient.delete(
+      `${this.baseURL}/admin/prices/${priceId}`
+    );
+    return response.data;
+  }
+
+  // ADMIN - USER SUBSCRIPTIONS MANAGEMENT
+
   async getAdminSubscriptions(
     params: QuerySubscriptionsParams
   ): Promise<QuerySubscriptionsResponse> {
-    const response = await apiClient.get("/subscriptions/admin/subscriptions", {
+    const response = await apiClient.get(`${this.baseURL}/admin/subscriptions`, {
       params,
     });
     return response.data;
   }
 
-  /**
-   * Get subscription statistics (Admin)
-   */
   async getSubscriptionStats(): Promise<{
     success: boolean;
     data: SubscriptionStats;
   }> {
-    const response = await apiClient.get("/subscriptions/admin/stats");
+    const response = await apiClient.get(`${this.baseURL}/admin/stats`);
     return response.data;
   }
 
-  /**
-   * Bulk actions on subscriptions (Admin)
-   */
   async bulkSubscriptionAction(
     payload: BulkSubscriptionActionPayload
   ): Promise<{
@@ -146,77 +246,18 @@ class SubscriptionService {
     affectedCount: number;
   }> {
     const response = await apiClient.post(
-      "/subscriptions/admin/subscriptions/bulk",
+      `${this.baseURL}/admin/subscriptions/bulk`,
       payload
     );
     return response.data;
   }
 
-  /**
-   * Export subscriptions (Admin)
-   */
   async exportSubscriptions(
     params: QuerySubscriptionsParams
   ): Promise<AdminSubscription[]> {
     const response = await apiClient.get(
-      "/subscriptions/admin/subscriptions/export",
+      `${this.baseURL}/admin/subscriptions/export`,
       { params }
-    );
-    return response.data;
-  }
-
-  /**
-   * Get all plans including inactive (Admin)
-   */
-  async getAllPlans(isActive?: boolean): Promise<{
-    success: boolean;
-    data: any[];
-  }> {
-    const response = await apiClient.get("/subscriptions/admin/plans", {
-      params: { isActive },
-    });
-    return response.data;
-  }
-
-  /**
-   * Create subscription plan (Admin)
-   */
-  async createPlan(dto: CreateSubscriptionPlanDto): Promise<{
-    success: boolean;
-    message: string;
-    data: AdminSubscriptionPlan;
-  }> {
-    const response = await apiClient.post("/subscriptions/admin/plans", dto);
-    return response.data;
-  }
-
-  /**
-   * Update subscription plan (Admin)
-   */
-  async updatePlan(
-    planId: string,
-    dto: UpdateSubscriptionPlanDto
-  ): Promise<{
-    success: boolean;
-    message: string;
-    data: AdminSubscriptionPlan;
-  }> {
-    const response = await apiClient.put(
-      `/subscriptions/admin/plans/${planId}`,
-      dto
-    );
-    return response.data;
-  }
-
-  /**
-   * Delete subscription plan (Admin)
-   */
-  async deletePlan(planId: string): Promise<{
-    success: boolean;
-    message: string;
-  }> {
-    const response = await apiClient.delete(
-      `/subscriptions/admin/plans/${planId}`
     );
     return response.data;
   }

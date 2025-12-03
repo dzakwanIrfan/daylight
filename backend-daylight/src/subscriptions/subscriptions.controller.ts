@@ -21,7 +21,12 @@ import type { User } from '@prisma/client';
 import {
   CreateSubscriptionPlanDto,
   UpdateSubscriptionPlanDto,
+  UpdateSubscriptionPlanPricesDto,
 } from './dto/subscription-plan.dto';
+import {
+  CreateSubscriptionPlanPriceDto,
+  UpdateSubscriptionPlanPriceDto,
+} from './dto/subscription-plan-price.dto';
 import { CancelSubscriptionDto } from './dto/subscribe.dto';
 import { QueryUserSubscriptionsDto } from './dto/query-subscriptions.dto';
 import { QueryAdminSubscriptionsDto } from './dto/query-admin-subscriptions.dto';
@@ -31,7 +36,7 @@ import { BulkSubscriptionActionDto } from './dto/bulk-subscription-action.dto';
 export class SubscriptionsController {
   constructor(private subscriptionsService: SubscriptionsService) {}
 
-  // USER ENDPOINTS (Protected with JwtAuthGuard)
+  // USER ENDPOINTS
 
   /**
    * Get all active subscription plans with pricing based on user's location
@@ -47,11 +52,8 @@ export class SubscriptionsController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('plans/:id')
-  async getPlanById(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ) {
-    return this.subscriptionsService. getPlanById(id, user);
+  async getPlanById(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.subscriptionsService.getPlanById(id, user);
   }
 
   /**
@@ -60,7 +62,7 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   @Get('my-subscription')
   async getMyActiveSubscription(@CurrentUser() user: User) {
-    return this. subscriptionsService.getUserActiveSubscription(user. id);
+    return this.subscriptionsService.getUserActiveSubscription(user.id);
   }
 
   /**
@@ -84,7 +86,7 @@ export class SubscriptionsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    return this.subscriptionsService. getSubscriptionById(id, user. id);
+    return this.subscriptionsService.getSubscriptionById(id, user.id);
   }
 
   /**
@@ -98,21 +100,35 @@ export class SubscriptionsController {
     @Param('id') id: string,
     @Body() dto: CancelSubscriptionDto,
   ) {
-    return this. subscriptionsService.cancelSubscription(id, user.id, dto. reason);
+    return this.subscriptionsService.cancelSubscription(
+      id,
+      user.id,
+      dto.reason,
+    );
   }
 
-  // ADMIN ENDPOINTS
+  // ADMIN - SUBSCRIPTION PLANS CRUD
 
   /**
    * Get all plans (Admin)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole. ADMIN)
+  @Roles(UserRole.ADMIN)
   @Get('admin/plans')
   async getAllPlans(@Query('isActive') isActive?: string) {
     const active =
       isActive === 'true' ? true : isActive === 'false' ? false : undefined;
     return this.subscriptionsService.getAllPlans(active);
+  }
+
+  /**
+   * Get plan by ID (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin/plans/:id')
+  async getPlanByIdAdmin(@Param('id') id: string) {
+    return this.subscriptionsService.getPlanByIdAdmin(id);
   }
 
   /**
@@ -127,7 +143,7 @@ export class SubscriptionsController {
   }
 
   /**
-   * Update plan (Admin)
+   * Update plan metadata (Admin)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -140,6 +156,19 @@ export class SubscriptionsController {
   }
 
   /**
+   * Update plan prices (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Put('admin/plans/:id/prices')
+  async updatePlanPrices(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubscriptionPlanPricesDto,
+  ) {
+    return this.subscriptionsService.updatePlanPrices(id, dto);
+  }
+
+  /**
    * Delete plan (Admin)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -148,6 +177,57 @@ export class SubscriptionsController {
   async deletePlan(@Param('id') id: string) {
     return this.subscriptionsService.deletePlan(id);
   }
+
+  // ADMIN - SUBSCRIPTION PLAN PRICES CRUD
+
+  /**
+   * Get all prices for a plan (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin/plans/:planId/prices')
+  async getPlanPrices(@Param('planId') planId: string) {
+    return this.subscriptionsService.getPlanPrices(planId);
+  }
+
+  /**
+   * Add price to plan (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('admin/plans/:planId/prices')
+  @HttpCode(HttpStatus.CREATED)
+  async addPriceToPlan(
+    @Param('planId') planId: string,
+    @Body() dto: CreateSubscriptionPlanPriceDto,
+  ) {
+    return this.subscriptionsService.addPriceToPlan(planId, dto);
+  }
+
+  /**
+   * Update price (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Put('admin/prices/:priceId')
+  async updatePrice(
+    @Param('priceId') priceId: string,
+    @Body() dto: UpdateSubscriptionPlanPriceDto,
+  ) {
+    return this.subscriptionsService.updatePrice(priceId, dto);
+  }
+
+  /**
+   * Delete price (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Delete('admin/prices/:priceId')
+  async deletePrice(@Param('priceId') priceId: string) {
+    return this.subscriptionsService.deletePrice(priceId);
+  }
+
+  // ADMIN - USER SUBSCRIPTIONS MANAGEMENT
 
   /**
    * Get all subscriptions (Admin)
@@ -176,7 +256,7 @@ export class SubscriptionsController {
   @Roles(UserRole.ADMIN)
   @Get('admin/subscriptions')
   async getAdminSubscriptions(@Query() queryDto: QueryAdminSubscriptionsDto) {
-    return this.subscriptionsService. getAdminSubscriptions(queryDto);
+    return this.subscriptionsService.getAdminSubscriptions(queryDto);
   }
 
   /**
@@ -186,7 +266,9 @@ export class SubscriptionsController {
   @Roles(UserRole.ADMIN)
   @Post('admin/subscriptions/bulk')
   @HttpCode(HttpStatus.OK)
-  async bulkSubscriptionAction(@Body() bulkActionDto: BulkSubscriptionActionDto) {
+  async bulkSubscriptionAction(
+    @Body() bulkActionDto: BulkSubscriptionActionDto,
+  ) {
     return this.subscriptionsService.bulkSubscriptionAction(bulkActionDto);
   }
 

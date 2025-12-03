@@ -269,6 +269,7 @@ export class CountryService {
         id: true,
         code: true,
         name: true,
+        currency: true,
       },
       orderBy: { name: 'asc' },
     });

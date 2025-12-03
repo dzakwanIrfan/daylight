@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Dialog,
@@ -6,27 +6,28 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { AdminSubscriptionPlan } from '@/types/admin-subscription.types';
-import { useForm, Controller } from 'react-hook-form';
-import { Loader2, Plus, X } from 'lucide-react';
-import { useAdminPlanMutations } from '@/hooks/use-admin-subscriptions';
-import { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/select";
+import type { SubscriptionPlan } from "@/types/subscription.types";
+import { useForm, Controller } from "react-hook-form";
+import { Loader2, Plus, X } from "lucide-react";
+import { useAdminPlanMutations } from "@/hooks/use-admin-subscriptions";
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign } from "lucide-react";
 
 interface EditPlanDialogProps {
-  plan: AdminSubscriptionPlan;
+  plan: SubscriptionPlan;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -34,7 +35,6 @@ interface EditPlanDialogProps {
 interface EditPlanFormData {
   name: string;
   description: string;
-  price: number;
   features: string[];
   isActive: boolean;
   sortOrder: number;
@@ -46,7 +46,7 @@ export function EditPlanDialog({
   onOpenChange,
 }: EditPlanDialogProps) {
   const { updatePlan } = useAdminPlanMutations();
-  const [featureInput, setFeatureInput] = useState('');
+  const [featureInput, setFeatureInput] = useState("");
 
   const {
     register,
@@ -59,28 +59,26 @@ export function EditPlanDialog({
   } = useForm<EditPlanFormData>({
     defaultValues: {
       name: plan.name,
-      description: plan.description || '',
-      price: plan.price,
+      description: plan.description || "",
       features: plan.features || [],
       isActive: plan.isActive,
       sortOrder: plan.sortOrder,
     },
   });
 
-  const features = watch('features');
+  const features = watch("features");
 
   // Reset form when plan changes or dialog opens
   useEffect(() => {
     if (open) {
       reset({
         name: plan.name,
-        description: plan.description || '',
-        price: plan.price,
+        description: plan.description || "",
         features: plan.features || [],
         isActive: plan.isActive,
         sortOrder: plan.sortOrder,
       });
-      setFeatureInput('');
+      setFeatureInput("");
     }
   }, [plan, open, reset]);
 
@@ -97,14 +95,14 @@ export function EditPlanDialog({
 
   const addFeature = () => {
     if (featureInput.trim()) {
-      setValue('features', [...features, featureInput.trim()]);
-      setFeatureInput('');
+      setValue("features", [...features, featureInput.trim()]);
+      setFeatureInput("");
     }
   };
 
   const removeFeature = (index: number) => {
     setValue(
-      'features',
+      "features",
       features.filter((_, i) => i !== index)
     );
   };
@@ -114,19 +112,51 @@ export function EditPlanDialog({
       <DialogContent className="sm:max-w-[600px] bg-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Subscription Plan</DialogTitle>
+          <p className="text-sm text-gray-600 mt-1">
+            Update plan details. To manage pricing, use "Manage Prices" action.
+          </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Plan Info (Read-only) */}
-          <div className="p-3 bg-gray-50 rounded-lg space-y-1">
-            <p className="text-sm font-medium text-gray-600">Plan Type</p>
-            <p className="text-sm text-gray-900">
-              <Badge variant="outline">{plan.type}</Badge>
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {plan.durationInMonths} month{plan.durationInMonths > 1 ? 's' : ''}{' '}
-              duration
-            </p>
+          <div className="p-3 bg-gray-50 rounded-lg space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Plan Type</p>
+                <Badge variant="outline" className="mt-1">
+                  {plan.type}
+                </Badge>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-600">Duration</p>
+                <p className="text-sm text-gray-900 mt-1">
+                  {plan.durationInMonths} month
+                  {plan.durationInMonths > 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+
+            {plan.prices && plan.prices.length > 0 && (
+              <div className="pt-2 border-t border-gray-200">
+                <p className="text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  Current Prices ({plan.prices.length})
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {plan.prices.slice(0, 3).map((price, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {price.currency} {price.amount.toLocaleString()}
+                      {price.countryCode && ` (${price.countryCode})`}
+                    </Badge>
+                  ))}
+                  {plan.prices.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{plan.prices.length - 3} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Plan Name */}
@@ -135,7 +165,7 @@ export function EditPlanDialog({
             <Input
               id="name"
               placeholder="e.g., 1 Month Premium"
-              {...register('name', { required: 'Plan name is required' })}
+              {...register("name", { required: "Plan name is required" })}
             />
             {errors.name && (
               <p className="text-xs text-red-600">{errors.name.message}</p>
@@ -149,44 +179,7 @@ export function EditPlanDialog({
               id="description"
               placeholder="Describe the plan benefits..."
               rows={3}
-              {...register('description')}
-            />
-          </div>
-
-          {/* Price */}
-          <div className="space-y-2">
-            <Label htmlFor="price">Price *</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">
-                {plan.currency}
-              </span>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                step="1000"
-                placeholder="150000"
-                {...register('price', {
-                  required: 'Price is required',
-                  min: { value: 0, message: 'Price must be positive' },
-                  valueAsNumber: true,
-                })}
-              />
-            </div>
-            {errors.price && (
-              <p className="text-xs text-red-600">{errors.price.message}</p>
-            )}
-          </div>
-
-          {/* Sort Order */}
-          <div className="space-y-2">
-            <Label htmlFor="sortOrder">Sort Order</Label>
-            <Input
-              id="sortOrder"
-              type="number"
-              min="0"
-              placeholder="0"
-              {...register('sortOrder', { valueAsNumber: true })}
+              {...register("description")}
             />
           </div>
 
@@ -199,7 +192,7 @@ export function EditPlanDialog({
                 value={featureInput}
                 onChange={(e) => setFeatureInput(e.target.value)}
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault();
                     addFeature();
                   }
@@ -236,27 +229,42 @@ export function EditPlanDialog({
             )}
           </div>
 
-          {/* Status */}
-          <div className="space-y-2">
-            <Label htmlFor="isActive">Status</Label>
-            <Controller
-              name="isActive"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value ? 'active' : 'inactive'}
-                  onValueChange={(value) => field.onChange(value === 'active')}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
+          {/* Status and Sort Order */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="isActive">Status</Label>
+              <Controller
+                name="isActive"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? "active" : "inactive"}
+                    onValueChange={(value) =>
+                      field.onChange(value === "active")
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Sort Order</Label>
+              <Input
+                id="sortOrder"
+                type="number"
+                min="0"
+                placeholder="0"
+                {...register("sortOrder", { valueAsNumber: true })}
+              />
+            </div>
           </div>
 
           <DialogFooter>

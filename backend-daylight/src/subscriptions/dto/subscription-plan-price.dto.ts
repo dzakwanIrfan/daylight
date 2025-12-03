@@ -1,20 +1,41 @@
-import { IsString, IsNumber, IsOptional, IsBoolean, Min, Matches } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, Min, IsUUID } from 'class-validator';
 
-export class SubscriptionPlanPriceDto {
-  @IsString()
-  @Matches(/^[A-Z]{3}$/, { message: 'Currency must be a valid 3-letter ISO code (e.g., IDR, USD, SGD)' })
-  currency: string;
+export class CreateSubscriptionPlanPriceDto {
+  @IsUUID()
+  countryId: string; // Reference to Country table
 
   @IsNumber()
   @Min(0)
   amount: number;
 
   @IsOptional()
-  @IsString()
-  @Matches(/^[A-Z]{2}$/, { message: 'Country code must be a valid 2-letter ISO code (e.g., ID, SG, US)' })
-  countryCode?: string;
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class UpdateSubscriptionPlanPriceDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  amount?: number;
 
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+export class SubscriptionPlanPriceResponseDto {
+  id: string;
+  subscriptionPlanId: string;
+  countryId: string;
+  amount: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  country: {
+    id: string;
+    code: string;
+    name: string;
+    currency: string;
+  };
 }

@@ -29,6 +29,12 @@ const categoryInfo = {
     color: "bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20",
     src: "/images/categories/text/DayCare.png",
   },
+  DAYDREAM: {
+    title: "DayDream Events",
+    description: "Arts & Culture Activities.",
+    color: "bg-linear-to-br from-brand/15 via-white to-brand/20 border border-brand/20",
+    src: "/images/categories/text/DayCare.png",
+  },
 };
 
 export default function CategoryPage() {

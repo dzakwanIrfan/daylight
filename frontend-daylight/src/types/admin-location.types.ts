@@ -76,6 +76,7 @@ export interface CountryOption {
   id: string;
   code: string;
   name: string;
+  currency: string;
 }
 
 // CITY TYPES

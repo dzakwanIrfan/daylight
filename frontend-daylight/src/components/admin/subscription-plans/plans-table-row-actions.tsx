@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Row } from '@tanstack/react-table';
-import { MoreHorizontal, Pencil, Trash2, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Row } from "@tanstack/react-table";
+import { MoreHorizontal, Pencil, Trash2, Eye, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,15 +10,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import type { AdminSubscriptionPlan } from '@/types/admin-subscription.types';
-import { useState } from 'react';
-import { EditPlanDialog } from './edit-plan-dialog';
-import { DeletePlanDialog } from './delete-plan-dialog';
-import { PlanDetailsDialog } from './plan-details-dialog';
+} from "@/components/ui/dropdown-menu";
+import type { SubscriptionPlan } from "@/types/subscription.types";
+import { useState } from "react";
+import { EditPlanDialog } from "./edit-plan-dialog";
+import { DeletePlanDialog } from "./delete-plan-dialog";
+import { PlanDetailsDialog } from "./plan-details-dialog";
+import { ManagePricesDialog } from "./manage-prices-dialog";
 
 interface PlansTableRowActionsProps {
-  row: Row<AdminSubscriptionPlan>;
+  row: Row<SubscriptionPlan>;
 }
 
 export function PlansTableRowActions({ row }: PlansTableRowActionsProps) {
@@ -26,6 +27,7 @@ export function PlansTableRowActions({ row }: PlansTableRowActionsProps) {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPricesDialog, setShowPricesDialog] = useState(false);
 
   return (
     <>
@@ -53,6 +55,11 @@ export function PlansTableRowActions({ row }: PlansTableRowActionsProps) {
             Edit Plan
           </DropdownMenuItem>
 
+          <DropdownMenuItem onClick={() => setShowPricesDialog(true)}>
+            <DollarSign className="mr-2 h-4 w-4" />
+            Manage Prices
+          </DropdownMenuItem>
+
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
@@ -75,6 +82,12 @@ export function PlansTableRowActions({ row }: PlansTableRowActionsProps) {
         plan={plan}
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
+      />
+
+      <ManagePricesDialog
+        plan={plan}
+        open={showPricesDialog}
+        onOpenChange={setShowPricesDialog}
       />
 
       <DeletePlanDialog

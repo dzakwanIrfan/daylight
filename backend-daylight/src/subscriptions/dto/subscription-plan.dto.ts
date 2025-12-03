@@ -1,17 +1,17 @@
-import { 
-  IsString, 
-  IsEnum, 
-  IsNumber, 
-  IsOptional, 
-  IsArray, 
-  IsBoolean, 
+import {
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  IsBoolean,
   Min,
   ValidateNested,
-  ArrayMinSize
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SubscriptionPlanType } from '@prisma/client';
-import { SubscriptionPlanPriceDto } from './subscription-plan-price.dto';
+import { CreateSubscriptionPlanPriceDto } from './subscription-plan-price.dto';
 
 export class CreateSubscriptionPlanDto {
   @IsString()
@@ -24,24 +24,12 @@ export class CreateSubscriptionPlanDto {
   @IsString()
   description?: string;
 
-  // Keep for backward compatibility
-  // If not provided, will use first price from prices array
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  price?: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string;
-
-  // Multi-currency pricing
-  @IsOptional()
+  // Multi-country pricing (REQUIRED)
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => SubscriptionPlanPriceDto)
+  @Type(() => CreateSubscriptionPlanPriceDto)
   @ArrayMinSize(1, { message: 'At least one price must be provided' })
-  prices?: SubscriptionPlanPriceDto[];
+  prices: CreateSubscriptionPlanPriceDto[];
 
   @IsNumber()
   @Min(1)
@@ -70,22 +58,10 @@ export class UpdateSubscriptionPlanDto {
   @IsString()
   description?: string;
 
-  // Keep for backward compatibility
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  price?: number;
-
-  @IsOptional()
-  @IsString()
-  currency?: string;
-
-  // NEW: Multi-currency pricing
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SubscriptionPlanPriceDto)
-  prices?: SubscriptionPlanPriceDto[];
+  @Min(1)
+  durationInMonths?: number;
 
   @IsOptional()
   @IsArray()
@@ -101,13 +77,10 @@ export class UpdateSubscriptionPlanDto {
   sortOrder?: number;
 }
 
-export class UpdateSubscriptionPlanPriceDto {
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  amount?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
+export class UpdateSubscriptionPlanPricesDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSubscriptionPlanPriceDto)
+  @ArrayMinSize(1, { message: 'At least one price must be provided' })
+  prices: CreateSubscriptionPlanPriceDto[];
 }

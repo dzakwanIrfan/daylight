@@ -15,7 +15,7 @@ const categoryColors: Record<EventCategory, string> = {
   DAYBREAK: 'bg-orange-100 text-orange-800 border-orange-200',
   DAYTRIP: 'bg-blue-100 text-blue-800 border-blue-200',
   DAYCARE: 'bg-green-100 text-green-800 border-green-200',
-  DAYDREAM: 'bg-purple-100 text-purple-800 border-purple-200',
+  // DAYDREAM: 'bg-purple-100 text-purple-800 border-purple-200',
 };
 
 const statusColors: Record<EventStatus, string> = {

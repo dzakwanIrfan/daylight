@@ -1,22 +1,140 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+  Get,
+  Param,
+  Query,
+  Headers,
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  RawBodyRequest,
+  Req,
+} from '@nestjs/common';
 import { XenditService } from './xendit.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
-import { create } from 'axios';
 import { CreateXenditPaymentDto } from './dto/create-xendit-payment.dto';
+import type { XenditWebhookPayload } from './dto/xendit-webhook-payload.dto';
+import { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('xendit')
 export class XenditController {
-  constructor(private readonly xenditService: XenditService) {}
+  private readonly logger = new Logger(XenditController.name);
 
+  constructor(
+    private readonly xenditService: XenditService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /**
+   * Endpoint untuk create payment
+   */
   @UseGuards(JwtAuthGuard)
   @Post('create')
   async createXenditPayment(
     @CurrentUser() user: User,
     @Body() data: CreateXenditPaymentDto,
   ) {
-    console.log(user);
-    return this.xenditService.createXenditPayment(user, data);
+    return await this.xenditService.createXenditPayment(user, data);
+  }
+
+  /**
+   * Endpoint untuk mendapatkan payment methods berdasarkan country
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('payment-methods/:countryCode')
+  async getPaymentMethods(@Param('countryCode') countryCode: string) {
+    return await this.xenditService.getAvailablePaymentMethods(
+      countryCode. toUpperCase(),
+    );
+  }
+
+  /**
+   * Endpoint untuk preview fee calculation
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('fee-preview')
+  async getFeePreview(
+    @Query('amount') amount: string,
+    @Query('paymentMethodId') paymentMethodId: string,
+  ) {
+    const amountNumber = parseFloat(amount);
+
+    if (isNaN(amountNumber) || amountNumber <= 0) {
+      throw new BadRequestException('Invalid amount');
+    }
+
+    return await this.xenditService.calculateFeePreview(
+      amountNumber,
+      paymentMethodId,
+    );
+  }
+
+  /**
+   * Xendit akan hit endpoint ini saat ada perubahan status payment
+   */
+  @Public()
+  @Post('webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleWebhook(
+    @Headers('x-callback-token') callbackToken: string,
+    @Body() payload: XenditWebhookPayload,
+    @Req() req: Request,
+  ) {
+    this.logger.log('📨 Received Xendit webhook', {
+      event: payload.event,
+      callbackToken: callbackToken ?  '***' + callbackToken. slice(-4) : 'MISSING',
+    });
+
+    // 1. Validasi callback token dari Xendit
+    const webhookToken = this.configService.get<string>('XENDIT_WEBHOOK_TOKEN');
+
+    if (!webhookToken) {
+      this.logger.error('❌ XENDIT_WEBHOOK_TOKEN not configured in . env');
+      throw new BadRequestException('Webhook token not configured');
+    }
+
+    if (callbackToken !== webhookToken) {
+      this.logger.error('❌ Invalid callback token', {
+        received: callbackToken ?  '***' + callbackToken. slice(-4) : 'MISSING',
+        expected: '***' + webhookToken.slice(-4),
+      });
+      throw new BadRequestException('Invalid callback token');
+    }
+
+    this.logger.log('✅ Callback token validated');
+
+    // 2. Process webhook
+    try {
+      await this.xenditService.handleWebhook(payload);
+
+      this.logger.log('✅ Webhook processed successfully', {
+        event: payload.event,
+        reference_id: payload.data.reference_id,
+      });
+
+      return {
+        success: true,
+        message: 'Webhook processed successfully',
+      };
+    } catch (error) {
+      this.logger.error('❌ Webhook processing failed', {
+        error: error.message,
+        stack: error.stack,
+      });
+
+      // Tetap return 200 agar Xendit tidak retry
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
   }
 }

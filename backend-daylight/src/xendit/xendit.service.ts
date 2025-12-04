@@ -1,258 +1,413 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import {
   Event,
   User,
   SubscriptionPlan,
   PaymentMethodType,
   PaymentMethod,
-  Transaction,
-  Prisma,
   TransactionStatus,
+  Prisma,
 } from '@prisma/client';
-import { CreateXenditPaymentDto } from './dto/create-xendit-payment.dto';
+import {
+  CreateXenditPaymentDto,
+  ItemType,
+} from './dto/create-xendit-payment.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { XenditUtilsService } from './services/xendit-utils.service';
-import { RequestEwalletDto, ResponseEwalletDto } from './dto/ewallet.dto';
-import { RequestQrCodetDto } from './dto/qrcode.dto';
-import { RequestVAtDto } from './dto/va.dto';
-import { RequestOverTheCounterDto } from './dto/overthecounter.dto';
+import { XenditFeeCalculatorService } from './services/xendit-fee-calculator.service';
+import { XenditPayloadBuilderService } from './services/xendit-payload-builder.service';
+import { XenditResponseParserService } from './services/xendit-response-parser.service';
+import {
+  CreatePaymentResponse,
+  XenditPaymentResponse,
+} from './dto/payment-response.dto';
+import { XenditWebhookPayload } from './dto/xendit-webhook-payload.dto';
 
 @Injectable()
 export class XenditService {
+  private readonly logger = new Logger(XenditService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly xenditUtilsService: XenditUtilsService,
+    private readonly feeCalculator: XenditFeeCalculatorService,
+    private readonly payloadBuilder: XenditPayloadBuilderService,
+    private readonly responseParser: XenditResponseParserService,
   ) {}
 
-  async createXenditPayment(user: User, data: CreateXenditPaymentDto) {
-    // Mencari harga item berdasarkan tipe dan ID
-    let item: Event | SubscriptionPlan | null = null;
-
-    if (data.type === 'EVENT') {
-      item = await this.prismaService.event.findUnique({
-        where: { id: data.itemId, isActive: true },
-      });
-    } else if (data.type === 'SUBSCRIPTION') {
-      item = await this.prismaService.subscriptionPlan.findUnique({
-        where: { id: data.itemId, isActive: true },
-      });
-    }
-
-    if (item?.price === null || item?.price === undefined) {
-      throw new Error('Item not found or has no price');
-    }
+  async createXenditPayment(
+    user: User,
+    data: CreateXenditPaymentDto,
+  ): Promise<CreatePaymentResponse> {
+    // 1. Validasi dan ambil item (Event atau Subscription)
+    const item = await this.getItemByType(data.type, data.itemId);
     const amount = item.price;
 
-    // Mencari metode pembayaran berdasarkan ID
+    if (!amount || amount <= 0) {
+      throw new BadRequestException('Invalid item price');
+    }
+
+    // 2. Validasi payment method
+    const paymentMethod = await this.getPaymentMethod(data.paymentMethodId);
+
+    // 3. Validasi user country match dengan payment method
+    await this.validateUserCountry(user, paymentMethod);
+
+    // 4. Hitung fee dan final amount
+    const feeCalculation = this.feeCalculator.getFormattedFeeInfo(
+      amount,
+      paymentMethod,
+    );
+
+    if (!feeCalculation.isValid) {
+      throw new BadRequestException(feeCalculation.error);
+    }
+
+    // 5. Buat payload sesuai tipe payment method
+    const payload = this.buildPaymentPayload(
+      user,
+      feeCalculation.feeInfo!.finalAmount.toNumber(),
+      paymentMethod,
+      data,
+    );
+
+    // 6. Request ke Xendit
+    const xenditResponse: XenditPaymentResponse =
+      await this.xenditUtilsService.makeXenditRequest(payload);
+
+    // 7. Parse response
+    const paymentInfo = this.responseParser.extractPaymentInfo(xenditResponse);
+
+    // 8. Simpan transaction ke database
+    const transaction = await this.saveTransaction(
+      user,
+      data,
+      paymentMethod,
+      feeCalculation.feeInfo!,
+      xenditResponse,
+      paymentInfo,
+    );
+
+    // 9. Return response
+    return {
+      transaction: {
+        id: transaction.id,
+        externalId: transaction.externalId,
+        amount: transaction.amount.toNumber(),
+        totalFee: transaction.totalFee.toNumber(),
+        finalAmount: transaction.finalAmount.toNumber(),
+        status: transaction.status,
+        paymentUrl: paymentInfo.paymentUrl,
+        paymentCode:
+          paymentInfo.paymentCode || paymentInfo.virtualAccountNumber,
+        qrString: paymentInfo.qrString,
+      },
+      xenditResponse,
+    };
+  }
+
+  private async getItemByType(
+    type: ItemType,
+    itemId: string,
+  ): Promise<Event | SubscriptionPlan> {
+    let item: Event | SubscriptionPlan | null = null;
+
+    if (type === ItemType.EVENT) {
+      item = await this.prismaService.event.findUnique({
+        where: { id: itemId, isActive: true },
+      });
+
+      if (!item) {
+        throw new NotFoundException('Event not found or inactive');
+      }
+    } else if (type === ItemType.SUBSCRIPTION) {
+      item = await this.prismaService.subscriptionPlan.findUnique({
+        where: { id: itemId, isActive: true },
+      });
+
+      if (!item) {
+        throw new NotFoundException('Subscription plan not found or inactive');
+      }
+    }
+
+    return item!;
+  }
+
+  private async getPaymentMethod(
+    paymentMethodId: string,
+  ): Promise<PaymentMethod> {
     const paymentMethod = await this.prismaService.paymentMethod.findUnique({
       where: {
-        id: data.paymentMethodId,
+        id: paymentMethodId,
         isActive: true,
+      },
+      include: {
+        country: true,
       },
     });
 
     if (!paymentMethod) {
-      throw new Error('Payment method not found or inactive');
+      throw new NotFoundException('Payment method not found or inactive');
     }
 
-    let response: ResponseEwalletDto;
-    // Mencari service yang cocok dengan type metode pembayaran
-    switch (paymentMethod?.type) {
-      case PaymentMethodType.EWALLET:
-        return await this.createEWalletPayment(
-          user,
-          amount,
-          paymentMethod,
-          data,
-        );
-        break;
-      case PaymentMethodType.QR_CODE:
-        return await this.createQRCodePayment(
-          user,
-          amount,
-          paymentMethod,
-          data,
-        );
-        break;
-      case PaymentMethodType.BANK_TRANSFER:
-        return await this.createVAPayment(user, amount, paymentMethod, data);
-        break;
-      case PaymentMethodType.OVER_THE_COUNTER:
-        return await this.createOverTheCounterPayment(
-          user,
-          amount,
-          paymentMethod,
-          data,
-        );
-        break;
-      default:
-        throw new Error('Unsupported payment method type');
+    return paymentMethod;
+  }
+
+  private async validateUserCountry(
+    user: User,
+    paymentMethod: PaymentMethod,
+  ): Promise<void> {
+    if (!user.currentCityId) {
+      throw new BadRequestException(
+        'User must have a current city to make payment',
+      );
     }
 
-    const transactionData = {
-      userId: user.id,
-      amount: new Prisma.Decimal(amount),
-      paymentMethodId: paymentMethod!.id,
-      status: TransactionStatus.PENDING,
-      eventId: data.type === 'EVENT' ? data.itemId : null,
-      externalId: response.reference_id,
-      finalAmount: new Prisma.Decimal(amount),
-      totalFee: new Prisma.Decimal(0),
-      paymentUrl:
-        response.actions?.find((action) => action.type === 'REDIRECT_URL')
-          ?.value || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const userCity = await this.prismaService.city.findUnique({
+      where: { id: user.currentCityId },
+      include: { country: true },
+    });
+
+    if (!userCity) {
+      throw new BadRequestException('User city not found');
+    }
+
+    // Validasi currency match dengan country
+    if (userCity.country.code !== paymentMethod.countryCode) {
+      throw new BadRequestException(
+        `Payment method ${paymentMethod.name} is not available in ${userCity.country.name}`,
+      );
+    }
+  }
+
+  private buildPaymentPayload(
+    user: User,
+    finalAmount: number,
+    paymentMethod: PaymentMethod,
+    data: CreateXenditPaymentDto,
+  ): any {
+    const options = {
+      user,
+      amount: finalAmount,
+      paymentMethod,
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      description: this.generatePaymentDescription(data.type, data.itemId),
     };
 
+    switch (paymentMethod.type) {
+      case PaymentMethodType.EWALLET:
+        return this.payloadBuilder.buildEwalletPayload(options);
+
+      case PaymentMethodType.QR_CODE:
+        return this.payloadBuilder.buildQRCodePayload(options);
+
+      case PaymentMethodType.BANK_TRANSFER:
+        return this.payloadBuilder.buildVAPayload(options);
+
+      case PaymentMethodType.OVER_THE_COUNTER:
+        return this.payloadBuilder.buildOverTheCounterPayload(options);
+
+      default:
+        throw new BadRequestException(
+          `Unsupported payment method type: ${paymentMethod.type}`,
+        );
+    }
+  }
+
+  private generatePaymentDescription(type: ItemType, itemId: string): string {
+    return `DayLight Payment - ${type} #${itemId.substring(0, 8)}`;
+  }
+
+  private async saveTransaction(
+    user: User,
+    data: CreateXenditPaymentDto,
+    paymentMethod: PaymentMethod,
+    feeInfo: any,
+    xenditResponse: XenditPaymentResponse,
+    paymentInfo: any,
+  ) {
+    const transactionData: Prisma.TransactionCreateInput = {
+      user: {
+        connect: { id: user.id },
+      },
+      paymentMethod: {
+        connect: { id: paymentMethod.id },
+      },
+      externalId: xenditResponse.reference_id,
+      status: TransactionStatus.PENDING,
+      amount: feeInfo.amount,
+      totalFee: feeInfo.totalFee,
+      finalAmount: feeInfo.finalAmount,
+      paymentUrl: paymentInfo.paymentUrl || null,
+    };
+
+    // Connect event jika type EVENT
+    if (data.type === ItemType.EVENT) {
+      transactionData.event = {
+        connect: { id: data.itemId },
+      };
+    }
+
     const transaction = await this.prismaService.transaction.create({
+      data: transactionData,
+    });
+
+    this.logger.log('Transaction created', {
+      transactionId: transaction.id,
+      externalId: transaction.externalId,
+      amount: transaction.finalAmount.toNumber(),
+    });
+
+    return transaction;
+  }
+
+  /**
+   * Handle webhook dari Xendit
+   */
+  async handleWebhook(webhookPayload: XenditWebhookPayload): Promise<void> {
+    const { event, data } = webhookPayload;
+
+    this.logger.log('Processing Xendit webhook', {
+      event,
+      reference_id: data.reference_id,
+      status: data.status,
+    });
+
+    // Cari transaction berdasarkan reference_id
+    const transaction = await this.prismaService.transaction.findUnique({
+      where: { externalId: data.reference_id },
+      include: {
+        event: true,
+        user: true,
+      },
+    });
+
+    if (!transaction) {
+      this.logger.warn('Transaction not found for webhook', {
+        reference_id: data.reference_id,
+      });
+      return;
+    }
+
+    // Update transaction status berdasarkan event
+    await this.updateTransactionStatus(transaction, event, data);
+  }
+
+  private async updateTransactionStatus(
+    transaction: any,
+    event: string,
+    data: any,
+  ): Promise<void> {
+    let newStatus: TransactionStatus;
+
+    switch (event) {
+      case 'payment.capture':
+      case 'payment.authorization':
+        newStatus = TransactionStatus.PAID;
+        await this.handleSuccessfulPayment(transaction);
+        break;
+
+      case 'payment.failure':
+        newStatus = TransactionStatus.FAILED;
+        break;
+
+      case 'payment. expired':
+        newStatus = TransactionStatus.EXPIRED;
+        break;
+
+      default:
+        this.logger.warn('Unknown webhook event', { event });
+        return;
+    }
+
+    // Update transaction
+    await this.prismaService.transaction.update({
+      where: { id: transaction.id },
       data: {
-        ...transactionData,
+        status: newStatus,
+        updatedAt: new Date(),
+      },
+    });
+
+    this.logger.log('Transaction status updated', {
+      transactionId: transaction.id,
+      oldStatus: transaction.status,
+      newStatus,
+    });
+  }
+
+  private async handleSuccessfulPayment(transaction: any): Promise<void> {
+    // Jika ada event, update currentParticipants
+    if (transaction.eventId) {
+      await this.prismaService.event.update({
+        where: { id: transaction.eventId },
+        data: {
+          currentParticipants: {
+            increment: 1,
+          },
+        },
+      });
+
+      this.logger.log('Event participants updated', {
+        eventId: transaction.eventId,
+      });
+    }
+
+    // Handle subscription jika ada
+    // TODO: Implement subscription logic
+  }
+
+  /**
+   * Get available payment methods by country
+   */
+  async getAvailablePaymentMethods(
+    countryCode: string,
+  ): Promise<PaymentMethod[]> {
+    return await this.prismaService.paymentMethod.findMany({
+      where: {
+        countryCode,
+        isActive: true,
+      },
+      include: {
+        country: true,
+      },
+      orderBy: {
+        name: 'asc',
       },
     });
   }
 
-  async createEWalletPayment(
-    user: User,
+  /**
+   * Calculate fee preview for user
+   */
+  async calculateFeePreview(
     amount: number,
-    paymentMethod: PaymentMethod,
-    data: CreateXenditPaymentDto,
-  ) {
-    const payload: RequestEwalletDto = {
-      reference_id: `${user.id}+${Date.now()}`,
-      request_amount: amount,
-      country: paymentMethod.countryCode,
-      currency: paymentMethod.currency,
-      channel_code: paymentMethod.code,
-      channel_properties: {
-        success_return_url: 'http://localhost:30001/success',
-        pending_return_url: 'http://localhost:30001/pending',
-        failure_return_url: 'http://localhost:30001/failure',
-        cancel_return_url: 'http://localhost:30001/cancel',
-      },
-      description: 'Pembayaran untuk user ' + user.email,
-      customer: {
-        type: 'INDIVIDUAL',
-        reference_id: `${user.id}+${Date.now()}`,
-        email: data.customerEmail,
-        individual_detail: {
-          given_names: user.firstName || data.customerName,
-        },
-      },
-      type: 'PAY',
-    };
-    return await this.xenditUtilsService.makeXenditRequest(payload);
-  }
+    paymentMethodId: string,
+  ): Promise<any> {
+    const paymentMethod = await this.getPaymentMethod(paymentMethodId);
+    const feeInfo = this.feeCalculator.getFormattedFeeInfo(
+      amount,
+      paymentMethod,
+    );
 
-  private getCountryOffsetHours(countryCode: string): number {
-    switch (countryCode) {
-      case 'ID':
-        return 7; // WIB (UTC+7)
-      case 'SG':
-        return 8; // Singapore (UTC+8)
-      case 'TH':
-        return 7; // Thailand (UTC+7)
-      // Tambah negara lain sesuai kebutuhan
-      default:
-        return 0; // UTC
+    if (!feeInfo.isValid) {
+      throw new BadRequestException(feeInfo.error);
     }
-  }
 
-  async createQRCodePayment(
-    user: User,
-    amount: number,
-    paymentMethod: PaymentMethod,
-    data: CreateXenditPaymentDto,
-  ) {
-    const offsetHours = this.getCountryOffsetHours(paymentMethod.countryCode);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    expiresAt.setHours(expiresAt.getHours() + offsetHours);
-
-    const payload: RequestQrCodetDto = {
-      reference_id: `${user.id}+${Date.now()}`,
-      request_amount: amount,
-      country: paymentMethod.countryCode,
-      currency: paymentMethod.currency,
-      channel_code: paymentMethod.code,
-      channel_properties: {
-        expires_at: expiresAt.toISOString(),
+    return {
+      paymentMethod: {
+        id: paymentMethod.id,
+        name: paymentMethod.name,
+        code: paymentMethod.code,
+        type: paymentMethod.type,
       },
-      description: 'Pembayaran untuk user ' + user.email,
-      customer: {
-        type: 'INDIVIDUAL',
-        reference_id: `${user.id}+${Date.now()}`,
-        email: data.customerEmail,
-        individual_detail: {
-          given_names: user.firstName || data.customerName,
-        },
-      },
-      type: 'PAY',
+      calculation: feeInfo.feeInfo!.breakdown,
     };
-    return await this.xenditUtilsService.makeXenditRequest(payload);
-  }
-
-  async createVAPayment(
-    user: User,
-    amount: number,
-    paymentMethod: PaymentMethod,
-    data: CreateXenditPaymentDto,
-  ) {
-    const payload: RequestVAtDto = {
-      reference_id: `${user.id}+${Date.now()}`,
-      request_amount: amount,
-      country: paymentMethod.countryCode,
-      currency: paymentMethod.currency,
-      channel_code: paymentMethod.code,
-      channel_properties: {
-        display_name: data.customerName,
-        description: 'Virtual Account for ' + user.email,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-      },
-      description: 'Pembayaran untuk user ' + user.email,
-      customer: {
-        type: 'INDIVIDUAL',
-        reference_id: `${user.id}+${Date.now()}`,
-        email: data.customerEmail,
-        individual_detail: {
-          given_names: user.firstName || data.customerName,
-        },
-      },
-      type: 'PAY',
-    };
-    return await this.xenditUtilsService.makeXenditRequest(payload);
-  }
-
-  async createOverTheCounterPayment(
-    user: User,
-    amount: number,
-    paymentMethod: PaymentMethod,
-    data: CreateXenditPaymentDto,
-  ) {
-    const offsetHours = this.getCountryOffsetHours(paymentMethod.countryCode);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    expiresAt.setHours(expiresAt.getHours() + offsetHours);
-
-    const payload: RequestOverTheCounterDto = {
-      reference_id: `${user.id}+${Date.now()}`,
-      request_amount: amount,
-      country: paymentMethod.countryCode,
-      currency: paymentMethod.currency,
-      channel_code: paymentMethod.code,
-      channel_properties: {
-        payer_name: data.customerName,
-        expires_at: expiresAt.toISOString(),
-      },
-      description: 'Pembayaran untuk user ' + user.email,
-      customer: {
-        type: 'INDIVIDUAL',
-        reference_id: `${user.id}+${Date.now()}`,
-        email: data.customerEmail,
-        individual_detail: {
-          given_names: user.firstName || data.customerName,
-        },
-      },
-      type: 'PAY',
-    };
-    return await this.xenditUtilsService.makeXenditRequest(payload);
   }
 }

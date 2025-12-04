@@ -32,7 +32,7 @@ const xenditPaymentMethods = [
     maxAmount: new Prisma.Decimal('10000000'),
     type: PaymentMethodType.QR_CODE,
     isActive: true,
-    adminFeeRate: new Prisma.Decimal('0.7'),
+    adminFeeRate: new Prisma.Decimal('0.007'),
     adminFeeFixed: new Prisma.Decimal('0'),
     logoUrl: 'https://static.xendit.co/logos/new-logos/qris-logo.svg',
     createdAt: new Date(),

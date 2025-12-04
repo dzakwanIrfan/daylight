@@ -49,11 +49,10 @@ export class XenditController {
    * Endpoint untuk mendapatkan payment methods berdasarkan country
    */
   @UseGuards(JwtAuthGuard)
-  @Get('payment-methods/:countryCode')
-  async getPaymentMethods(@Param('countryCode') countryCode: string) {
-    return await this.xenditService.getAvailablePaymentMethods(
-      countryCode. toUpperCase(),
-    );
+  @Get('payment-methods')
+  async getPaymentMethods(@CurrentUser() user: User) {
+    console.log('User in getPaymentMethods:', user);
+    return await this.xenditService.getAvailablePaymentMethods(user);
   }
 
   /**
@@ -90,7 +89,9 @@ export class XenditController {
   ) {
     this.logger.log('📨 Received Xendit webhook', {
       event: payload.event,
-      callbackToken: callbackToken ?  '***' + callbackToken. slice(-4) : 'MISSING',
+      callbackToken: callbackToken
+        ? '***' + callbackToken.slice(-4)
+        : 'MISSING',
     });
 
     // 1. Validasi callback token dari Xendit
@@ -103,7 +104,7 @@ export class XenditController {
 
     if (callbackToken !== webhookToken) {
       this.logger.error('❌ Invalid callback token', {
-        received: callbackToken ?  '***' + callbackToken. slice(-4) : 'MISSING',
+        received: callbackToken ? '***' + callbackToken.slice(-4) : 'MISSING',
         expected: '***' + webhookToken.slice(-4),
       });
       throw new BadRequestException('Invalid callback token');

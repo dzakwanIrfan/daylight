@@ -366,12 +366,14 @@ export class XenditService {
   /**
    * Get available payment methods by country
    */
-  async getAvailablePaymentMethods(
-    countryCode: string,
-  ): Promise<PaymentMethod[]> {
+  async getAvailablePaymentMethods(user: any): Promise<PaymentMethod[]> {
+    if (!user.country.code) {
+      throw new BadRequestException('User country information is missing');
+    }
+
     return await this.prismaService.paymentMethod.findMany({
       where: {
-        countryCode,
+        countryCode: user.country.code,
         isActive: true,
       },
       include: {

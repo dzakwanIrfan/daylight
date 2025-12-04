@@ -59,7 +59,7 @@ export class XenditService {
     // Mencari service yang cocok dengan type metode pembayaran
     switch (paymentMethod?.type) {
       case PaymentMethodType.EWALLET:
-        response = await this.createEWalletPayment(
+        return await this.createEWalletPayment(
           user,
           amount,
           paymentMethod,
@@ -78,7 +78,12 @@ export class XenditService {
         return await this.createVAPayment(user, amount, paymentMethod, data);
         break;
       case PaymentMethodType.OVER_THE_COUNTER:
-        return await this.createOverTheCounterPayment(user, amount, paymentMethod, data);
+        return await this.createOverTheCounterPayment(
+          user,
+          amount,
+          paymentMethod,
+          data,
+        );
         break;
       default:
         throw new Error('Unsupported payment method type');
@@ -160,7 +165,7 @@ export class XenditService {
     data: CreateXenditPaymentDto,
   ) {
     const offsetHours = this.getCountryOffsetHours(paymentMethod.countryCode);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); 
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     expiresAt.setHours(expiresAt.getHours() + offsetHours);
 
     const payload: RequestQrCodetDto = {
@@ -224,7 +229,7 @@ export class XenditService {
     data: CreateXenditPaymentDto,
   ) {
     const offsetHours = this.getCountryOffsetHours(paymentMethod.countryCode);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); 
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
     expiresAt.setHours(expiresAt.getHours() + offsetHours);
 
     const payload: RequestOverTheCounterDto = {

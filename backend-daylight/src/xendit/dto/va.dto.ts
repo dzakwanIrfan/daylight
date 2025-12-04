@@ -44,9 +44,9 @@ export class ResponseVAtDto {
   type: string;
   actions: [
     {
-      type: string;
-      descriptor: string;
-      value: string;
+      type: string; // PRESENT_TO_CUSTOMER
+      descriptor: string; // VIRTUAL_ACCOUNT_NUMBER
+      value: string; // e.g., "381659999975205"
     },
   ];
 }

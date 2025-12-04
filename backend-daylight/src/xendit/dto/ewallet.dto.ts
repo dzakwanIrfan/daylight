@@ -47,9 +47,9 @@ export class ResponseEwalletDto {
   type: string;
   actions: [
     {
-      type: string;
-      descriptor: string;
-      value: string;
+      type: string; // REDIRECT_CUSTOMER
+      descriptor: string; // WEB_URL
+      value: string; // e.g., "https://ewallet-service-dev.xendit.co/ewallets/..."
     },
   ];
 }

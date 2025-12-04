@@ -44,9 +44,9 @@ export class ResponseQrCodetDto {
   type: string;
   actions: [
     {
-      type: string;
-      descriptor: string;
-      value: string;
+      type: string; // PRESENT_TO_CUSTOMER
+      descriptor: string; // QR_STRING
+      value: string; // some-random-qr-string
     },
   ];
 }

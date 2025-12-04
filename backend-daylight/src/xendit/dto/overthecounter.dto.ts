@@ -43,9 +43,9 @@ export class ResponseOverTheCounterDto {
   type: string;
   actions: [
     {
-      type: string;
-      descriptor: string;
-      value: string;
+      type: string; // PRESENT_TO_CUSTOMER
+      descriptor: string; // PAYMENT_CODE
+      value: string; // e.g., "TESTKRGU8723"
     },
   ];
 }

@@ -30,7 +30,7 @@ export class TransactionsService {
       dateTo,
     } = queryDto;
 
-    const where: Prisma.TransactionWhereInput = {};
+    const where: Prisma.LegacyTransactionWhereInput = {};
 
     // Search
     if (search) {
@@ -64,7 +64,7 @@ export class TransactionsService {
 
     // Execute queries
     const [transactions, total] = await Promise.all([
-      this.prisma.transaction.findMany({
+      this.prisma.legacyTransaction.findMany({
         where,
         skip,
         take,
@@ -92,7 +92,7 @@ export class TransactionsService {
           },
         },
       }),
-      this.prisma.transaction.count({ where }),
+      this.prisma.legacyTransaction.count({ where }),
     ]);
 
     // Calculate pagination metadata
@@ -130,7 +130,7 @@ export class TransactionsService {
    * Get transaction by ID
    */
   async getTransactionById(transactionId: string) {
-    const transaction = await this.prisma.transaction.findUnique({
+    const transaction = await this.prisma.legacyTransaction.findUnique({
       where: { id: transactionId },
       include: {
         user: {
@@ -174,7 +174,7 @@ export class TransactionsService {
    * Delete transaction
    */
   async deleteTransaction(transactionId: string, hardDelete: boolean = false) {
-    const transaction = await this.prisma.transaction.findUnique({
+    const transaction = await this.prisma.legacyTransaction.findUnique({
       where: { id: transactionId },
     });
 
@@ -187,7 +187,7 @@ export class TransactionsService {
       throw new BadRequestException('Cannot delete a successful payment. Use hard delete if you are sure.');
     }
 
-    await this.prisma.transaction.delete({
+    await this.prisma.legacyTransaction.delete({
       where: { id: transactionId },
     });
 
@@ -202,7 +202,7 @@ export class TransactionsService {
   async bulkAction(bulkActionDto: BulkActionTransactionDto) {
     const { transactionIds, action } = bulkActionDto;
 
-    const transactions = await this.prisma.transaction.findMany({
+    const transactions = await this.prisma.legacyTransaction.findMany({
       where: { id: { in: transactionIds } },
       select: { id: true, paymentStatus: true },
     });
@@ -215,7 +215,7 @@ export class TransactionsService {
 
     switch (action) {
       case TransactionBulkActionType.MARK_PAID:
-        result = await this.prisma.transaction.updateMany({
+        result = await this.prisma.legacyTransaction.updateMany({
           where: { id: { in: transactionIds } },
           data: { 
             paymentStatus: PaymentStatus.PAID,
@@ -225,14 +225,14 @@ export class TransactionsService {
         break;
 
       case TransactionBulkActionType.MARK_FAILED:
-        result = await this.prisma.transaction.updateMany({
+        result = await this.prisma.legacyTransaction.updateMany({
           where: { id: { in: transactionIds } },
           data: { paymentStatus: PaymentStatus.FAILED },
         });
         break;
 
       case TransactionBulkActionType.MARK_EXPIRED:
-        result = await this.prisma.transaction.updateMany({
+        result = await this.prisma.legacyTransaction.updateMany({
           where: { id: { in: transactionIds } },
           data: { paymentStatus: PaymentStatus.EXPIRED },
         });
@@ -247,7 +247,7 @@ export class TransactionsService {
           throw new BadRequestException('Can only refund paid transactions');
         }
 
-        result = await this.prisma.transaction.updateMany({
+        result = await this.prisma.legacyTransaction.updateMany({
           where: { id: { in: transactionIds } },
           data: { paymentStatus: PaymentStatus.REFUNDED },
         });
@@ -262,7 +262,7 @@ export class TransactionsService {
           throw new BadRequestException('Cannot delete paid transactions');
         }
 
-        result = await this.prisma.transaction.deleteMany({
+        result = await this.prisma.legacyTransaction.deleteMany({
           where: { id: { in: transactionIds } },
         });
         break;
@@ -291,34 +291,34 @@ export class TransactionsService {
       transactionsByPaymentMethod,
       recentTransactions,
     ] = await Promise.all([
-      this.prisma.transaction.count(),
-      this.prisma.transaction.count({ 
+      this.prisma.legacyTransaction.count(),
+      this.prisma.legacyTransaction.count({ 
         where: { paymentStatus: PaymentStatus.PAID } 
       }),
-      this.prisma.transaction.count({ 
+      this.prisma.legacyTransaction.count({ 
         where: { paymentStatus: PaymentStatus.PENDING } 
       }),
-      this.prisma.transaction.count({ 
+      this.prisma.legacyTransaction.count({ 
         where: { 
           paymentStatus: { in: [PaymentStatus.FAILED, PaymentStatus.EXPIRED] } 
         } 
       }),
-      this.prisma.transaction.aggregate({
+      this.prisma.legacyTransaction.aggregate({
         where: { paymentStatus: PaymentStatus.PAID },
         _sum: { amountReceived: true },
       }),
-      this.prisma.transaction.groupBy({
+      this.prisma.legacyTransaction.groupBy({
         by: ['paymentStatus'],
         _count: true,
         _sum: { amountReceived: true },
       }),
-      this.prisma.transaction.groupBy({
+      this.prisma.legacyTransaction.groupBy({
         by: ['paymentMethod'],
         _count: true,
         _sum: { amountReceived: true },
         where: { paymentStatus: PaymentStatus.PAID },
       }),
-      this.prisma.transaction.findMany({
+      this.prisma.legacyTransaction.findMany({
         take: 10,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -380,7 +380,7 @@ export class TransactionsService {
       dateTo 
     } = queryDto;
 
-    const where: Prisma.TransactionWhereInput = {};
+    const where: Prisma.LegacyTransactionWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -402,7 +402,7 @@ export class TransactionsService {
       if (dateTo) where.createdAt.lte = new Date(dateTo);
     }
 
-    const transactions = await this.prisma.transaction.findMany({
+    const transactions = await this.prisma.legacyTransaction.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {

@@ -648,7 +648,7 @@ export class SubscriptionsService {
             prices: true,
           },
         },
-        transaction: {
+        legacyTransaction: {
           select: {
             id: true,
             merchantRef: true,
@@ -707,7 +707,7 @@ export class SubscriptionsService {
               prices: true,
             },
           },
-          transaction: {
+          legacyTransaction: {
             select: {
               id: true,
               merchantRef: true,
@@ -950,7 +950,7 @@ export class SubscriptionsService {
               lastName: true,
             },
           },
-          transaction: {
+          legacyTransaction: {
             select: {
               id: true,
               merchantRef: true,
@@ -1043,7 +1043,7 @@ export class SubscriptionsService {
               prices: true,
             },
           },
-          transaction: {
+          legacyTransaction: {
             select: {
               id: true,
               merchantRef: true,
@@ -1186,7 +1186,7 @@ export class SubscriptionsService {
             prices: true,
           },
         },
-        transaction: {
+        legacyTransaction: {
           select: {
             id: true,
             merchantRef: true,

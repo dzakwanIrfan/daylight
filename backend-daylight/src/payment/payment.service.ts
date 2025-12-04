@@ -248,7 +248,7 @@ export class PaymentService {
       const tripayData = tripayResponse.data.data;
 
       // Save transaction
-      const transaction = await this.prisma.transaction.create({
+      const transaction = await this.prisma.legacyTransaction.create({
         data: {
           userId,
           eventId,
@@ -336,7 +336,7 @@ export class PaymentService {
     const { merchant_ref, status, paid_at } = callbackData;
 
     // Find transaction
-    const transaction = await this.prisma.transaction.findUnique({
+    const transaction = await this.prisma.legacyTransaction.findUnique({
       where: { merchantRef: merchant_ref },
       include: { 
         event: true, 
@@ -374,7 +374,7 @@ export class PaymentService {
     }
 
     // Prepare update data
-    const updateData: Prisma.TransactionUpdateInput = {
+    const updateData: Prisma.LegacyTransactionUpdateInput = {
       paymentStatus: mappedStatus,
       callbackData: callbackData as any,
       updatedAt: new Date(),
@@ -411,7 +411,7 @@ export class PaymentService {
     }
 
     // Update transaction
-    const updatedTransaction = await this.prisma.transaction.update({
+    const updatedTransaction = await this.prisma.legacyTransaction.update({
       where: { id: transaction.id },
       data: updateData,
       include: { 
@@ -489,7 +489,7 @@ export class PaymentService {
    * Get transaction detail
    */
   async getTransactionDetail(transactionId: string, userId: string) {
-    const transaction = await this.prisma.transaction.findFirst({
+    const transaction = await this.prisma.legacyTransaction.findFirst({
       where: {
         id: transactionId,
         userId: userId,
@@ -519,7 +519,7 @@ export class PaymentService {
       const tripayData = response.data.data;
 
       if (tripayData.status !== transaction.paymentStatus) {
-        await this.prisma.transaction.update({
+        await this.prisma.legacyTransaction.update({
           where: { id: transaction.id },
           data: {
             paymentStatus: tripayData.status,
@@ -552,7 +552,7 @@ export class PaymentService {
   async getUserTransactions(userId: string, queryDto: QueryTransactionsDto) {
     const { page = 1, limit = 10, search, status, eventId, sortOrder } = queryDto;
 
-    const where: Prisma.TransactionWhereInput = {
+    const where: Prisma.LegacyTransactionWhereInput = {
       userId,
     };
 
@@ -571,7 +571,7 @@ export class PaymentService {
     const take = limit;
 
     const [transactions, total] = await Promise.all([
-      this.prisma.transaction.findMany({
+      this.prisma.legacyTransaction.findMany({
         where,
         skip,
         take,
@@ -589,7 +589,7 @@ export class PaymentService {
           },
         },
       }),
-      this.prisma.transaction.count({ where }),
+      this.prisma.legacyTransaction.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -613,7 +613,7 @@ export class PaymentService {
   async getAllTransactions(queryDto: QueryTransactionsDto) {
     const { page = 1, limit = 10, search, status, eventId, sortOrder } = queryDto;
 
-    const where: Prisma.TransactionWhereInput = {};
+    const where: Prisma.LegacyTransactionWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -631,7 +631,7 @@ export class PaymentService {
     const take = limit;
 
     const [transactions, total] = await Promise.all([
-      this.prisma.transaction.findMany({
+      this.prisma.legacyTransaction.findMany({
         where,
         skip,
         take,
@@ -655,7 +655,7 @@ export class PaymentService {
           },
         },
       }),
-      this.prisma.transaction.count({ where }),
+      this.prisma.legacyTransaction.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -677,7 +677,7 @@ export class PaymentService {
    * Check payment status
    */
   async checkPaymentStatus(transactionId: string, userId: string) {
-    const transaction = await this.prisma.transaction.findFirst({
+    const transaction = await this.prisma.legacyTransaction.findFirst({
       where: {
         id: transactionId,
         userId: userId,
@@ -707,7 +707,7 @@ export class PaymentService {
       const tripayData = response.data.data;
 
       if (tripayData.status !== transaction.paymentStatus) {
-        await this.prisma.transaction.update({
+        await this.prisma.legacyTransaction.update({
           where: { id: transaction.id },
           data: {
             paymentStatus: tripayData.status,
@@ -775,18 +775,18 @@ export class PaymentService {
       totalRevenue,
       recentTransactions,
     ] = await Promise.all([
-      this.prisma.transaction.count(),
-      this.prisma.transaction.count({
+      this.prisma.legacyTransaction.count(),
+      this.prisma.legacyTransaction.count({
         where: { paymentStatus: PaymentStatus.PAID },
       }),
-      this.prisma.transaction.count({
+      this.prisma.legacyTransaction.count({
         where: { paymentStatus: PaymentStatus.PENDING },
       }),
-      this.prisma.transaction.aggregate({
+      this.prisma.legacyTransaction.aggregate({
         where: { paymentStatus: PaymentStatus.PAID },
         _sum: { amountReceived: true },
       }),
-      this.prisma.transaction.findMany({
+      this.prisma.legacyTransaction.findMany({
         take: 10,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -811,10 +811,10 @@ export class PaymentService {
         totalTransactions,
         paidTransactions,
         pendingTransactions,
-        failedTransactions: await this.prisma.transaction.count({
+        failedTransactions: await this.prisma.legacyTransaction.count({
           where: { paymentStatus: PaymentStatus.FAILED },
         }),
-        expiredTransactions: await this.prisma.transaction.count({
+        expiredTransactions: await this.prisma.legacyTransaction.count({
           where: { paymentStatus: PaymentStatus.EXPIRED },
         }),
         totalRevenue: totalRevenue._sum.amountReceived || 0,
@@ -919,7 +919,7 @@ export class PaymentService {
       const tripayData = tripayResponse.data.data;
 
       // Save transaction with SUBSCRIPTION type
-      const transaction = await this.prisma.transaction.create({
+      const transaction = await this.prisma.legacyTransaction.create({
         data: {
           userId,
           eventId: null, // No event for subscription

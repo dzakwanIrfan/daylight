@@ -97,7 +97,7 @@ export class EventsService {
    * Check if user has purchased a specific event
    */
   private async hasUserPurchasedEvent(userId: string, eventId: string): Promise<boolean> {
-    const transaction = await this.prisma.transaction.findFirst({
+    const transaction = await this.prisma.legacyTransaction.findFirst({
       where: {
         userId,
         eventId,
@@ -154,7 +154,7 @@ export class EventsService {
       };
     }
 
-    const transaction = await this.prisma. transaction.findFirst({
+    const transaction = await this.prisma.legacyTransaction.findFirst({
       where: {
         userId,
         eventId: event.id,
@@ -576,7 +576,7 @@ export class EventsService {
     let filteredEvents = events;
     
     if (user?.id) {
-      const userPurchasedEvents = await this.prisma.transaction.findMany({
+      const userPurchasedEvents = await this.prisma.legacyTransaction.findMany({
         where: {
           userId: user.id,
           paymentStatus: PaymentStatus.PAID,
@@ -683,7 +683,7 @@ export class EventsService {
     let filteredEvents = events;
     
     if (user?.id) {
-      const userPurchasedEvents = await this.prisma.transaction.findMany({
+      const userPurchasedEvents = await this.prisma.legacyTransaction.findMany({
         where: {
           userId: user.id,
           paymentStatus: PaymentStatus.PAID,
@@ -997,7 +997,7 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    const where: Prisma.TransactionWhereInput = {
+    const where: Prisma.LegacyTransactionWhereInput = {
       eventId,
       transactionType: TransactionType.EVENT,
     };
@@ -1027,7 +1027,7 @@ export class EventsService {
     const take = limit;
 
     const [transactions, total, paidCount, totalRevenue] = await Promise.all([
-      this.prisma.transaction.findMany({
+      this.prisma.legacyTransaction.findMany({
         where,
         skip,
         take,
@@ -1053,14 +1053,14 @@ export class EventsService {
           },
         },
       }),
-      this. prisma.transaction.count({ where }),
-      this.prisma.transaction.count({
+      this. prisma.legacyTransaction.count({ where }),
+      this.prisma.legacyTransaction.count({
         where: {
           ... where,
           paymentStatus: PaymentStatus.PAID,
         },
       }),
-      this. prisma.transaction.aggregate({
+      this. prisma.legacyTransaction.aggregate({
         where: {
           ...where,
           paymentStatus: PaymentStatus. PAID,
@@ -1117,7 +1117,7 @@ export class EventsService {
   }
 
   async getParticipantDetail(eventId: string, transactionId: string) {
-    const transaction = await this.prisma.transaction.findFirst({
+    const transaction = await this.prisma.legacyTransaction.findFirst({
       where: {
         id: transactionId,
         eventId,
@@ -1198,7 +1198,7 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    const where: Prisma.TransactionWhereInput = {
+    const where: Prisma.LegacyTransactionWhereInput = {
       eventId,
       transactionType: TransactionType.EVENT,
     };
@@ -1215,7 +1215,7 @@ export class EventsService {
       where.paymentStatus = paymentStatus;
     }
 
-    const transactions = await this.prisma.transaction.findMany({
+    const transactions = await this.prisma.legacyTransaction.findMany({
       where,
       orderBy: { paidAt: 'desc' },
       include: {

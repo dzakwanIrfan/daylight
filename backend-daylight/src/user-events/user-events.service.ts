@@ -19,7 +19,7 @@ export class UserEventsService {
   async getMyEvents(userId: string) {
     const now = new Date();
 
-    const transactions = await this.prisma.transaction.findMany({
+    const transactions = await this.prisma.legacyTransaction.findMany({
       where: {
         userId,
         paymentStatus: PaymentStatus.PAID,
@@ -67,7 +67,7 @@ export class UserEventsService {
   async getPastEvents(userId: string) {
     const now = new Date();
 
-    const transactions = await this.prisma.transaction.findMany({
+    const transactions = await this.prisma.legacyTransaction.findMany({
       where: {
         userId,
         paymentStatus: PaymentStatus.PAID,
@@ -135,7 +135,7 @@ export class UserEventsService {
     }
 
     // Check if user already registered
-    const existingRegistration = await this.prisma.transaction.findFirst({
+    const existingRegistration = await this.prisma.legacyTransaction.findFirst({
       where: {
         userId,
         eventId,
@@ -150,7 +150,7 @@ export class UserEventsService {
     // Create FREE transaction
     const merchantRef = `FREE-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-    const transaction = await this.prisma.transaction.create({
+    const transaction = await this.prisma.legacyTransaction.create({
       data: {
         userId,
         eventId,

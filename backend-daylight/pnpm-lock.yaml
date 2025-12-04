@@ -116,6 +116,9 @@ importers:
       uuid:
         specifier: ^13.0.0
         version: 13.0.0
+      xendit-node:
+        specifier: ^7.0.0
+        version: 7.0.0
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.2.0
@@ -154,7 +157,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       '@types/node':
-        specifier: ^22.10.7
+        specifier: ^22.19.1
         version: 22.19.1
       '@types/nodemailer':
         specifier: ^7.0.3
@@ -4166,6 +4169,10 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+
+  xendit-node@7.0.0:
+    resolution: {integrity: sha512-atsCQ9femoWLu+hU5rY0TZ+ZhqSYbpTtABZN7rGMhhBh1xLhTuY1rgLfoaXzFiRt3eOQRqsew78wPUcQn1QckA==}
+    engines: {node: '>=18.0.0'}
 
   xmlchars@2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
@@ -9009,6 +9016,8 @@ snapshots:
       signal-exit: 4.1.0
 
   ws@8.17.1: {}
+
+  xendit-node@7.0.0: {}
 
   xmlchars@2.2.0: {}
 

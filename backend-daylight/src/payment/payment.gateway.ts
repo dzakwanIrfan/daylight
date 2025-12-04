@@ -130,7 +130,7 @@ export class PaymentGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const { transactionId } = data;
 
       // Verify transaction
-      const transaction = await this.prisma.transaction.findFirst({
+      const transaction = await this.prisma.legacyTransaction.findFirst({
         where: { id: transactionId, userId },
         select: { id: true, paymentStatus: true },
       });

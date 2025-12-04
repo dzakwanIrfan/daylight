@@ -506,7 +506,7 @@ export class ManualAssignmentService {
         for (const userId of dto.userIds) {
             try {
                 // Find transaction for this user
-                const transaction = await this.prisma.transaction.findFirst({
+                const transaction = await this.prisma.legacyTransaction.findFirst({
                     where: {
                         userId,
                         eventId,

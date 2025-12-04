@@ -82,7 +82,7 @@ export class EventReminderService {
         this.logger.log(`Processing event: ${event.title} (ID: ${event.id})`);
 
         // Get all paid participants for this event WHO HAVEN'T RECEIVED REMINDER YET
-        const transactions = await this.prisma.transaction.findMany({
+        const transactions = await this.prisma.legacyTransaction.findMany({
           where: {
             eventId: event.id,
             paymentStatus: PaymentStatus.PAID,
@@ -120,7 +120,7 @@ export class EventReminderService {
             );
 
             // Mark reminder as sent 
-            await this.prisma.transaction.update({
+            await this.prisma.legacyTransaction.update({
               where: { id: transaction.id },
               data: { reminderSentAt: new Date() },
             });

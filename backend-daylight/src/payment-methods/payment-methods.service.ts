@@ -13,7 +13,7 @@ export class PaymentMethodsService {
    * Get all active payment methods
    */
   async getActivePaymentMethods() {
-    const methods = await this.prisma.paymentMethod.findMany({
+    const methods = await this.prisma.legacyPaymentMethod.findMany({
       where: { isActive: true },
       orderBy: [{ group: 'asc' }, { sortOrder: 'asc' }],
     });
@@ -38,7 +38,7 @@ export class PaymentMethodsService {
    * Get payment method by code
    */
   async getPaymentMethodByCode(code: string) {
-    const method = await this.prisma.paymentMethod.findUnique({
+    const method = await this.prisma.legacyPaymentMethod.findUnique({
       where: { code },
     });
 
@@ -56,7 +56,7 @@ export class PaymentMethodsService {
    * Calculate fee for a payment method
    */
   async calculateFee(code: string, amount: number) {
-    const method = await this.prisma.paymentMethod.findUnique({
+    const method = await this.prisma.legacyPaymentMethod.findUnique({
       where: { code },
     });
 
@@ -142,7 +142,7 @@ export class PaymentMethodsService {
     } = queryDto;
 
     // Build where clause
-    const where: Prisma.PaymentMethodWhereInput = {};
+    const where: Prisma.LegacyPaymentMethodWhereInput = {};
 
     // Search across multiple fields
     if (search) {
@@ -174,13 +174,13 @@ export class PaymentMethodsService {
 
     // Execute queries
     const [methods, total] = await Promise.all([
-      this.prisma.paymentMethod.findMany({
+      this.prisma.legacyPaymentMethod.findMany({
         where,
         skip,
         take,
         orderBy: { [sortBy]: sortOrder },
       }),
-      this.prisma.paymentMethod.count({ where }),
+      this.prisma.legacyPaymentMethod.count({ where }),
     ]);
 
     // Calculate pagination metadata
@@ -215,12 +215,12 @@ export class PaymentMethodsService {
    * Get all payment methods (Admin) - for export
    */
   async getAllPaymentMethods(isActive?: boolean) {
-    const where: Prisma.PaymentMethodWhereInput = {};
+    const where: Prisma.LegacyPaymentMethodWhereInput = {};
     if (typeof isActive === 'boolean') {
       where.isActive = isActive;
     }
 
-    const methods = await this.prisma.paymentMethod.findMany({
+    const methods = await this.prisma.legacyPaymentMethod.findMany({
       where,
       orderBy: [{ group: 'asc' }, { sortOrder: 'asc' }],
     });
@@ -235,7 +235,7 @@ export class PaymentMethodsService {
    * Update payment method (Admin)
    */
   async updatePaymentMethod(code: string, data: UpdatePaymentMethodDto) {
-    const existingMethod = await this.prisma.paymentMethod.findUnique({
+    const existingMethod = await this.prisma.legacyPaymentMethod.findUnique({
       where: { code },
     });
 
@@ -243,7 +243,7 @@ export class PaymentMethodsService {
       throw new NotFoundException('Payment method not found');
     }
 
-    const method = await this.prisma.paymentMethod.update({
+    const method = await this.prisma.legacyPaymentMethod.update({
       where: { code },
       data,
     });
@@ -259,7 +259,7 @@ export class PaymentMethodsService {
    * Toggle payment method active status (Admin)
    */
   async togglePaymentMethod(code: string) {
-    const method = await this.prisma.paymentMethod.findUnique({
+    const method = await this.prisma.legacyPaymentMethod.findUnique({
       where: { code },
     });
 
@@ -267,7 +267,7 @@ export class PaymentMethodsService {
       throw new NotFoundException('Payment method not found');
     }
 
-    const updated = await this.prisma.paymentMethod.update({
+    const updated = await this.prisma.legacyPaymentMethod.update({
       where: { code },
       data: { isActive: !method.isActive },
     });
@@ -286,7 +286,7 @@ export class PaymentMethodsService {
     const { codes, action } = bulkActionDto;
 
     // Validate payment method codes
-    const methods = await this.prisma.paymentMethod.findMany({
+    const methods = await this.prisma.legacyPaymentMethod.findMany({
       where: { code: { in: codes } },
       select: { code: true },
     });
@@ -299,14 +299,14 @@ export class PaymentMethodsService {
 
     switch (action) {
       case BulkActionType.ACTIVATE:
-        result = await this.prisma.paymentMethod.updateMany({
+        result = await this.prisma.legacyPaymentMethod.updateMany({
           where: { code: { in: codes } },
           data: { isActive: true },
         });
         break;
 
       case BulkActionType.DEACTIVATE:
-        result = await this.prisma.paymentMethod.updateMany({
+        result = await this.prisma.legacyPaymentMethod.updateMany({
           where: { code: { in: codes } },
           data: { isActive: false },
         });
@@ -329,7 +329,7 @@ export class PaymentMethodsService {
     const { search, group, type, isActive } = queryDto;
 
     // Build where clause (without pagination)
-    const where: Prisma.PaymentMethodWhereInput = {};
+    const where: Prisma.LegacyPaymentMethodWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -343,7 +343,7 @@ export class PaymentMethodsService {
     if (type) where.type = type;
     if (typeof isActive === 'boolean') where.isActive = isActive;
 
-    const methods = await this.prisma.paymentMethod.findMany({
+    const methods = await this.prisma.legacyPaymentMethod.findMany({
       where,
       orderBy: [{ group: 'asc' }, { sortOrder: 'asc' }],
     });
@@ -355,7 +355,7 @@ export class PaymentMethodsService {
    * Get unique groups (Admin)
    */
   async getUniqueGroups() {
-    const methods = await this.prisma.paymentMethod.findMany({
+    const methods = await this.prisma.legacyPaymentMethod.findMany({
       select: { group: true },
       distinct: ['group'],
       orderBy: { group: 'asc' },
@@ -375,7 +375,7 @@ export class PaymentMethodsService {
     let updated = 0;
 
     for (const item of tripayData) {
-      const existing = await this.prisma.paymentMethod.findUnique({
+      const existing = await this.prisma.legacyPaymentMethod.findUnique({
         where: { code: item.code },
       });
 
@@ -397,13 +397,13 @@ export class PaymentMethodsService {
       };
 
       if (existing) {
-        await this.prisma.paymentMethod.update({
+        await this.prisma.legacyPaymentMethod.update({
           where: { code: item.code },
           data,
         });
         updated++;
       } else {
-        await this.prisma.paymentMethod.create({
+        await this.prisma.legacyPaymentMethod.create({
           data: {
             ...data,
             sortOrder: 0,

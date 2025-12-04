@@ -66,7 +66,7 @@ export function mapTransactionToUserProfile(
  */
 export function mapMemberToUserProfile(member: {
     userId: string;
-    transactionId: string;
+    transactionId: string | null;
     user: {
         email: string;
         firstName: string | null;
@@ -92,7 +92,7 @@ export function mapMemberToUserProfile(member: {
 }): UserMatchingProfile {
     return mapTransactionToUserProfile(
         member.userId,
-        member.transactionId,
+        member.transactionId || '',
         member.user,
     );
 }

@@ -22,7 +22,7 @@ export class PaymentCountdownService {
       const now = new Date();
 
       // Get pending payments that haven't expired yet
-      const pendingTransactions = await this.prisma.transaction.findMany({
+      const pendingTransactions = await this.prisma.legacyTransaction.findMany({
         where: {
           paymentStatus: PaymentStatus.PENDING,
           expiredAt: {
@@ -93,7 +93,7 @@ export class PaymentCountdownService {
     try {
       const now = new Date();
 
-      const expiredTransactions = await this.prisma.transaction.findMany({
+      const expiredTransactions = await this.prisma.legacyTransaction.findMany({
         where: {
           paymentStatus: PaymentStatus.PENDING,
           expiredAt: {
@@ -103,7 +103,7 @@ export class PaymentCountdownService {
       });
 
       for (const transaction of expiredTransactions) {
-        await this.prisma.transaction.update({
+        await this.prisma.legacyTransaction.update({
           where: { id: transaction.id },
           data: {
             paymentStatus: PaymentStatus.EXPIRED,

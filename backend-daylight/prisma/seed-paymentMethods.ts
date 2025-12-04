@@ -330,7 +330,7 @@ export async function seedPaymentMethods() {
   console.log('🌱 Seeding payment methods...');
   for (const method of paymentMethods) {
     // upsert memastikan idempotency saat dijalankan berkali-kali
-    await prisma.paymentMethod.upsert({
+    await prisma.legacyPaymentMethod.upsert({
       where: { code: method.code },
       update: method,
       create: method,
@@ -340,7 +340,7 @@ export async function seedPaymentMethods() {
 }
 
 export async function clearPaymentMethods() {
-  await prisma.paymentMethod.deleteMany();
+  await prisma.legacyPaymentMethod.deleteMany();
   console.log('🗑️  Payment methods cleared!');
 }
 

@@ -53,8 +53,9 @@ model Country {
 
   cities City[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  paymentMethods PaymentMethod[]
 
   @@index([code])
   @@index([name])
@@ -109,7 +110,8 @@ model User {
   emailVerificationTokenHash String?   @unique
   emailVerificationExpires   DateTime?
 
-  transactions Transaction[]
+  legacyTransactions LegacyTransaction[]
+  transactions       Transaction[]
 
   // Password reset - HASHED TOKEN
   resetPasswordTokenHash String?   @unique
@@ -302,9 +304,10 @@ model Event {
   organizerName    String?
   organizerContact String?
 
-  transactions     Transaction[]
-  matchingGroups   MatchingGroup[]
-  matchingAttempts MatchingAttempt[]
+  legacyTransactions LegacyTransaction[]
+  transactions       Transaction[]
+  matchingGroups     MatchingGroup[]
+  matchingAttempts   MatchingAttempt[]
 
   partnerId String?
   partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
@@ -325,7 +328,7 @@ enum PaymentChannelType {
   REDIRECT
 }
 
-model PaymentMethod {
+model LegacyPaymentMethod {
   id String @id @default(uuid())
 
   // Basic Info
@@ -359,6 +362,46 @@ model PaymentMethod {
   @@index([group])
   @@index([isActive])
   @@index([sortOrder])
+  @@map("legacy_payment_methods")
+}
+
+enum PaymentMethodType {
+  BANK_TRANSFER
+  CARDS
+  EWALLET
+  ONLINE_BANKING
+  OVER_THE_COUNTER
+  PAYLATER
+  QR_CODE
+}
+
+model PaymentMethod {
+  id String @id @default(uuid())
+
+  code        String            @unique // XENDIT_BCA_VA, XENDIT_PH_GCASH
+  name        String // BCA Virtual Account
+  countryCode String // ISO Code
+  country     Country           @relation(fields: [countryCode], references: [code])
+  currency    String // IDR, PHP, USD
+  minAmount   Decimal           @db.Decimal(19, 4)
+  maxAmount   Decimal           @db.Decimal(19, 4)
+  type        PaymentMethodType
+  isActive    Boolean           @default(true)
+
+  // Fee Config
+  adminFeeRate  Decimal @db.Decimal(10, 4) // 0.02 for 2%
+  adminFeeFixed Decimal @db.Decimal(19, 4) // 4500
+
+  logoUrl String?
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([countryCode])
+  @@index([isActive])
+  @@index([code])
 }
 
 enum PaymentStatus {
@@ -369,7 +412,7 @@ enum PaymentStatus {
   REFUNDED
 }
 
-model Transaction {
+model LegacyTransaction {
   id String @id @default(uuid())
 
   // User & Event
@@ -436,6 +479,48 @@ model Transaction {
   @@index([paymentStatus])
   @@index([createdAt])
   @@index([transactionType])
+  @@map("legacy_transactions")
+}
+
+enum TransactionStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+model Transaction {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  paymentMethodId String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  externalId String            @unique // Xendit ID
+  status     TransactionStatus @default(PENDING)
+
+  amount      Decimal @db.Decimal(19, 4)
+  totalFee    Decimal @db.Decimal(19, 4)
+  finalAmount Decimal @db.Decimal(19, 4)
+
+  paymentUrl String? @db.Text
+
+  // Relations
+  userSubscription UserSubscription?
+  matchingMember   MatchingMember?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([externalId])
+  @@index([status])
 }
 
 enum TransactionType {
@@ -532,6 +617,9 @@ model UserSubscription {
   status SubscriptionStatus @default(PENDING)
 
   // Payment Reference (link to Transaction)
+  legacyTransactionId String?            @unique
+  legacyTransaction   LegacyTransaction? @relation(fields: [legacyTransactionId], references: [id], onDelete: SetNull)
+
   transactionId String?      @unique
   transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
@@ -574,8 +662,11 @@ model MatchingMember {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  transactionId String      @unique
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  legacyTransactionId String?            @unique
+  legacyTransaction   LegacyTransaction? @relation(fields: [legacyTransactionId], references: [id], onDelete: Cascade)
+
+  transactionId String?      @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   // Individual match scores with other members
   matchScores Json // { "userId": score }

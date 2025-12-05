@@ -7,6 +7,10 @@ import { XenditResponseParserService } from './services/xendit-response-parser.s
 import { XenditPayloadBuilderService } from './services/xendit-payload-builder.service';
 import { XenditPaymentGateway } from './xendit-payment.gateway';
 import { JwtModule } from '@nestjs/jwt';
+import { XenditSubscriptionService } from './services/xendit-subscription.service';
+import { XenditTransactionService } from './services/xendit-transaction.service';
+import { XenditWebhookService } from './services/xendit-webhook.service';
+import { XenditPaymentService } from './services/xendit-payment.service';
 
 @Module({
   imports: [JwtModule],
@@ -18,7 +22,11 @@ import { JwtModule } from '@nestjs/jwt';
     XenditPayloadBuilderService,
     XenditResponseParserService,
     XenditPaymentGateway,
+    XenditSubscriptionService,
+    XenditTransactionService,
+    XenditWebhookService,
+    XenditPaymentService,
   ],
   exports: [XenditService, XenditPaymentGateway],
 })
-export class XenditModule {}
+export class XenditModule { }

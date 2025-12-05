@@ -1,7 +1,6 @@
 import {
   PrismaClient,
   PaymentMethodType,
-  PaymentMethod,
   Prisma,
 } from '@prisma/client';
 

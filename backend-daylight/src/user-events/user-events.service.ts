@@ -193,7 +193,7 @@ export class UserEventsService {
       data: {
         userId,
         eventId,
-        paymentMethodId: PaymentMethodType.SUBSCRIPTION,
+        paymentMethodName: PaymentMethodType.SUBSCRIPTION,
         externalId,
         status: TransactionStatus.PAID, // Immediately PAID
         amount: event.price,

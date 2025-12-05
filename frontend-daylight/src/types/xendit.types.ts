@@ -96,6 +96,7 @@ export interface XenditTransaction {
   userId: string;
   eventId: string | null;
   paymentMethodId: string;
+  paymentMethodName: string;
   externalId: string;
   status: XenditTransactionStatus;
   amount: number;

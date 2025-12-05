@@ -508,13 +508,14 @@ model TransactionAction {
 }
 
 model Transaction {
-  id              String        @id @default(cuid())
-  userId          String
-  user            User          @relation(fields: [userId], references: [id])
-  eventId         String?
-  event           Event?        @relation(fields: [eventId], references: [id])
-  paymentMethodId String
-  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  id                String         @id @default(cuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id])
+  eventId           String?
+  event             Event?         @relation(fields: [eventId], references: [id])
+  paymentMethodName String         @default("")
+  paymentMethodId   String?
+  paymentMethod     PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 
   externalId  String            @unique
   status      TransactionStatus @default(PENDING)

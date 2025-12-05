@@ -657,7 +657,7 @@ export default function XenditPaymentDetailPage() {
               <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-gray-600">Payment Method</span>
                 <span className="font-medium text-gray-900">
-                  {transaction.paymentMethod.name}
+                  {transaction.paymentMethodName}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs sm:text-sm">

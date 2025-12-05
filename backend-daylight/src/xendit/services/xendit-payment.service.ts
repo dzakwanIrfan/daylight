@@ -316,6 +316,7 @@ export class XenditPaymentService {
             user: {
                 connect: { id: user.id },
             },
+            paymentMethodName: paymentMethod.name,
             paymentMethod: {
                 connect: { id: paymentMethod.id },
             },

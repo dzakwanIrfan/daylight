@@ -75,7 +75,7 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
         <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
           <CreditCard className="w-3. 5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
           <span className="truncate">
-            {transaction.paymentMethod?.name || "Unknown"}
+            {transaction.paymentMethodName || "Unknown"}
           </span>
         </div>
 
@@ -109,13 +109,15 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
           {format(new Date(transaction.createdAt), "dd MMM yyyy, HH:mm")}
         </span>
 
-        <Link
-          href={`/payment/${transaction.id}`}
-          className="inline-flex items-center gap-1. 5 text-xs sm:text-sm font-medium text-brand hover:text-brand/80 transition-colors self-end sm:self-auto"
-        >
-          View Details
-          <ArrowRight className="w-3. 5 h-3.5 sm:w-4 sm:h-4" />
-        </Link>
+        {transaction.paymentMethodName !== "SUBSCRIPTION" && (
+          <Link
+            href={`/payment/${transaction.id}`}
+            className="inline-flex items-center gap-1. 5 text-xs sm:text-sm font-medium text-brand hover:text-brand/80 transition-colors self-end sm:self-auto"
+          >
+            View Details
+            <ArrowRight className="w-3. 5 h-3.5 sm:w-4 sm:h-4" />
+          </Link>
+        )}
       </div>
     </div>
   );

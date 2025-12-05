@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { TransactionStatus } from '@prisma/client';
+import { PaymentMethodType, TransactionStatus } from '@prisma/client';
 import { RegisterFreeEventDto } from './dto/register-free-event.dto';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 
@@ -186,34 +186,6 @@ export class UserEventsService {
       throw new ConflictException('You have already registered for this event');
     }
 
-    // Get user's payment method (use default subscription payment method or first available)
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        currentCity: {
-          include: {
-            country: true,
-          },
-        },
-      },
-    });
-
-    // Find a payment method for subscription type payment
-    const subscriptionPaymentMethod = await this.prisma.paymentMethod.findFirst(
-      {
-        where: {
-          countryCode: user?.currentCity?.country?.code || 'ID',
-          isActive: true,
-        },
-      },
-    );
-
-    if (!subscriptionPaymentMethod) {
-      throw new BadRequestException(
-        'No payment method available for your region',
-      );
-    }
-
     // Create FREE transaction using Xendit Transaction model
     const externalId = `FREE-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
@@ -221,7 +193,7 @@ export class UserEventsService {
       data: {
         userId,
         eventId,
-        paymentMethodId: subscriptionPaymentMethod.id,
+        paymentMethodId: PaymentMethodType.SUBSCRIPTION,
         externalId,
         status: TransactionStatus.PAID, // Immediately PAID
         amount: event.price,

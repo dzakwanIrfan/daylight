@@ -205,13 +205,10 @@ export interface QueryXenditTransactionsParams {
 // Query Response
 export interface QueryXenditTransactionsResponse {
   data: XenditTransaction[];
-  pagination: {
+  meta: {
     total: number;
     page: number;
-    limit: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
+    lastPage: number;
   };
 }
 

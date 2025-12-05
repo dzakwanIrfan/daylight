@@ -20,7 +20,7 @@ export class EventsService {
   constructor(
     private prisma: PrismaService,
     private subscriptionsService: SubscriptionsService,
-  ) {}
+  ) { }
 
   /**
    * Generate unique slug from title
@@ -66,7 +66,7 @@ export class EventsService {
       throw new NotFoundException('Partner not found');
     }
 
-    if (! partner.isActive || partner.status !== 'ACTIVE') {
+    if (!partner.isActive || partner.status !== 'ACTIVE') {
       throw new BadRequestException('Selected partner is not active');
     }
 
@@ -97,11 +97,11 @@ export class EventsService {
    * Check if user has purchased a specific event
    */
   private async hasUserPurchasedEvent(userId: string, eventId: string): Promise<boolean> {
-    const transaction = await this.prisma.legacyTransaction.findFirst({
+    const transaction = await this.prisma.transaction.findFirst({
       where: {
         userId,
         eventId,
-        paymentStatus: PaymentStatus. PAID,
+        status: PaymentStatus.PAID,
       },
     });
 
@@ -114,7 +114,7 @@ export class EventsService {
   private isEventWithin24Hours(eventDate: Date, startTime: Date): boolean {
     const now = new Date();
     const eventStartDateTime = new Date(eventDate);
-    
+
     const startTimeDate = new Date(startTime);
     eventStartDateTime.setHours(startTimeDate.getHours());
     eventStartDateTime.setMinutes(startTimeDate.getMinutes());
@@ -122,7 +122,7 @@ export class EventsService {
     eventStartDateTime.setMilliseconds(0);
 
     const twentyFourHoursBefore = new Date(eventStartDateTime);
-    twentyFourHoursBefore.setHours(twentyFourHoursBefore. getHours() - 24);
+    twentyFourHoursBefore.setHours(twentyFourHoursBefore.getHours() - 24);
 
     return now >= twentyFourHoursBefore;
   }
@@ -142,19 +142,7 @@ export class EventsService {
 
     const hasValidSubscription = await this.subscriptionsService.hasValidSubscription(userId);
 
-    if (hasValidSubscription) {
-      return {
-        hasPurchased: false,
-        canPurchase: false,
-        status: null,
-        transaction: null,
-        hasSubscription: true,
-        subscriptionAccess: true,
-        message: 'You have access to this event through your active subscription',
-      };
-    }
-
-    const transaction = await this.prisma.legacyTransaction.findFirst({
+    const transaction = await this.prisma.transaction.findFirst({
       where: {
         userId,
         eventId: event.id,
@@ -165,42 +153,38 @@ export class EventsService {
       },
       select: {
         id: true,
-        paymentStatus: true,
-        merchantRef: true,
-        paidAt: true,
+        status: true,
         createdAt: true,
       },
     });
 
-    if (! transaction) {
+    if (!transaction) {
       return {
         hasPurchased: false,
         canPurchase: true,
         status: null,
         transaction: null,
-        hasSubscription: false,
-        subscriptionAccess: false,
+        hasSubscription: hasValidSubscription ? true : false,
+        subscriptionAccess: hasValidSubscription ? true : false,
       };
     }
 
     const canPurchaseAgain = new Set<PaymentStatus>([
-      PaymentStatus. FAILED,
-      PaymentStatus. EXPIRED,
-      PaymentStatus. REFUNDED,
-    ]). has(transaction.paymentStatus);
+      PaymentStatus.FAILED,
+      PaymentStatus.EXPIRED,
+      PaymentStatus.REFUNDED,
+    ]).has(transaction.status);
 
     return {
       hasPurchased: true,
       canPurchase: canPurchaseAgain,
-      status: transaction.paymentStatus,
+      status: transaction.status,
       transaction: {
         id: transaction.id,
-        merchantRef: transaction.merchantRef,
-        paidAt: transaction.paidAt,
         createdAt: transaction.createdAt,
       },
-      hasSubscription: false,
-      subscriptionAccess: false,
+      hasSubscription: hasValidSubscription ? true : false,
+      subscriptionAccess: hasValidSubscription ? true : false,
     };
   }
 
@@ -210,7 +194,7 @@ export class EventsService {
   async createEvent(createEventDto: CreateEventDto) {
     // 1. Validate cityId exists
     const city = await this.prisma.city.findUnique({
-      where: { id: createEventDto. cityId },
+      where: { id: createEventDto.cityId },
     });
 
     if (!city) {
@@ -222,9 +206,9 @@ export class EventsService {
 
     // 2. If partnerId is provided, validate and auto-fill venue data
     if (partnerId) {
-      const partner = await this. validatePartnerLocation(partnerId, createEventDto.cityId);
+      const partner = await this.validatePartnerLocation(partnerId, createEventDto.cityId);
       venueData = this.extractVenueDataFromPartner(partner);
-      
+
       console.log(`✅ Partner validated: ${partner.name} in ${city.name}`);
     } else {
       // 3.  If no partnerId, require manual venue input
@@ -241,7 +225,7 @@ export class EventsService {
 
       venueData = {
         venue: createEventDto.venue,
-        address: createEventDto. address,
+        address: createEventDto.address,
         latitude: createEventDto.latitude,
         longitude: createEventDto.longitude,
         googleMapsUrl: createEventDto.googleMapsUrl,
@@ -254,15 +238,15 @@ export class EventsService {
     // 5. Create event
     const event = await this.prisma.event.create({
       data: {
-        ... createEventDto,
+        ...createEventDto,
         slug,
         eventDate: new Date(createEventDto.eventDate),
-        startTime: new Date(createEventDto. startTime),
+        startTime: new Date(createEventDto.startTime),
         endTime: new Date(createEventDto.endTime),
         city: city.name, // Auto-fill legacy city string
         cityId: createEventDto.cityId,
         partnerId: partnerId || null,
-        ... venueData, // Auto-filled from partner or manual input
+        ...venueData, // Auto-filled from partner or manual input
       },
       include: {
         cityRelation: true,
@@ -298,8 +282,8 @@ export class EventsService {
     }
 
     // Validate city if changed
-    if (updateEventDto.cityId && updateEventDto. cityId !== existingEvent.cityId) {
-      const city = await this.prisma.city. findUnique({
+    if (updateEventDto.cityId && updateEventDto.cityId !== existingEvent.cityId) {
+      const city = await this.prisma.city.findUnique({
         where: { id: updateEventDto.cityId },
       });
 
@@ -310,7 +294,7 @@ export class EventsService {
       cityName = city.name;
 
       // If city changed and partnerId exists, validate partner is in new city
-      const partnerIdToCheck = updateEventDto.partnerId ??  existingEvent.partnerId;
+      const partnerIdToCheck = updateEventDto.partnerId ?? existingEvent.partnerId;
       if (partnerIdToCheck) {
         const partner = await this.validatePartnerLocation(
           partnerIdToCheck,
@@ -324,23 +308,23 @@ export class EventsService {
     if (
       updateEventDto.partnerId &&
       updateEventDto.partnerId !== existingEvent.partnerId &&
-      ! updateEventDto.cityId
+      !updateEventDto.cityId
     ) {
       const partner = await this.validatePartnerLocation(
         updateEventDto.partnerId,
-        existingEvent.cityId! 
+        existingEvent.cityId!
       );
       venueData = this.extractVenueDataFromPartner(partner);
     }
 
     // If partnerId is being removed (set to null)
     if (updateEventDto.partnerId === null) {
-      if (! updateEventDto.venue) {
+      if (!updateEventDto.venue) {
         throw new BadRequestException(
           'Venue name is required when removing partner'
         );
       }
-      if (!updateEventDto. address) {
+      if (!updateEventDto.address) {
         throw new BadRequestException(
           'Address is required when removing partner'
         );
@@ -348,14 +332,14 @@ export class EventsService {
     }
 
     const updateData: any = {
-      ... updateEventDto,
+      ...updateEventDto,
       slug,
       city: cityName,
-      ... venueData,
+      ...venueData,
     };
 
     // Convert dates if provided
-    if (updateEventDto. eventDate) {
+    if (updateEventDto.eventDate) {
       updateData.eventDate = new Date(updateEventDto.eventDate);
     }
     if (updateEventDto.startTime) {
@@ -418,8 +402,8 @@ export class EventsService {
     if (city) where.city = { contains: city, mode: 'insensitive' };
 
     if (dateFrom || dateTo) {
-      where. eventDate = {};
-      if (dateFrom) where.eventDate. gte = new Date(dateFrom);
+      where.eventDate = {};
+      if (dateFrom) where.eventDate.gte = new Date(dateFrom);
       if (dateTo) where.eventDate.lte = new Date(dateTo);
     }
 
@@ -427,7 +411,7 @@ export class EventsService {
     const take = limit;
 
     const [events, total] = await Promise.all([
-      this. prisma.event.findMany({
+      this.prisma.event.findMany({
         where,
         skip,
         take,
@@ -574,12 +558,12 @@ export class EventsService {
     ]);
 
     let filteredEvents = events;
-    
+
     if (user?.id) {
-      const userPurchasedEvents = await this.prisma.legacyTransaction.findMany({
+      const userPurchasedEvents = await this.prisma.transaction.findMany({
         where: {
           userId: user.id,
-          paymentStatus: PaymentStatus.PAID,
+          status: PaymentStatus.PAID,
         },
         select: {
           eventId: true,
@@ -596,7 +580,7 @@ export class EventsService {
         if (purchasedEventIds.has(event.id)) {
           return true;
         }
-        return ! this.isEventWithin24Hours(event.eventDate, event.startTime);
+        return !this.isEventWithin24Hours(event.eventDate, event.startTime);
       });
     } else {
       filteredEvents = events.filter((event) => {
@@ -681,12 +665,12 @@ export class EventsService {
     });
 
     let filteredEvents = events;
-    
+
     if (user?.id) {
-      const userPurchasedEvents = await this.prisma.legacyTransaction.findMany({
+      const userPurchasedEvents = await this.prisma.transaction.findMany({
         where: {
           userId: user.id,
-          paymentStatus: PaymentStatus.PAID,
+          status: PaymentStatus.PAID,
         },
         select: {
           eventId: true,
@@ -722,7 +706,7 @@ export class EventsService {
   }
 
   async getEventById(eventId: string) {
-    const event = await this. prisma.event.findUnique({
+    const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: {
         cityRelation: true,
@@ -738,7 +722,7 @@ export class EventsService {
   }
 
   async getEventBySlug(slug: string, userId?: string) {
-    const event = await this.prisma. event.findUnique({
+    const event = await this.prisma.event.findUnique({
       where: { slug },
       include: {
         partner: true,
@@ -754,8 +738,8 @@ export class EventsService {
 
     if (isWithin24Hours && userId) {
       const hasPurchased = await this.hasUserPurchasedEvent(userId, event.id);
-      
-      if (! hasPurchased) {
+
+      if (!hasPurchased) {
         throw new ForbiddenException(
           'This event is no longer available for viewing. Registration closes 24 hours before the event starts.'
         );
@@ -779,7 +763,7 @@ export class EventsService {
     }
 
     if (hardDelete) {
-      await this.prisma.event. delete({
+      await this.prisma.event.delete({
         where: { id: eventId },
       });
 
@@ -814,43 +798,43 @@ export class EventsService {
 
     switch (action) {
       case EventBulkActionType.ACTIVATE:
-        result = await this. prisma.event.updateMany({
+        result = await this.prisma.event.updateMany({
           where: { id: { in: eventIds } },
           data: { isActive: true },
         });
         break;
 
       case EventBulkActionType.DEACTIVATE:
-        result = await this.prisma. event.updateMany({
+        result = await this.prisma.event.updateMany({
           where: { id: { in: eventIds } },
           data: { isActive: false },
         });
         break;
 
       case EventBulkActionType.DELETE:
-        result = await this. prisma.event.deleteMany({
+        result = await this.prisma.event.deleteMany({
           where: { id: { in: eventIds } },
         });
         break;
 
-      case EventBulkActionType. PUBLISH:
-        result = await this. prisma.event.updateMany({
+      case EventBulkActionType.PUBLISH:
+        result = await this.prisma.event.updateMany({
           where: { id: { in: eventIds } },
-          data: { status: EventStatus. PUBLISHED, isActive: true },
+          data: { status: EventStatus.PUBLISHED, isActive: true },
         });
         break;
 
       case EventBulkActionType.DRAFT:
-        result = await this. prisma.event.updateMany({
+        result = await this.prisma.event.updateMany({
           where: { id: { in: eventIds } },
-          data: { status: EventStatus. DRAFT },
+          data: { status: EventStatus.DRAFT },
         });
         break;
 
-      case EventBulkActionType. CANCEL:
-        result = await this. prisma.event.updateMany({
+      case EventBulkActionType.CANCEL:
+        result = await this.prisma.event.updateMany({
           where: { id: { in: eventIds } },
-          data: { status: EventStatus. CANCELLED },
+          data: { status: EventStatus.CANCELLED },
         });
         break;
 
@@ -875,7 +859,7 @@ export class EventsService {
       eventsByStatus,
       recentEvents,
     ] = await Promise.all([
-      this. prisma.event.count(),
+      this.prisma.event.count(),
       this.prisma.event.count({
         where: {
           isActive: true,
@@ -896,11 +880,11 @@ export class EventsService {
         by: ['category'],
         _count: true,
       }),
-      this. prisma.event.groupBy({
+      this.prisma.event.groupBy({
         by: ['status'],
         _count: true,
       }),
-      this.prisma. event.findMany({
+      this.prisma.event.findMany({
         take: 10,
         orderBy: { createdAt: 'desc' },
         select: {
@@ -923,11 +907,11 @@ export class EventsService {
         completedEvents,
       },
       breakdown: {
-        byCategory: eventsByCategory. map((item) => ({
+        byCategory: eventsByCategory.map((item) => ({
           category: item.category,
           count: item._count,
         })),
-        byStatus: eventsByStatus. map((item) => ({
+        byStatus: eventsByStatus.map((item) => ({
           status: item.status,
           count: item._count,
         })),
@@ -951,7 +935,7 @@ export class EventsService {
     const where: Prisma.EventWhereInput = {};
 
     if (search) {
-      where. OR = [
+      where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { venue: { contains: search, mode: 'insensitive' } },
         { city: { contains: search, mode: 'insensitive' } },
@@ -959,9 +943,9 @@ export class EventsService {
     }
 
     if (category) where.category = category;
-    if (status) where. status = status;
+    if (status) where.status = status;
     if (typeof isActive === 'boolean') where.isActive = isActive;
-    if (typeof isFeatured === 'boolean') where. isFeatured = isFeatured;
+    if (typeof isFeatured === 'boolean') where.isFeatured = isFeatured;
     if (city) where.city = { contains: city, mode: 'insensitive' };
 
     if (dateFrom || dateTo) {
@@ -997,16 +981,13 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    const where: Prisma.LegacyTransactionWhereInput = {
+    const where: Prisma.TransactionWhereInput = {
       eventId,
       transactionType: TransactionType.EVENT,
     };
 
     if (search) {
       where.OR = [
-        { customerName: { contains: search, mode: 'insensitive' } },
-        { customerEmail: { contains: search, mode: 'insensitive' } },
-        { customerPhone: { contains: search, mode: 'insensitive' } },
         {
           user: {
             OR: [
@@ -1020,14 +1001,14 @@ export class EventsService {
     }
 
     if (paymentStatus) {
-      where.paymentStatus = paymentStatus;
+      where.status = paymentStatus;
     }
 
     const skip = (page - 1) * limit;
     const take = limit;
 
     const [transactions, total, paidCount, totalRevenue] = await Promise.all([
-      this.prisma.legacyTransaction.findMany({
+      this.prisma.transaction.findMany({
         where,
         skip,
         take,
@@ -1053,20 +1034,20 @@ export class EventsService {
           },
         },
       }),
-      this. prisma.legacyTransaction.count({ where }),
-      this.prisma.legacyTransaction.count({
-        where: {
-          ... where,
-          paymentStatus: PaymentStatus.PAID,
-        },
-      }),
-      this. prisma.legacyTransaction.aggregate({
+      this.prisma.transaction.count({ where }),
+      this.prisma.transaction.count({
         where: {
           ...where,
-          paymentStatus: PaymentStatus. PAID,
+          status: PaymentStatus.PAID,
+        },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          ...where,
+          status: PaymentStatus.PAID,
         },
         _sum: {
-          amountReceived: true,
+          finalAmount: true,
         },
       }),
     ]);
@@ -1075,22 +1056,12 @@ export class EventsService {
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    const participantsWithQuantity = transactions.map((transaction) => {
-      const orderItems = transaction.orderItems as any[];
-      const quantity = orderItems[0]?.quantity || 1;
-
-      return {
-        ... transaction,
-        quantity,
-      };
-    });
-
     return {
       event: {
         id: event.id,
         title: event.title,
       },
-      data: participantsWithQuantity,
+      data: transactions,
       pagination: {
         total,
         page,
@@ -1103,7 +1074,7 @@ export class EventsService {
         totalTransactions: total,
         paidTransactions: paidCount,
         pendingTransactions: total - paidCount,
-        totalRevenue: totalRevenue._sum.amountReceived || 0,
+        totalRevenue: totalRevenue._sum.finalAmount || 0,
       },
       filters: {
         search,
@@ -1117,11 +1088,11 @@ export class EventsService {
   }
 
   async getParticipantDetail(eventId: string, transactionId: string) {
-    const transaction = await this.prisma.legacyTransaction.findFirst({
+    const transaction = await this.prisma.transaction.findFirst({
       where: {
         id: transactionId,
         eventId,
-        transactionType: TransactionType. EVENT,
+        transactionType: TransactionType.EVENT,
       },
       include: {
         user: {
@@ -1177,13 +1148,7 @@ export class EventsService {
       throw new NotFoundException('Participant not found');
     }
 
-    const orderItems = transaction.orderItems as any[];
-    const quantity = orderItems[0]?.quantity || 1;
-
-    return {
-      ... transaction,
-      quantity,
-    };
+    return transaction;
   }
 
   async exportEventParticipants(eventId: string, queryDto: QueryEventParticipantsDto) {
@@ -1198,26 +1163,24 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    const where: Prisma.LegacyTransactionWhereInput = {
+    const where: Prisma.TransactionWhereInput = {
       eventId,
       transactionType: TransactionType.EVENT,
     };
 
     if (search) {
       where.OR = [
-        { customerName: { contains: search, mode: 'insensitive' } },
-        { customerEmail: { contains: search, mode: 'insensitive' } },
         { user: { email: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
     if (paymentStatus) {
-      where.paymentStatus = paymentStatus;
+      where.status = paymentStatus;
     }
 
-    const transactions = await this.prisma.legacyTransaction.findMany({
+    const transactions = await this.prisma.transaction.findMany({
       where,
-      orderBy: { paidAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {
@@ -1230,15 +1193,7 @@ export class EventsService {
       },
     });
 
-    return transactions.map((transaction) => {
-      const orderItems = transaction. orderItems as any[];
-      const quantity = orderItems[0]?. quantity || 1;
-
-      return {
-        ...transaction,
-        quantity,
-      };
-    });
+    return transactions;
   }
 
   async updateCurrentParticipants(eventId: string, delta: number) {
@@ -1252,7 +1207,7 @@ export class EventsService {
 
     const updatedParticipants = (event.currentParticipants || 0) + delta;
 
-    await this.prisma.event. update({
+    await this.prisma.event.update({
       where: { id: eventId },
       data: { currentParticipants: updatedParticipants },
     });

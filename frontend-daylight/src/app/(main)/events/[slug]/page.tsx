@@ -124,7 +124,6 @@ export default function EventDetailPage() {
   const hasPurchased = purchaseStatus?.hasPurchased ?? false;
   const canPurchase = purchaseStatus?.canPurchase ?? true;
   const purchaseStatusValue = purchaseStatus?.status;
-  const hasSubscription = purchaseStatus?.hasSubscription ?? false;
   const subscriptionAccess = purchaseStatus?.subscriptionAccess ?? false;
 
   // Determine button state
@@ -132,11 +131,6 @@ export default function EventDetailPage() {
 
   const getButtonText = () => {
     if (isPurchaseStatusLoading) return 'Checking...';
-    
-    // If has subscription access
-    if (subscriptionAccess) {
-      return 'Register for Free';
-    }
     
     if (hasPurchased) {
       if (purchaseStatusValue === PaymentStatus.PAID) {
@@ -148,6 +142,11 @@ export default function EventDetailPage() {
       if (canPurchase) {
         return 'Try Again';
       }
+    }
+
+    // If has subscription access
+    if (subscriptionAccess) {
+      return 'Register for Free';
     }
     
     return 'Join Event';
@@ -211,54 +210,6 @@ export default function EventDetailPage() {
           <span className="text-sm font-medium">Back</span>
         </button>
 
-        {/* Subscription Access Alert - SUBTLE */}
-        {subscriptionAccess && (
-          <div className="bg-white border border-orange-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                <Crown className="w-5 h-5 text-brand" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-semibold text-gray-900 text-sm">
-                    Premium Access
-                  </p>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded text-xs font-medium">
-                    <Gift className="w-3 h-3" />
-                    FREE
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  You have unlimited access to this event through your active subscription
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Direct Purchase Status Alerts */}
-        {!subscriptionAccess && hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-semibold text-green-900 mb-1 text-sm">
-                  You're registered for this event!
-                </p>
-                <p className="text-sm text-green-700">
-                  Check your ticket in{' '}
-                  <button
-                    onClick={() => router.push('/my-events')}
-                    className="underline hover:text-green-900 font-medium"
-                  >
-                    My Events
-                  </button>
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {!subscriptionAccess && hasPurchased && purchaseStatusValue === PaymentStatus.PENDING && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
@@ -307,7 +258,7 @@ export default function EventDetailPage() {
               <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs sm:text-sm font-medium">
                 {event.category}
               </span>
-              {subscriptionAccess && (
+              {subscriptionAccess && !hasPurchased && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/90 text-brand rounded-full text-xs font-semibold">
                   <Crown className="w-3 h-3" />
                   FREE ACCESS
@@ -318,7 +269,7 @@ export default function EventDetailPage() {
 
           <div className="pt-2 border-t border-white/20">
             <div className="flex items-baseline gap-2">
-              {subscriptionAccess ? (
+              {subscriptionAccess && !hasPurchased ? (
                 <>
                   <span className="text-lg sm:text-xl text-white/60 line-through">
                     {event.currency === 'IDR' ? 'Rp ' : '$'}
@@ -342,7 +293,7 @@ export default function EventDetailPage() {
               )}
               {!subscriptionAccess && <span className="text-sm text-white/80">per person</span>}
             </div>
-            {subscriptionAccess && (
+            {subscriptionAccess && !hasPurchased && (
               <p className="text-xs text-white/70 mt-1">
                 Included in your premium subscription
               </p>
@@ -511,11 +462,11 @@ export default function EventDetailPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-lg">
             <button
               onClick={handleJoinEvent}
-              disabled={isButtonDisabled || isPurchaseStatusLoading}
+              disabled={isButtonDisabled || isPurchaseStatusLoading || hasPurchased}
               className={`w-full px-6 py-3.5 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all flex items-center justify-center gap-2 ${
-                isButtonDisabled || isPurchaseStatusLoading
+                isButtonDisabled || isPurchaseStatusLoading || hasPurchased
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  : subscriptionAccess
+                  : subscriptionAccess && !hasPurchased
                   ? 'bg-brand text-white hover:bg-brand/90 hover:shadow-md active:scale-[0.98]'
                   : 'bg-brand text-white hover:bg-brand/90 hover:shadow-md active:scale-[0.98]'
               }`}
@@ -527,14 +478,14 @@ export default function EventDetailPage() {
             </button>
             
             {/* Helper text */}
-            {subscriptionAccess && (
+            {subscriptionAccess && !hasPurchased && (
               <p className="text-xs text-center text-gray-600 mt-2">
                 Premium members can join for free
               </p>
             )}
-            {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && !subscriptionAccess && (
+            {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
               <p className="text-xs text-center text-gray-600 mt-2">
-                View your ticket in My Events
+                View your ticket in <Link href="/my-events" className="text-brand">My Events</Link>
               </p>
             )}
           </div>

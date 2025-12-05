@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from "@/components/main/dashboard-layout";
 import { useParams, useRouter } from "next/navigation";
-import { usePublicEvent } from "@/hooks/use-public-events";
+import { useEventPurchaseStatus, usePublicEvent } from "@/hooks/use-public-events";
 import {
   useXenditPaymentMethods,
   useXenditFeeCalculation,
@@ -39,12 +39,26 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { PaymentStatus } from "@/types/event.types";
 
 export default function CreateXenditPaymentPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
   const { user } = useAuthStore();
+  const {
+    data: purchaseStatus,
+    isLoading: isPurchaseStatusLoading
+  } = useEventPurchaseStatus(slug);
+
+  useEffect(() => {
+    if (purchaseStatus?.hasPurchased && purchaseStatus?.status === PaymentStatus.PAID) {
+      toast.success("You have purchased this event!");
+      router.replace(`/events/${slug}`);
+    }
+  }, [purchaseStatus, router, slug]);
+
+  const isPurchased = purchaseStatus?.hasPurchased && purchaseStatus?.status === PaymentStatus.PAID;
 
   // Queries
   const { data: event, isLoading: isLoadingEvent } = usePublicEvent(slug);
@@ -79,7 +93,11 @@ export default function CreateXenditPaymentPage() {
   // Create payment mutation
   const createPaymentMutation = useXenditCreatePayment();
 
-  const isLoading = isLoadingEvent || isLoadingMethods;
+  const isLoading = isLoadingEvent || isLoadingMethods || isPurchaseStatusLoading;
+
+  if (isPurchased) {
+    return null;
+  }
 
   // Handle payment
   const handlePayment = async () => {
@@ -426,9 +444,9 @@ export default function CreateXenditPaymentPage() {
                 <p className="text-lg font-bold text-brand">
                   {feeData?.success && feeData.data
                     ? formatCurrency(
-                        feeData.data.calculation.finalAmount,
-                        event.currency
-                      )
+                      feeData.data.calculation.finalAmount,
+                      event.currency
+                    )
                     : formatCurrency(event.price, event.currency)}
                 </p>
               </div>

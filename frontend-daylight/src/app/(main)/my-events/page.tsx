@@ -49,7 +49,7 @@ export default function MyEventsPage() {
   const counts = {
     myEvents: myEventsData?.total || 0,
     pastEvents: pastEventsData?.total || 0,
-    transactions: transactionsData?.pagination?.total || 0,
+    transactions: transactionsData?.meta?.total || 0,
   };
 
   const isLoading =
@@ -174,8 +174,8 @@ export default function MyEventsPage() {
                 </h2>
                 {transactionsData && transactionsData.data.length > 0 && (
                   <span className="text-xs sm:text-sm text-gray-500">
-                    {transactionsData.pagination.total} transaction
-                    {transactionsData.pagination.total > 1 ? "s" : ""}
+                    {transactionsData.meta.total} transaction
+                    {transactionsData.meta.total > 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -191,16 +191,16 @@ export default function MyEventsPage() {
                   </div>
 
                   {/* Pagination Info */}
-                  {transactionsData.pagination.totalPages > 1 && (
+                  {transactionsData.meta.total > 1 && (
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-4 border-t border-gray-200">
                       <p className="text-xs sm:text-sm text-gray-500">
                         Showing {transactionsData.data.length} of{" "}
-                        {transactionsData.pagination.total} transactions
+                        {transactionsData.meta.total} transactions
                       </p>
                       <div className="flex items-center gap-2 self-end sm:self-auto">
                         <span className="text-xs text-gray-400">
-                          Page {transactionsData.pagination.page} of{" "}
-                          {transactionsData.pagination.totalPages}
+                          Page {transactionsData.meta.page} of{" "}
+                          {transactionsData.meta.total}
                         </span>
                       </div>
                     </div>

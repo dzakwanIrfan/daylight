@@ -325,6 +325,7 @@ export class XenditPaymentService {
             totalFee: feeInfo.totalFee,
             finalAmount: feeInfo.finalAmount,
             paymentUrl: paymentInfo.paymentUrl || null,
+            transactionType: data.type,
         };
 
         // Connect event jika type EVENT

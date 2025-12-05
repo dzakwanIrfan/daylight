@@ -3,6 +3,8 @@ import {
   BadRequestException,
   NotFoundException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import {
   Event,
@@ -29,6 +31,8 @@ import {
   PaymentAction,
 } from './dto/payment-response.dto';
 import { XenditWebhookPayload } from './dto/xendit-webhook-payload.dto';
+import { QueryXenditTransactionsDto } from './dto/query-xendit-transactions.dto';
+import { XenditPaymentGateway } from './xendit-payment.gateway';
 
 @Injectable()
 export class XenditService {
@@ -40,6 +44,8 @@ export class XenditService {
     private readonly feeCalculator: XenditFeeCalculatorService,
     private readonly payloadBuilder: XenditPayloadBuilderService,
     private readonly responseParser: XenditResponseParserService,
+    @Inject(forwardRef(() => XenditPaymentGateway))
+    private readonly paymentGateway: XenditPaymentGateway,
   ) {}
 
   async createXenditPayment(
@@ -279,7 +285,7 @@ export class XenditService {
     const transaction = await this.prismaService.transaction.create({
       data: transactionData,
       include: {
-        actions: true, // Include actions dalam response
+        actions: true,
       },
     });
 
@@ -311,7 +317,7 @@ export class XenditService {
       include: {
         event: true,
         user: true,
-        actions: true, // Include actions
+        actions: true,
       },
     });
 
@@ -367,9 +373,54 @@ export class XenditService {
       oldStatus: transaction.status,
       newStatus,
     });
+
+    // Emit WebSocket event
+    this.emitPaymentStatusUpdate(transaction, newStatus);
   }
 
-  private async handleSuccessfulPayment(transaction: Transaction): Promise<void> {
+  private emitPaymentStatusUpdate(
+    transaction: Transaction,
+    newStatus: TransactionStatus,
+  ): void {
+    const tran = this.prismaService.transaction.findUnique({
+      where: { id: transaction.id },
+    });
+
+    const eventData = {
+      transactionId: transaction.id,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+      event: tran,
+      amount: transaction.finalAmount.toNumber(),
+    };
+
+    switch (newStatus) {
+      case TransactionStatus.PAID:
+        this.paymentGateway.emitPaymentSuccess(
+          transaction.id,
+          transaction.userId,
+          eventData,
+        );
+        break;
+      case TransactionStatus.FAILED:
+        this.paymentGateway.emitPaymentFailed(
+          transaction.id,
+          transaction.userId,
+          eventData,
+        );
+        break;
+      case TransactionStatus.EXPIRED:
+        this.paymentGateway.emitPaymentExpired(
+          transaction.id,
+          transaction.userId,
+        );
+        break;
+      default:
+        this.paymentGateway.emitPaymentStatusUpdate(transaction.id, eventData);
+    }
+  }
+
+  private async handleSuccessfulPayment(transaction: any): Promise<void> {
     // Jika ada event, update currentParticipants
     if (transaction.eventId) {
       await this.prismaService.event.update({
@@ -394,7 +445,7 @@ export class XenditService {
    * Get available payment methods by country
    */
   async getAvailablePaymentMethods(user: any): Promise<PaymentMethod[]> {
-    if (!user.country.code) {
+    if (!user.country?.code) {
       throw new BadRequestException('User country information is missing');
     }
 
@@ -450,9 +501,29 @@ export class XenditService {
         userId: userId,
       },
       include: {
-        paymentMethod: true,
-        event: true,
+        paymentMethod: {
+          include: {
+            country: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            category: true,
+            eventDate: true,
+            startTime: true,
+            endTime: true,
+            venue: true,
+            address: true,
+            city: true,
+            price: true,
+            currency: true,
+          },
+        },
         actions: true,
+        userSubscription: true,
       },
     });
 
@@ -461,5 +532,79 @@ export class XenditService {
     }
 
     return transaction;
+  }
+
+  /**
+   * Get user's transactions with pagination
+   */
+  async getUserTransactions(userId: string, query: QueryXenditTransactionsDto) {
+    const { page = 1, limit = 10, status, eventId, search } = query;
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: Prisma.TransactionWhereInput = {
+      userId,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (eventId) {
+      where.eventId = eventId;
+    }
+
+    if (search) {
+      where.OR = [
+        { externalId: { contains: search, mode: 'insensitive' } },
+        { event: { title: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Get transactions and total count
+    const [transactions, total] = await Promise.all([
+      this.prismaService.transaction.findMany({
+        where,
+        include: {
+          paymentMethod: {
+            include: {
+              country: true,
+            },
+          },
+          event: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              category: true,
+              eventDate: true,
+              venue: true,
+              city: true,
+            },
+          },
+          actions: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prismaService.transaction.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: transactions,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
   }
 }

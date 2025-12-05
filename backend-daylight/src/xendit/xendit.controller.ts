@@ -11,7 +11,6 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
-  RawBodyRequest,
   Req,
 } from '@nestjs/common';
 import { XenditService } from './xendit.service';
@@ -23,6 +22,7 @@ import type { XenditWebhookPayload } from './dto/xendit-webhook-payload.dto';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
+import { QueryXenditTransactionsDto } from './dto/query-xendit-transactions.dto';
 
 @Controller('xendit')
 export class XenditController {
@@ -51,7 +51,6 @@ export class XenditController {
   @UseGuards(JwtAuthGuard)
   @Get('payment-methods')
   async getPaymentMethods(@CurrentUser() user: User) {
-    console.log('User in getPaymentMethods:', user);
     return await this.xenditService.getAvailablePaymentMethods(user);
   }
 
@@ -89,6 +88,18 @@ export class XenditController {
       transactionId,
       user.id,
     );
+  }
+
+  /**
+   * Endpoint untuk get user's transactions
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('my-transactions')
+  async getUserTransactions(
+    @CurrentUser() user: User,
+    @Query() query: QueryXenditTransactionsDto,
+  ) {
+    return await this.xenditService.getUserTransactions(user.id, query);
   }
 
   /**

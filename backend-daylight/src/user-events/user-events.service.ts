@@ -1,9 +1,15 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentStatus, TransactionType } from '@prisma/client';
+import { TransactionStatus } from '@prisma/client';
 import { RegisterFreeEventDto } from './dto/register-free-event.dto';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
-import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class UserEventsService {
@@ -14,15 +20,15 @@ export class UserEventsService {
   ) {}
 
   /**
-   * Get user's upcoming events (paid and event date >= today)
+   * Get user's upcoming events (paid via Xendit and event date >= today)
    */
   async getMyEvents(userId: string) {
     const now = new Date();
 
-    const transactions = await this.prisma.legacyTransaction.findMany({
+    const transactions = await this.prisma.transaction.findMany({
       where: {
         userId,
-        paymentStatus: PaymentStatus.PAID,
+        status: TransactionStatus.PAID,
         event: {
           eventDate: {
             gte: now,
@@ -33,8 +39,19 @@ export class UserEventsService {
         event: {
           include: {
             partner: true,
-          }
+            cityRelation: {
+              include: {
+                country: true,
+              },
+            },
+          },
         },
+        paymentMethod: {
+          include: {
+            country: true,
+          },
+        },
+        actions: true,
       },
       orderBy: {
         event: {
@@ -47,10 +64,13 @@ export class UserEventsService {
       ...t.event,
       transaction: {
         id: t.id,
-        merchantRef: t.merchantRef,
-        paymentStatus: t.paymentStatus,
-        amount: t.amount,
-        paidAt: t.paidAt,
+        externalId: t.externalId,
+        status: t.status,
+        amount: t.amount.toNumber(),
+        totalFee: t.totalFee.toNumber(),
+        finalAmount: t.finalAmount.toNumber(),
+        paymentMethod: t.paymentMethod,
+        paidAt: t.updatedAt,
         createdAt: t.createdAt,
       },
     }));
@@ -62,15 +82,15 @@ export class UserEventsService {
   }
 
   /**
-   * Get user's past events (paid and event date < today)
+   * Get user's past events (paid via Xendit and event date < today)
    */
   async getPastEvents(userId: string) {
     const now = new Date();
 
-    const transactions = await this.prisma.legacyTransaction.findMany({
+    const transactions = await this.prisma.transaction.findMany({
       where: {
         userId,
-        paymentStatus: PaymentStatus.PAID,
+        status: TransactionStatus.PAID,
         event: {
           eventDate: {
             lt: now,
@@ -81,8 +101,19 @@ export class UserEventsService {
         event: {
           include: {
             partner: true,
-          }
-        }
+            cityRelation: {
+              include: {
+                country: true,
+              },
+            },
+          },
+        },
+        paymentMethod: {
+          include: {
+            country: true,
+          },
+        },
+        actions: true,
       },
       orderBy: {
         event: {
@@ -95,10 +126,13 @@ export class UserEventsService {
       ...t.event,
       transaction: {
         id: t.id,
-        merchantRef: t.merchantRef,
-        paymentStatus: t.paymentStatus,
-        amount: t.amount,
-        paidAt: t.paidAt,
+        externalId: t.externalId,
+        status: t.status,
+        amount: t.amount.toNumber(),
+        totalFee: t.totalFee.toNumber(),
+        finalAmount: t.finalAmount.toNumber(),
+        paymentMethod: t.paymentMethod,
+        paidAt: t.updatedAt,
         createdAt: t.createdAt,
       },
     }));
@@ -109,15 +143,20 @@ export class UserEventsService {
     };
   }
 
+  /**
+   * Register for event with active subscription (FREE)
+   * Creates a Xendit-style transaction without actual payment
+   */
   async registerFreeEvent(userId: string, dto: RegisterFreeEventDto) {
     const { eventId, customerName, customerEmail, customerPhone } = dto;
 
     // Check if user has valid subscription
-    const hasValidSubscription = await this.subscriptionsService.hasValidSubscription(userId);
-    
+    const hasValidSubscription =
+      await this.subscriptionsService.hasValidSubscription(userId);
+
     if (!hasValidSubscription) {
       throw new ForbiddenException(
-        'Active subscription required to register for free events'
+        'Active subscription required to register for free events',
       );
     }
 
@@ -135,11 +174,11 @@ export class UserEventsService {
     }
 
     // Check if user already registered
-    const existingRegistration = await this.prisma.legacyTransaction.findFirst({
+    const existingRegistration = await this.prisma.transaction.findFirst({
       where: {
         userId,
         eventId,
-        paymentStatus: PaymentStatus.PAID,
+        status: TransactionStatus.PAID,
       },
     });
 
@@ -147,40 +186,66 @@ export class UserEventsService {
       throw new ConflictException('You have already registered for this event');
     }
 
-    // Create FREE transaction
-    const merchantRef = `FREE-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    // Get user's payment method (use default subscription payment method or first available)
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        currentCity: {
+          include: {
+            country: true,
+          },
+        },
+      },
+    });
 
-    const transaction = await this.prisma.legacyTransaction.create({
+    // Find a payment method for subscription type payment
+    const subscriptionPaymentMethod = await this.prisma.paymentMethod.findFirst(
+      {
+        where: {
+          countryCode: user?.currentCity?.country?.code || 'ID',
+          isActive: true,
+        },
+      },
+    );
+
+    if (!subscriptionPaymentMethod) {
+      throw new BadRequestException(
+        'No payment method available for your region',
+      );
+    }
+
+    // Create FREE transaction using Xendit Transaction model
+    const externalId = `FREE-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    const transaction = await this.prisma.transaction.create({
       data: {
         userId,
         eventId,
-        tripayReference: merchantRef, // Use same as merchantRef for free
-        merchantRef,
-        paymentMethodCode: 'SUBSCRIPTION',
-        paymentMethod: 'SUBSCRIPTION',
-        paymentName: 'Premium Subscription',
-        paymentStatus: PaymentStatus.PAID, // Immediately PAID
-        transactionType: TransactionType.EVENT,
+        paymentMethodId: subscriptionPaymentMethod.id,
+        externalId,
+        status: TransactionStatus.PAID, // Immediately PAID
         amount: event.price,
-        feeMerchant: 0,
-        feeCustomer: 0,
         totalFee: 0,
-        amountReceived: 0, // No money received
-        customerName,
-        customerEmail,
-        customerPhone: customerPhone || undefined,
-        paidAt: new Date(),
-        orderItems: [
-          {
-            name: event.title,
-            price: event.price,
-            quantity: 1,
-            subtotal: event.price,
-          },
-        ],
+        finalAmount: event.price,
+        paymentUrl: null,
+        actions: {
+          create: [
+            {
+              type: 'PRESENT_TO_CUSTOMER',
+              descriptor: 'PAYMENT_CODE',
+              value: 'SUBSCRIPTION_ACCESS',
+            },
+          ],
+        },
       },
       include: {
-        event: true,
+        event: {
+          include: {
+            partner: true,
+          },
+        },
+        paymentMethod: true,
+        actions: true,
       },
     });
 
@@ -195,13 +260,23 @@ export class UserEventsService {
     });
 
     this.logger.log(
-      `User ${userId} registered for free event ${eventId} via subscription`
+      `User ${userId} registered for free event ${eventId} via subscription`,
     );
 
     return {
       success: true,
       message: 'Successfully registered for event',
-      data: transaction,
+      data: {
+        id: transaction.id,
+        externalId: transaction.externalId,
+        status: transaction.status,
+        amount: transaction.amount.toNumber(),
+        totalFee: transaction.totalFee.toNumber(),
+        finalAmount: transaction.finalAmount.toNumber(),
+        event: transaction.event,
+        paymentMethod: transaction.paymentMethod,
+        createdAt: transaction.createdAt,
+      },
     };
   }
 }

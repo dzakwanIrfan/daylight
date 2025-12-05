@@ -1,3 +1,5 @@
+import { Partner } from "./partner.types";
+
 export enum XenditPaymentMethodType {
   BANK_TRANSFER = "BANK_TRANSFER",
   CARDS = "CARDS",
@@ -97,6 +99,7 @@ export interface XenditTransaction {
     city: string;
     price: number;
     currency: string;
+    partner: Partner | null;
   };
   actions: TransactionAction[];
   userSubscription?: {

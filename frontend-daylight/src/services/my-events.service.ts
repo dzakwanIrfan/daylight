@@ -1,10 +1,17 @@
-import apiClient from '@/lib/axios';
-import type { MyEventsResponse, MyPastEventsResponse } from '@/types/my-events.types';
-import type { QueryTransactionsResponse, QueryTransactionsParams } from '@/types/payment.types';
-import type { MatchingGroup } from '@/types/matching.types';
+import apiClient from "@/lib/axios";
+import type {
+  MyEventsResponse,
+  MyPastEventsResponse,
+} from "@/types/my-events.types";
+import type { MatchingGroup } from "@/types/matching.types";
+import type {
+  QueryXenditTransactionsParams,
+  QueryXenditTransactionsResponse,
+} from "@/types/xendit.types";
 
 class MyEventsService {
-  private readonly baseURL = '/user-events';
+  private readonly baseURL = "/user-events";
+  private readonly xenditURL = "/xendit";
 
   /**
    * Get user's upcoming events (paid and not passed)
@@ -23,10 +30,14 @@ class MyEventsService {
   }
 
   /**
-   * Get user's transactions (reuse from payment service)
+   * Get user's transactions (Xendit transactions)
    */
-  async getMyTransactions(params?: QueryTransactionsParams): Promise<QueryTransactionsResponse> {
-    const response = await apiClient.get('/payment/my-transactions', { params });
+  async getMyTransactions(
+    params?: QueryXenditTransactionsParams
+  ): Promise<QueryXenditTransactionsResponse> {
+    const response = await apiClient.get(`${this.xenditURL}/my-transactions`, {
+      params,
+    });
     return response.data;
   }
 
@@ -34,8 +45,30 @@ class MyEventsService {
    * Get user's matching group for specific event
    */
   async getMyMatchingGroup(eventId: string): Promise<MatchingGroup> {
-    const response = await apiClient.get(`/matching/events/${eventId}/my-group`);
+    const response = await apiClient.get(
+      `/matching/events/${eventId}/my-group`
+    );
     return response.data.group;
+  }
+
+  /**
+   * Register for free event (with subscription)
+   */
+  async registerFreeEvent(data: {
+    eventId: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    data: any;
+  }> {
+    const response = await apiClient.post(
+      `${this.baseURL}/register-free`,
+      data
+    );
+    return response.data;
   }
 }
 

@@ -105,7 +105,7 @@ function VirtualAccountDisplay({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2. 5">
+        <div className="flex items-center gap-2.5">
           <div className="p-2 bg-emerald-100 rounded-lg">
             <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
           </div>
@@ -119,7 +119,7 @@ function VirtualAccountDisplay({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex-1 bg-gray-50 rounded-lg px-3 py-3 sm:px-4 sm:py-3. 5 border border-gray-200">
+          <div className="flex-1 bg-gray-50 rounded-lg px-3 py-3 sm:px-4 sm:py-3.5 border border-gray-200">
             <p className="font-mono text-lg sm:text-xl md:text-2xl font-bold tracking-wider text-center text-gray-900 break-all">
               {accountNumber}
             </p>
@@ -130,7 +130,7 @@ function VirtualAccountDisplay({
         <Alert className="bg-blue-50 border-blue-100">
           <Info className="w-4 h-4 text-blue-500" />
           <AlertDescription className="text-xs sm:text-sm text-blue-700 ml-2">
-            <p className="font-medium mb-1. 5">Cara bayar:</p>
+            <p className="font-medium mb-1.5">Cara bayar:</p>
             <ol className="list-decimal list-inside space-y-0.5 text-blue-600">
               <li>Buka aplikasi mobile/internet banking</li>
               <li>Pilih Transfer ke Virtual Account</li>
@@ -202,7 +202,7 @@ function RedirectButton({ url, label }: { url: string; label: string }) {
         <div className="inline-flex items-center justify-center p-3 bg-brand/10 rounded-full mb-4">
           <Smartphone className="w-6 h-6 sm:w-8 sm:h-8 text-brand" />
         </div>
-        <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-1. 5">
+        <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-1.5">
           Lanjutkan Pembayaran
         </h3>
         <p className="text-xs sm:text-sm text-gray-500 mb-5 max-w-[250px] mx-auto">
@@ -280,7 +280,7 @@ export function XenditPaymentInstructions({
           <Button variant="outline" size="sm" asChild>
             <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
               <span>Buka {paymentMethodName}</span>
-              <ExternalLink className="w-3. 5 h-3.5 ml-1. 5" />
+              <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
             </a>
           </Button>
         </div>

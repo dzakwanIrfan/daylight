@@ -6,12 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  SubscriptionStatus,
-  SubscriptionPlanType,
-  Prisma,
-  User,
-} from '@prisma/client';
+import { SubscriptionStatus, Prisma, User } from '@prisma/client';
 import {
   CreateSubscriptionPlanDto,
   UpdateSubscriptionPlanDto,
@@ -22,7 +17,6 @@ import {
   UpdateSubscriptionPlanPriceDto,
 } from './dto/subscription-plan-price.dto';
 import { QueryUserSubscriptionsDto } from './dto/query-subscriptions.dto';
-import { addMonths } from 'date-fns';
 import {
   QueryAdminSubscriptionsDto,
   SortOrder,
@@ -51,7 +45,7 @@ export class SubscriptionsService {
 
     if (existingPlan) {
       throw new ConflictException(
-        `A subscription plan with type ${dto.type} already exists.  Consider updating the existing plan instead.`,
+        `A subscription plan with type ${dto.type} already exists. Consider updating the existing plan instead.`,
       );
     }
 
@@ -238,7 +232,7 @@ export class SubscriptionsService {
 
     if (activeSubscriptions > 0) {
       throw new BadRequestException(
-        `Cannot delete plan with ${activeSubscriptions} active subscription(s).  Please wait until they expire or cancel them first.`,
+        `Cannot delete plan with ${activeSubscriptions} active subscription(s). Please wait until they expire or cancel them first.`,
       );
     }
 
@@ -328,9 +322,7 @@ export class SubscriptionsService {
   }
 
   /**
-   * ============================================================
    * SUBSCRIPTION PLAN PRICE CRUD (ADMIN)
-   * ============================================================
    */
 
   /**
@@ -429,7 +421,7 @@ export class SubscriptionsService {
     // Ensure plan has at least one price remaining
     if (existingPrice.subscriptionPlan.prices.length <= 1) {
       throw new BadRequestException(
-        'Cannot delete the last price.  A plan must have at least one price.',
+        'Cannot delete the last price. A plan must have at least one price.',
       );
     }
 
@@ -469,9 +461,7 @@ export class SubscriptionsService {
   }
 
   /**
-   * ============================================================
    * HELPER METHODS
-   * ============================================================
    */
 
   /**
@@ -513,9 +503,7 @@ export class SubscriptionsService {
   }
 
   /**
-   * ============================================================
    * USER-FACING ENDPOINTS
-   * ============================================================
    */
 
   /**
@@ -648,13 +636,13 @@ export class SubscriptionsService {
             prices: true,
           },
         },
-        legacyTransaction: {
+        transaction: {
           select: {
             id: true,
-            merchantRef: true,
+            externalId: true,
             amount: true,
-            paymentStatus: true,
-            paidAt: true,
+            status: true,
+            createdAt: true,
           },
         },
       },
@@ -707,13 +695,13 @@ export class SubscriptionsService {
               prices: true,
             },
           },
-          legacyTransaction: {
+          transaction: {
             select: {
               id: true,
-              merchantRef: true,
+              externalId: true,
               amount: true,
-              paymentStatus: true,
-              paidAt: true,
+              status: true,
+              createdAt: true,
             },
           },
         },
@@ -761,83 +749,6 @@ export class SubscriptionsService {
       success: true,
       data: subscription,
     };
-  }
-
-  async createPendingSubscription(
-    userId: string,
-    planId: string,
-    transactionId: string,
-  ) {
-    const hasActive = await this.hasValidSubscription(userId);
-    if (hasActive) {
-      throw new ConflictException(
-        'You already have an active subscription. Please wait until it expires.',
-      );
-    }
-
-    const plan = await this.prisma.subscriptionPlan.findUnique({
-      where: { id: planId },
-    });
-
-    if (!plan || !plan.isActive) {
-      throw new NotFoundException('Subscription plan not found or inactive');
-    }
-
-    const subscription = await this.prisma.userSubscription.create({
-      data: {
-        userId,
-        planId,
-        transactionId,
-        status: SubscriptionStatus.PENDING,
-      },
-      include: {
-        plan: true,
-      },
-    });
-
-    this.logger.log(
-      `Created pending subscription ${subscription.id} for user ${userId}`,
-    );
-
-    return subscription;
-  }
-
-  async activateSubscription(subscriptionId: string) {
-    const subscription = await this.prisma.userSubscription.findUnique({
-      where: { id: subscriptionId },
-      include: { plan: true },
-    });
-
-    if (!subscription) {
-      throw new NotFoundException('Subscription not found');
-    }
-
-    if (subscription.status === SubscriptionStatus.ACTIVE) {
-      this.logger.warn(`Subscription ${subscriptionId} is already active`);
-      return subscription;
-    }
-
-    const startDate = new Date();
-    const endDate = addMonths(startDate, subscription.plan.durationInMonths);
-
-    const updated = await this.prisma.userSubscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: SubscriptionStatus.ACTIVE,
-        startDate,
-        endDate,
-      },
-      include: {
-        plan: true,
-        transaction: true,
-      },
-    });
-
-    this.logger.log(
-      `Activated subscription ${subscriptionId} for user ${subscription.userId}`,
-    );
-
-    return updated;
   }
 
   async cancelSubscription(
@@ -950,13 +861,13 @@ export class SubscriptionsService {
               lastName: true,
             },
           },
-          legacyTransaction: {
+          transaction: {
             select: {
               id: true,
-              merchantRef: true,
+              externalId: true,
               amount: true,
-              paymentStatus: true,
-              paidAt: true,
+              status: true,
+              createdAt: true,
             },
           },
         },
@@ -1043,13 +954,13 @@ export class SubscriptionsService {
               prices: true,
             },
           },
-          legacyTransaction: {
+          transaction: {
             select: {
               id: true,
-              merchantRef: true,
+              externalId: true,
               amount: true,
-              paymentStatus: true,
-              paidAt: true,
+              status: true,
+              createdAt: true,
             },
           },
         },
@@ -1092,7 +1003,9 @@ export class SubscriptionsService {
 
     const subscriptions = await this.prisma.userSubscription.findMany({
       where: { id: { in: subscriptionIds } },
-      select: { id: true, status: true },
+      include: {
+        plan: true,
+      },
     });
 
     if (subscriptions.length !== subscriptionIds.length) {
@@ -1115,15 +1028,30 @@ export class SubscriptionsService {
 
       case BulkSubscriptionActionType.ACTIVATE:
         const pendingIds = subscriptions
-          .filter((s) => s.status === SubscriptionStatus.PENDING)
-          .map((s) => s.id);
+          .filter((s: any) => s.status === SubscriptionStatus.PENDING)
+          .map((s: any) => s.id);
 
         if (pendingIds.length === 0) {
           throw new BadRequestException('No pending subscriptions to activate');
         }
 
-        for (const id of pendingIds) {
-          await this.activateSubscription(id);
+        for (const sub of subscriptions) {
+          if (sub.status === 'PENDING') {
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setMonth(
+              endDate.getMonth() + (sub as any).plan.durationInMonths,
+            );
+
+            await this.prisma.userSubscription.update({
+              where: { id: sub.id },
+              data: {
+                status: 'ACTIVE',
+                startDate,
+                endDate,
+              },
+            });
+          }
         }
 
         result = { count: pendingIds.length };
@@ -1186,13 +1114,13 @@ export class SubscriptionsService {
             prices: true,
           },
         },
-        legacyTransaction: {
+        transaction: {
           select: {
             id: true,
-            merchantRef: true,
+            externalId: true,
             amount: true,
-            paymentStatus: true,
-            paidAt: true,
+            status: true,
+            createdAt: true,
           },
         },
       },

@@ -387,11 +387,11 @@ export class PaymentService {
       if (transaction.transactionType === TransactionType.SUBSCRIPTION) {
         this.logger.log('Processing SUBSCRIPTION payment');
         
-        if (transaction.userSubscription) {
-          await this.subscriptionsService.activateSubscription(
-            transaction.userSubscription.id
-          );
-        }
+        // if (transaction.userSubscription) {
+        //   await this.subscriptionsService.activateSubscription(
+        //     transaction.userSubscription.id
+        //   );
+        // }
       }
 
       // HANDLE EVENT PAYMENT
@@ -949,12 +949,14 @@ export class PaymentService {
         },
       });
 
+      // // Create pending subscription
+      // const subscription = await this.subscriptionsService.createPendingSubscription(
+      //   userId,
+      //   planId,
+      //   transaction.id
+      // );
       // Create pending subscription
-      const subscription = await this.subscriptionsService.createPendingSubscription(
-        userId,
-        planId,
-        transaction.id
-      );
+      const subscription = null;
 
       // Emit WebSocket notification
       try {

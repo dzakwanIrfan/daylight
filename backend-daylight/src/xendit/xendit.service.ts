@@ -15,7 +15,6 @@ import {
   TransactionStatus,
   Prisma,
 } from '@prisma/client';
-import type { Transaction } from '@prisma/client';
 import {
   CreateXenditPaymentDto,
   ItemType,
@@ -54,7 +53,62 @@ export class XenditService {
   ): Promise<CreatePaymentResponse> {
     // 1. Validasi dan ambil item (Event atau Subscription)
     const item = await this.getItemByType(data.type, data.itemId);
-    const amount = item.price;
+    let amount: number;
+
+    // Tentukan amount berdasarkan tipe item
+    if (data.type === ItemType.EVENT) {
+      amount = (item as Event).price;
+    } else if (data.type === ItemType.SUBSCRIPTION) {
+      // Untuk subscription, ambil harga berdasarkan country user
+      const userWithLocation = await this.prismaService.user.findUnique({
+        where: { id: user.id },
+        include: {
+          currentCity: {
+            include: {
+              country: true,
+            },
+          },
+        },
+      });
+
+      if (!userWithLocation?.currentCity?.country) {
+        throw new BadRequestException(
+          'User must have a current city to purchase subscription',
+        );
+      }
+
+      const subscriptionPlan =
+        await this.prismaService.subscriptionPlan.findUnique({
+          where: { id: data.itemId },
+          include: {
+            prices: {
+              where: {
+                countryCode: userWithLocation.currentCity.country.code,
+                isActive: true,
+              },
+            },
+          },
+        });
+
+      if (!subscriptionPlan) {
+        throw new NotFoundException('Subscription plan not found');
+      }
+
+      // Ambil harga sesuai country user
+      const priceForCountry = subscriptionPlan.prices.find(
+        (p) => p.countryCode === userWithLocation.currentCity!.country.code,
+      );
+
+      if (!priceForCountry) {
+        throw new BadRequestException(
+          `Subscription not available in your country (${userWithLocation.currentCity.country.name})`,
+        );
+      }
+
+      amount = priceForCountry.amount;
+    } else {
+      amount = (item as any).price;
+    }
 
     if (!amount || amount <= 0) {
       throw new BadRequestException('Invalid item price');
@@ -79,7 +133,7 @@ export class XenditService {
     // 5. Buat payload sesuai tipe payment method
     const payload = this.buildPaymentPayload(
       user,
-      feeCalculation.feeInfo!.finalAmount.toNumber(),
+      Math.ceil(feeCalculation.feeInfo!.finalAmount.toNumber()),
       paymentMethod,
       data,
     );
@@ -100,6 +154,14 @@ export class XenditService {
       xenditResponse,
       paymentInfo,
     );
+
+    this.logger.log('Payment created successfully', {
+      transactionId: transaction.id,
+      type: data.type,
+      itemId: data.itemId,
+      amount: amount,
+      finalAmount: feeCalculation.feeInfo!.finalAmount.toNumber(),
+    });
 
     // 9. Return response
     return {
@@ -142,6 +204,9 @@ export class XenditService {
     } else if (type === ItemType.SUBSCRIPTION) {
       item = await this.prismaService.subscriptionPlan.findUnique({
         where: { id: itemId, isActive: true },
+        include: {
+          prices: true,
+        },
       });
 
       if (!item) {
@@ -235,7 +300,10 @@ export class XenditService {
   }
 
   private generatePaymentDescription(type: ItemType, itemId: string): string {
-    return `DayLight Payment - ${type} #${itemId.substring(0, 8)}`;
+    if (type === ItemType.SUBSCRIPTION) {
+      return `DayLight Subscription Payment #${itemId.substring(0, 8)}`;
+    }
+    return `DayLight Event Payment #${itemId.substring(0, 8)}`;
   }
 
   /**
@@ -289,14 +357,67 @@ export class XenditService {
       },
     });
 
+    // Jika type SUBSCRIPTION, buat pending subscription
+    if (data.type === ItemType.SUBSCRIPTION) {
+      await this.createPendingSubscription(
+        user.id,
+        data.itemId,
+        transaction.id,
+      );
+    }
+
     this.logger.log('Transaction created with actions', {
       transactionId: transaction.id,
       externalId: transaction.externalId,
       amount: transaction.finalAmount.toNumber(),
       actionsCount: transaction.actions?.length || 0,
+      type: data.type,
     });
 
     return transaction;
+  }
+
+  /**
+   * Create pending subscription saat transaction dibuat
+   */
+  private async createPendingSubscription(
+    userId: string,
+    planId: string,
+    transactionId: string,
+  ) {
+    const existingSubscription =
+      await this.prismaService.userSubscription.findFirst({
+        where: {
+          userId,
+          transactionId,
+        },
+      });
+
+    if (existingSubscription) {
+      this.logger.warn('Subscription already exists for this transaction', {
+        subscriptionId: existingSubscription.id,
+        transactionId,
+      });
+      return existingSubscription;
+    }
+
+    const subscription = await this.prismaService.userSubscription.create({
+      data: {
+        userId,
+        planId,
+        transactionId,
+        status: 'PENDING',
+      },
+    });
+
+    this.logger.log('Created pending subscription', {
+      subscriptionId: subscription.id,
+      userId,
+      planId,
+      transactionId,
+    });
+
+    return subscription;
   }
 
   /**
@@ -318,6 +439,7 @@ export class XenditService {
         event: true,
         user: true,
         actions: true,
+        userSubscription: true,
       },
     });
 
@@ -333,7 +455,7 @@ export class XenditService {
   }
 
   private async updateTransactionStatus(
-    transaction: Transaction,
+    transaction: any,
     event: string,
     data: any,
   ): Promise<void> {
@@ -348,10 +470,12 @@ export class XenditService {
 
       case 'payment.failure':
         newStatus = TransactionStatus.FAILED;
+        await this.handleFailedPayment(transaction);
         break;
 
-      case 'payment. expired':
+      case 'payment.expired':
         newStatus = TransactionStatus.EXPIRED;
+        await this.handleExpiredPayment(transaction);
         break;
 
       default:
@@ -360,11 +484,19 @@ export class XenditService {
     }
 
     // Update transaction
-    await this.prismaService.transaction.update({
+    const updatedTransaction = await this.prismaService.transaction.update({
       where: { id: transaction.id },
       data: {
         status: newStatus,
         updatedAt: new Date(),
+      },
+      include: {
+        event: true,
+        userSubscription: {
+          include: {
+            plan: true,
+          },
+        },
       },
     });
 
@@ -375,22 +507,19 @@ export class XenditService {
     });
 
     // Emit WebSocket event
-    this.emitPaymentStatusUpdate(transaction, newStatus);
+    this.emitPaymentStatusUpdate(updatedTransaction, newStatus);
   }
 
   private emitPaymentStatusUpdate(
-    transaction: Transaction,
+    transaction: any,
     newStatus: TransactionStatus,
   ): void {
-    const tran = this.prismaService.transaction.findUnique({
-      where: { id: transaction.id },
-    });
-
     const eventData = {
       transactionId: transaction.id,
       status: newStatus,
       updatedAt: new Date().toISOString(),
-      event: tran,
+      event: transaction.event,
+      subscription: transaction.userSubscription,
       amount: transaction.finalAmount.toNumber(),
     };
 
@@ -438,20 +567,116 @@ export class XenditService {
     }
 
     // Handle subscription jika ada
-    // TODO: Implement subscription logic
+    if (transaction.userSubscription) {
+      await this.activateSubscription(transaction.userSubscription.id);
+    }
+  }
+
+  private async handleFailedPayment(transaction: any): Promise<void> {
+    // Cancel subscription jika ada
+    if (transaction.userSubscription) {
+      await this.prismaService.userSubscription.update({
+        where: { id: transaction.userSubscription.id },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          metadata: {
+            reason: 'Payment failed',
+          },
+        },
+      });
+
+      this.logger.log('Subscription cancelled due to payment failure', {
+        subscriptionId: transaction.userSubscription.id,
+      });
+    }
+  }
+
+  private async handleExpiredPayment(transaction: any): Promise<void> {
+    // Cancel subscription jika ada
+    if (transaction.userSubscription) {
+      await this.prismaService.userSubscription.update({
+        where: { id: transaction.userSubscription.id },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          metadata: {
+            reason: 'Payment expired',
+          },
+        },
+      });
+
+      this.logger.log('Subscription cancelled due to payment expiry', {
+        subscriptionId: transaction.userSubscription.id,
+      });
+    }
+  }
+
+  /**
+   * Activate subscription when payment is successful
+   */
+  private async activateSubscription(subscriptionId: string): Promise<void> {
+    const subscription = await this.prismaService.userSubscription.findUnique({
+      where: { id: subscriptionId },
+      include: { plan: true },
+    });
+
+    if (!subscription) {
+      this.logger.error('Subscription not found for activation', {
+        subscriptionId,
+      });
+      return;
+    }
+
+    if (subscription.status === 'ACTIVE') {
+      this.logger.warn('Subscription already active', { subscriptionId });
+      return;
+    }
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + subscription.plan.durationInMonths);
+
+    await this.prismaService.userSubscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: 'ACTIVE',
+        startDate,
+        endDate,
+      },
+    });
+
+    this.logger.log('Subscription activated', {
+      subscriptionId,
+      userId: subscription.userId,
+      planId: subscription.planId,
+      startDate,
+      endDate,
+    });
   }
 
   /**
    * Get available payment methods by country
    */
-  async getAvailablePaymentMethods(user: any): Promise<PaymentMethod[]> {
-    if (!user.country?.code) {
+  async getAvailablePaymentMethods(user: User): Promise<PaymentMethod[]> {
+    const userWithLocation = await this.prismaService.user.findUnique({
+      where: { id: user.id },
+      include: {
+        currentCity: {
+          include: {
+            country: true,
+          },
+        },
+      },
+    });
+
+    if (!userWithLocation?.currentCity?.country) {
       throw new BadRequestException('User country information is missing');
     }
 
     return await this.prismaService.paymentMethod.findMany({
       where: {
-        countryCode: user.country.code,
+        countryCode: userWithLocation.currentCity.country.code,
         isActive: true,
       },
       include: {
@@ -523,7 +748,11 @@ export class XenditService {
           },
         },
         actions: true,
-        userSubscription: true,
+        userSubscription: {
+          include: {
+            plan: true,
+          },
+        },
       },
     });
 
@@ -580,6 +809,11 @@ export class XenditService {
               eventDate: true,
               venue: true,
               city: true,
+            },
+          },
+          userSubscription: {
+            include: {
+              plan: true,
             },
           },
           actions: true,

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Copy,
   Check,
@@ -10,11 +10,17 @@ import {
   Store,
   Info,
   Smartphone,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import type { TransactionAction, XenditPaymentMethodType } from '@/types/xendit.types';
-import { QRCodeSVG } from 'qrcode.react';
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import type {
+  TransactionAction,
+  XenditPaymentMethodType,
+} from "@/types/xendit.types";
+import { QRCodeSVG } from "qrcode.react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // TYPES
 interface PaymentInstructionsProps {
@@ -30,53 +36,61 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard. writeText(value);
+      await navigator.clipboard.writeText(value);
       setCopied(true);
-      toast.success(label ?  `${label} copied!` : 'Copied!');
+      toast.success(label ? `${label} disalin! ` : "Disalin!");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Failed to copy');
+      toast.error("Gagal menyalin");
     }
   };
 
   return (
-    <button
+    <Button
       onClick={handleCopy}
+      size="icon"
+      variant={copied ? "default" : "default"}
       className={cn(
-        'p-3 rounded-xl transition-all duration-200',
+        "shrink-0 h-10 w-10 sm:h-11 sm:w-11 rounded-lg transition-all",
         copied
-          ? 'bg-green-500 text-white'
-          : 'bg-brand hover:bg-brand/90 text-white'
+          ? "bg-green-500 hover:bg-green-600"
+          : "bg-brand hover:bg-brand/90"
       )}
     >
-      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-    </button>
+      {copied ? (
+        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+      ) : (
+        <Copy className="w-4 h-4 sm:w-5 sm:h-5" />
+      )}
+    </Button>
   );
 }
 
 // QR CODE DISPLAY
 function QRCodeDisplay({ qrString }: { qrString: string }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-      <div className="inline-flex items-center justify-center p-2 bg-brand/10 rounded-xl mb-4">
-        <QrCode className="w-6 h-6 text-brand" />
-      </div>
-      <h3 className="font-semibold text-gray-900 mb-4">Scan QR Code</h3>
-      <div className="flex justify-center mb-4">
-        <div className="p-4 bg-white rounded-xl border-2 border-gray-100 shadow-inner">
+    <Card>
+      <CardHeader className="pb-3 text-center">
+        <div className="inline-flex items-center justify-center p-2 bg-brand/10 rounded-lg mx-auto mb-2">
+          <QrCode className="w-5 h-5 text-brand" />
+        </div>
+        <CardTitle className="text-base sm:text-lg">Scan QR Code</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center">
+        <div className="p-3 sm:p-4 bg-white rounded-xl border-2 border-gray-100 shadow-inner">
           <QRCodeSVG
             value={qrString}
-            size={200}
+            size={180}
             level="H"
             includeMargin={true}
-            className="rounded-lg"
+            className="rounded-lg w-40 h-40 sm:w-[180px] sm:h-[180px]"
           />
         </div>
-      </div>
-      <p className="text-sm text-gray-500">
-        Open your e-wallet app and scan this QR code
-      </p>
-    </div>
+        <p className="text-xs sm:text-sm text-gray-500 mt-3 text-center max-w-[200px]">
+          Buka aplikasi e-wallet dan scan QR code ini
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -89,41 +103,44 @@ function VirtualAccountDisplay({
   bankName: string;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-green-100 rounded-xl">
-          <Building2 className="w-5 h-5 text-green-600" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-gray-900">Virtual Account Number</h3>
-          <p className="text-sm text-gray-500">{bankName}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="flex-1 bg-gray-50 rounded-xl px-5 py-4 border border-gray-200">
-          <p className="font-mono text-2xl font-bold tracking-wider text-center text-gray-900">
-            {accountNumber}
-          </p>
-        </div>
-        <CopyButton value={accountNumber} label="VA Number" />
-      </div>
-
-      <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-        <div className="flex gap-2">
-          <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-700">
-            <p className="font-medium mb-1">How to pay:</p>
-            <ol className="list-decimal list-inside space-y-1 text-blue-600">
-              <li>Open your mobile/internet banking app</li>
-              <li>Select Transfer to Virtual Account</li>
-              <li>Enter the VA number above</li>
-              <li>Verify the amount and complete payment</li>
-            </ol>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2. 5">
+          <div className="p-2 bg-emerald-100 rounded-lg">
+            <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+          </div>
+          <div>
+            <CardTitle className="text-base sm:text-lg">
+              Nomor Virtual Account
+            </CardTitle>
+            <p className="text-xs sm:text-sm text-gray-500">{bankName}</p>
           </div>
         </div>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex-1 bg-gray-50 rounded-lg px-3 py-3 sm:px-4 sm:py-3. 5 border border-gray-200">
+            <p className="font-mono text-lg sm:text-xl md:text-2xl font-bold tracking-wider text-center text-gray-900 break-all">
+              {accountNumber}
+            </p>
+          </div>
+          <CopyButton value={accountNumber} label="Nomor VA" />
+        </div>
+
+        <Alert className="bg-blue-50 border-blue-100">
+          <Info className="w-4 h-4 text-blue-500" />
+          <AlertDescription className="text-xs sm:text-sm text-blue-700 ml-2">
+            <p className="font-medium mb-1. 5">Cara bayar:</p>
+            <ol className="list-decimal list-inside space-y-0.5 text-blue-600">
+              <li>Buka aplikasi mobile/internet banking</li>
+              <li>Pilih Transfer ke Virtual Account</li>
+              <li>Masukkan nomor VA di atas</li>
+              <li>Konfirmasi nominal dan selesaikan</li>
+            </ol>
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -136,65 +153,69 @@ function PaymentCodeDisplay({
   storeName: string;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-orange-100 rounded-xl">
-          <Store className="w-5 h-5 text-orange-600" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-gray-900">Payment Code</h3>
-          <p className="text-sm text-gray-500">{storeName}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="flex-1 bg-gray-50 rounded-xl px-5 py-4 border border-gray-200">
-          <p className="font-mono text-2xl font-bold tracking-wider text-center text-gray-900">
-            {paymentCode}
-          </p>
-        </div>
-        <CopyButton value={paymentCode} label="Payment Code" />
-      </div>
-
-      <div className="mt-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
-        <div className="flex gap-2">
-          <Info className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-          <div className="text-sm text-orange-700">
-            <p className="font-medium mb-1">How to pay:</p>
-            <ol className="list-decimal list-inside space-y-1 text-orange-600">
-              <li>Visit the nearest {storeName} store</li>
-              <li>Tell the cashier you want to make a payment</li>
-              <li>Show or tell them the payment code</li>
-              <li>Pay the amount and keep your receipt</li>
-            </ol>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-amber-100 rounded-lg">
+            <Store className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+          </div>
+          <div>
+            <CardTitle className="text-base sm:text-lg">
+              Kode Pembayaran
+            </CardTitle>
+            <p className="text-xs sm:text-sm text-gray-500">{storeName}</p>
           </div>
         </div>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex-1 bg-gray-50 rounded-lg px-3 py-3 sm:px-4 sm:py-3.5 border border-gray-200">
+            <p className="font-mono text-lg sm:text-xl md:text-2xl font-bold tracking-wider text-center text-gray-900 break-all">
+              {paymentCode}
+            </p>
+          </div>
+          <CopyButton value={paymentCode} label="Kode Pembayaran" />
+        </div>
+
+        <Alert className="bg-amber-50 border-amber-100">
+          <Info className="w-4 h-4 text-amber-500" />
+          <AlertDescription className="text-xs sm:text-sm text-amber-700 ml-2">
+            <p className="font-medium mb-1.5">Cara bayar:</p>
+            <ol className="list-decimal list-inside space-y-0.5 text-amber-600">
+              <li>Kunjungi gerai {storeName} terdekat</li>
+              <li>Beritahu kasir untuk pembayaran</li>
+              <li>Tunjukkan kode pembayaran</li>
+              <li>Bayar dan simpan bukti pembayaran</li>
+            </ol>
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
   );
 }
 
 // REDIRECT BUTTON
 function RedirectButton({ url, label }: { url: string; label: string }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-      <div className="inline-flex items-center justify-center p-3 bg-brand/10 rounded-full mb-4">
-        <Smartphone className="w-8 h-8 text-brand" />
-      </div>
-      <h3 className="font-semibold text-gray-900 mb-2">Continue Payment</h3>
-      <p className="text-sm text-gray-500 mb-6">
-        You will be redirected to complete your payment
-      </p>
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center justify-center gap-2 w-full bg-brand hover:bg-brand/90 text-white rounded-xl px-6 py-4 font-semibold transition-all"
-      >
-        <span>{label}</span>
-        <ExternalLink className="w-5 h-5" />
-      </a>
-    </div>
+    <Card className="text-center">
+      <CardContent className="pt-6 pb-6">
+        <div className="inline-flex items-center justify-center p-3 bg-brand/10 rounded-full mb-4">
+          <Smartphone className="w-6 h-6 sm:w-8 sm:h-8 text-brand" />
+        </div>
+        <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-1. 5">
+          Lanjutkan Pembayaran
+        </h3>
+        <p className="text-xs sm:text-sm text-gray-500 mb-5 max-w-[250px] mx-auto">
+          Kamu akan diarahkan untuk menyelesaikan pembayaran
+        </p>
+        <Button asChild className="w-full h-11 sm:h-12 text-sm sm:text-base">
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            <span>{label}</span>
+            <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+          </a>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -205,29 +226,31 @@ export function XenditPaymentInstructions({
   paymentMethodName,
   className,
 }: PaymentInstructionsProps) {
-  if (! actions || actions.length === 0) {
+  if (!actions || actions.length === 0) {
     return (
-      <div className={cn('text-center py-8 text-gray-500', className)}>
-        <Info className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-        <p>No payment instructions available</p>
+      <div className={cn("text-center py-6 sm:py-8 text-gray-500", className)}>
+        <Info className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400" />
+        <p className="text-sm">Instruksi pembayaran tidak tersedia</p>
       </div>
     );
   }
 
-  // Parse actions to get payment info
+  // Parse actions
   const paymentUrl = actions.find(
-    (a) => a.descriptor === 'WEB_URL' || a.descriptor === 'DEEPLINK_URL'
+    (a) => a.descriptor === "WEB_URL" || a.descriptor === "DEEPLINK_URL"
   )?.value;
-  const qrString = actions.find((a) => a.descriptor === 'QR_STRING')?.value;
-  const vaNumber = actions.find((a) => a.descriptor === 'VIRTUAL_ACCOUNT_NUMBER')?. value;
-  const paymentCode = actions. find((a) => a.descriptor === 'PAYMENT_CODE')?.value;
+  const qrString = actions.find((a) => a.descriptor === "QR_STRING")?.value;
+  const vaNumber = actions.find(
+    (a) => a.descriptor === "VIRTUAL_ACCOUNT_NUMBER"
+  )?.value;
+  const paymentCode = actions.find(
+    (a) => a.descriptor === "PAYMENT_CODE"
+  )?.value;
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* QR Code */}
+    <div className={cn("space-y-4", className)}>
       {qrString && <QRCodeDisplay qrString={qrString} />}
 
-      {/* Virtual Account */}
       {vaNumber && (
         <VirtualAccountDisplay
           accountNumber={vaNumber}
@@ -235,7 +258,6 @@ export function XenditPaymentInstructions({
         />
       )}
 
-      {/* Payment Code (OTC) */}
       {paymentCode && (
         <PaymentCodeDisplay
           paymentCode={paymentCode}
@@ -243,24 +265,24 @@ export function XenditPaymentInstructions({
         />
       )}
 
-      {/* Redirect URL */}
-      {paymentUrl && ! qrString && (
-        <RedirectButton url={paymentUrl} label={`Pay with ${paymentMethodName}`} />
+      {paymentUrl && !qrString && (
+        <RedirectButton
+          url={paymentUrl}
+          label={`Bayar dengan ${paymentMethodName}`}
+        />
       )}
 
-      {/* E-Wallet with both QR and deeplink */}
       {paymentUrl && qrString && (
-        <div className="text-center">
-          <p className="text-sm text-gray-500 mb-3">Or use the app directly</p>
-          <a
-            href={paymentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-brand hover:underline font-medium"
-          >
-            <span>Open in {paymentMethodName} App</span>
-            <ExternalLink className="w-4 h-4" />
-          </a>
+        <div className="text-center pt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mb-2">
+            Atau gunakan aplikasi langsung
+          </p>
+          <Button variant="outline" size="sm" asChild>
+            <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
+              <span>Buka {paymentMethodName}</span>
+              <ExternalLink className="w-3. 5 h-3.5 ml-1. 5" />
+            </a>
+          </Button>
         </div>
       )}
     </div>

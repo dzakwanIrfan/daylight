@@ -20,6 +20,8 @@ import {
   Phone,
   AlertCircle,
   Shield,
+  CreditCard,
+  Ticket,
 } from "lucide-react";
 import { XenditPaymentMethodSelector } from "@/components/xendit/payment-method-selector";
 import {
@@ -31,6 +33,13 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export default function CreateXenditPaymentPage() {
   const params = useParams();
@@ -106,7 +115,7 @@ export default function CreateXenditPaymentPage() {
       });
 
       if (result.success && result.data) {
-        toast.success("Pembayaran berhasil dibuat! ");
+        toast.success("Pembayaran berhasil dibuat!");
         router.push(`/payment/${result.data.transaction.id}`);
       } else {
         toast.error(result.error || "Gagal membuat pembayaran");
@@ -121,10 +130,12 @@ export default function CreateXenditPaymentPage() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-brand mx-auto mb-3" />
-            <p className="text-gray-600">Memuat data pembayaran...</p>
+            <p className="text-sm sm:text-base text-gray-600">
+              Memuat data pembayaran...
+            </p>
           </div>
         </div>
       </DashboardLayout>
@@ -135,15 +146,12 @@ export default function CreateXenditPaymentPage() {
   if (!event) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <AlertCircle className="w-12 h-12 text-gray-400 mb-3" />
           <h3 className="text-lg font-semibold mb-2">Event tidak ditemukan</h3>
-          <button
-            onClick={() => router.back()}
-            className="text-brand hover:underline"
-          >
+          <Button variant="link" onClick={() => router.back()}>
             Kembali
-          </button>
+          </Button>
         </div>
       </DashboardLayout>
     );
@@ -154,44 +162,60 @@ export default function CreateXenditPaymentPage() {
     paymentMethodsData.data &&
     paymentMethodsData.data.length > 0;
 
+  const canProceed =
+    selectedMethod &&
+    customerName.trim() &&
+    customerEmail.trim() &&
+    !createPaymentMutation.isPending &&
+    hasValidMethods;
+
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto pb-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-32 lg:pb-8">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-brand transition-colors"
+          className="flex items-center gap-2 text-gray-600 hover:text-brand transition-colors mb-4 sm:mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm font-medium">Kembali ke Event</span>
         </button>
 
         {/* Header */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
             Selesaikan Pembayaran
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Satu langkah lagi untuk bergabung di event ini!
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             {/* Event Summary */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold mb-4">Detail Event</h2>
-              <div className="space-y-3">
+            <Card>
+              <CardHeader className="flex items-center">
+                <div className="flex items-center gap-2">
+                  <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
+                  <CardTitle className="text-base sm:text-lg">
+                    Detail Event
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 sm:space-y-4">
                 <div>
-                  <h3 className="font-semibold text-xl">{event.title}</h3>
-                  <span className="inline-block mt-2 px-3 py-1 bg-brand/10 text-brand text-xs font-medium rounded-full">
+                  <h3 className="font-semibold text-base sm:text-lg md:text-xl text-gray-900 leading-tight">
+                    {event.title}
+                  </h3>
+                  <Badge variant="secondary" className="mt-2 text-xs">
                     {event.category}
-                  </span>
+                  </Badge>
                 </div>
 
-                <div className="flex items-start gap-2 text-sm">
-                  <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
+                <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
+                  <Calendar className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <span>
                     {format(new Date(event.eventDate), "EEEE, dd MMMM yyyy", {
                       locale: idLocale,
@@ -199,134 +223,154 @@ export default function CreateXenditPaymentPage() {
                   </span>
                 </div>
 
-                <div className="flex items-start gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-gray-400 mt-0. 5" />
-                  <span>
+                <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <span className="line-clamp-2">
                     {event.venue}, {event.city}
                   </span>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Harga Event</span>
-                    <span className="font-bold text-xl text-brand">
-                      {formatCurrency(event.price, event.currency)}
-                    </span>
-                  </div>
+                <Separator className="my-2 sm:my-3" />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Harga Event</span>
+                  <span className="font-bold text-lg sm:text-xl text-brand">
+                    {formatCurrency(event.price, event.currency)}
+                  </span>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Customer Information */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold mb-4">Informasi Kamu</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <span className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Nama Lengkap <span className="text-red-500">*</span>
-                    </span>
-                  </label>
-                  <input
+            <Card>
+              <CardHeader className="flex items-center">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
+                  <CardTitle className="text-base sm:text-lg">
+                    Informasi Kamu
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="name"
+                    className="text-sm flex items-center gap-1.5"
+                  >
+                    <User className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Nama Lengkap</span>
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                     placeholder="Masukkan nama lengkap"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <span className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email <span className="text-red-500">*</span>
-                    </span>
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="text-sm flex items-center gap-1.5"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Email</span>
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="email"
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                     placeholder="Masukkan email"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <span className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Nomor Telepon (Opsional)
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="phone"
+                    className="text-sm flex items-center gap-1.5"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Nomor Telepon</span>
+                    <span className="text-gray-400 text-xs font-normal">
+                      (Opsional)
                     </span>
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="phone"
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                     placeholder="Masukkan nomor telepon"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Payment Method Selection */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold mb-4">
-                Pilih Metode Pembayaran
-              </h2>
+            <Card>
+              <CardHeader className="flex items-center">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
+                  <CardTitle className="text-base sm:text-lg">
+                    Metode Pembayaran
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {methodsError && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription className="text-xs sm:text-sm">
+                      Gagal memuat metode pembayaran. Silakan refresh halaman.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-              {methodsError && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0. 5" />
-                    <div>
-                      <h4 className="font-medium text-red-900 mb-1">
-                        Gagal memuat metode pembayaran
-                      </h4>
-                      <p className="text-sm text-red-700">
-                        Silakan refresh halaman atau coba lagi nanti
-                      </p>
-                    </div>
+                {isLoadingMethods ? (
+                  <div className="text-center py-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-brand mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Memuat metode pembayaran...{" "}
+                    </p>
                   </div>
-                </div>
-              )}
-
-              {isLoadingMethods ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-brand mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">
-                    Memuat metode pembayaran...
-                  </p>
-                </div>
-              ) : hasValidMethods ? (
-                <XenditPaymentMethodSelector
-                  methods={paymentMethodsData.data}
-                  groupedMethods={paymentMethodsData.grouped}
-                  selectedMethodId={selectedMethod?.id || null}
-                  onSelect={setSelectedMethod}
-                  disabled={createPaymentMutation.isPending}
-                />
-              ) : (
-                <div className="text-center py-8 text-gray-600">
-                  <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p>Tidak ada metode pembayaran tersedia untuk lokasi Anda</p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="mt-3 text-brand hover:underline text-sm"
-                  >
-                    Refresh halaman
-                  </button>
-                </div>
-              )}
-            </div>
+                ) : hasValidMethods ? (
+                  <XenditPaymentMethodSelector
+                    methods={paymentMethodsData.data}
+                    groupedMethods={paymentMethodsData.grouped}
+                    selectedMethodId={selectedMethod?.id || null}
+                    onSelect={setSelectedMethod}
+                    disabled={createPaymentMutation.isPending}
+                  />
+                ) : (
+                  <div className="text-center py-4">
+                    <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Tidak ada metode pembayaran tersedia
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => window.location.reload()}
+                    >
+                      Refresh halaman
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Sidebar - Fee Summary */}
-          <div className="lg:col-span-1">
+          {/* Sidebar - Fee Summary (Desktop) */}
+          <div className="hidden lg:block lg:col-span-2">
             <div className="sticky top-20 space-y-4">
               {/* Fee Breakdown */}
               {selectedMethod && feeData?.success && feeData.data ? (
@@ -337,38 +381,25 @@ export default function CreateXenditPaymentPage() {
               ) : isCalculatingFee && selectedMethod ? (
                 <FeeBreakdownSkeleton />
               ) : (
-                <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                  <h3 className="font-semibold text-gray-900 mb-3">
+                <Card className="p-5">
+                  <h3 className="font-semibold text-gray-900 mb-2">
                     Ringkasan Pembayaran
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-500">
                     Pilih metode pembayaran untuk melihat rincian biaya
                   </p>
-                </div>
+                </Card>
               )}
 
               {/* CTA Button */}
-              <button
+              <Button
                 onClick={handlePayment}
-                disabled={
-                  !selectedMethod ||
-                  !customerName.trim() ||
-                  !customerEmail.trim() ||
-                  createPaymentMutation.isPending ||
-                  !hasValidMethods
-                }
-                className={`w-full px-6 py-4 rounded-xl font-semibold text-lg transition-all ${
-                  !selectedMethod ||
-                  !customerName.trim() ||
-                  !customerEmail.trim() ||
-                  createPaymentMutation.isPending ||
-                  !hasValidMethods
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : "bg-brand text-white hover:bg-brand/90 hover:shadow-xl active:scale-[0.98]"
-                }`}
+                disabled={!canProceed}
+                size="lg"
+                className="w-full h-12 text-base font-semibold"
               >
                 {createPaymentMutation.isPending ? (
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="flex items-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Memproses...
                   </span>
@@ -377,18 +408,58 @@ export default function CreateXenditPaymentPage() {
                 ) : (
                   "Lanjutkan Pembayaran"
                 )}
-              </button>
+              </Button>
 
-              {/* Security Badge */}
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                <Shield className="w-4 h-4" />
-                <span>Pembayaran aman dengan Xendit</span>
-              </div>
-
-              <p className="text-xs text-center text-gray-600">
+              <p className="text-xs text-center text-gray-500">
                 Dengan melanjutkan, kamu setuju dengan syarat dan ketentuan kami
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Mobile Bottom Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 lg:hidden z-50 safe-area-bottom">
+          <div className="max-w-lg mx-auto">
+            {/* Price Summary */}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs text-gray-500">Total Pembayaran</p>
+                <p className="text-lg font-bold text-brand">
+                  {feeData?.success && feeData.data
+                    ? formatCurrency(
+                        feeData.data.calculation.finalAmount,
+                        event.currency
+                      )
+                    : formatCurrency(event.price, event.currency)}
+                </p>
+              </div>
+              {selectedMethod && (
+                <Badge variant="outline" className="text-xs">
+                  {selectedMethod.name}
+                </Badge>
+              )}
+            </div>
+
+            {/* CTA Button */}
+            <Button
+              onClick={handlePayment}
+              disabled={!canProceed}
+              size="lg"
+              className="w-full h-12 text-base font-semibold"
+            >
+              {createPaymentMutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Memproses...
+                </span>
+              ) : !selectedMethod ? (
+                "Pilih Metode Pembayaran"
+              ) : !customerName.trim() || !customerEmail.trim() ? (
+                "Lengkapi Data Diri"
+              ) : (
+                "Bayar Sekarang"
+              )}
+            </Button>
           </div>
         </div>
       </div>

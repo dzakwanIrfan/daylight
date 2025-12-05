@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { XenditTransactionStatus } from "@/types/xendit.types";
+import { Badge } from "@/components/ui/badge";
 
 interface TransactionStatusBadgeProps {
   status: XenditTransactionStatus;
@@ -21,70 +22,62 @@ const statusConfig: Record<
   XenditTransactionStatus,
   {
     label: string;
-    icon: React.ReactNode;
-    bgColor: string;
-    textColor: string;
-    iconColor: string;
-    borderColor: string;
+    labelId: string;
+    icon: React.ElementType;
+    variant: "default" | "secondary" | "destructive" | "outline";
+    className: string;
   }
 > = {
   [XenditTransactionStatus.PENDING]: {
     label: "Pending",
-    icon: <Clock className="w-full h-full" />,
-    bgColor: "bg-yellow-50",
-    textColor: "text-yellow-700",
-    iconColor: "text-yellow-500",
-    borderColor: "border-yellow-200",
+    labelId: "Menunggu",
+    icon: Clock,
+    variant: "secondary",
+    className:
+      "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100",
   },
   [XenditTransactionStatus.PAID]: {
     label: "Paid",
-    icon: <CheckCircle2 className="w-full h-full" />,
-    bgColor: "bg-green-50",
-    textColor: "text-green-700",
-    iconColor: "text-green-500",
-    borderColor: "border-green-200",
+    labelId: "Berhasil",
+    icon: CheckCircle2,
+    variant: "secondary",
+    className: "bg-green-50 text-green-700 border-green-200 hover:bg-green-100",
   },
   [XenditTransactionStatus.FAILED]: {
     label: "Failed",
-    icon: <XCircle className="w-full h-full" />,
-    bgColor: "bg-red-50",
-    textColor: "text-red-700",
-    iconColor: "text-red-500",
-    borderColor: "border-red-200",
+    labelId: "Gagal",
+    icon: XCircle,
+    variant: "destructive",
+    className: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
   },
   [XenditTransactionStatus.EXPIRED]: {
     label: "Expired",
-    icon: <AlertCircle className="w-full h-full" />,
-    bgColor: "bg-gray-50",
-    textColor: "text-gray-700",
-    iconColor: "text-gray-500",
-    borderColor: "border-gray-200",
+    labelId: "Kadaluarsa",
+    icon: AlertCircle,
+    variant: "outline",
+    className: "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100",
   },
   [XenditTransactionStatus.REFUNDED]: {
     label: "Refunded",
-    icon: <RefreshCw className="w-full h-full" />,
-    bgColor: "bg-blue-50",
-    textColor: "text-blue-700",
-    iconColor: "text-blue-500",
-    borderColor: "border-blue-200",
+    labelId: "Dikembalikan",
+    icon: RefreshCw,
+    variant: "secondary",
+    className: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
   },
 };
 
 const sizeClasses = {
   sm: {
-    container: "px-2 py-0.5 text-xs",
+    badge: "px-2 py-0.5 text-[10px] sm:text-xs gap-1",
     icon: "w-3 h-3",
-    gap: "gap-1",
   },
   md: {
-    container: "px-3 py-1 text-sm",
-    icon: "w-4 h-4",
-    gap: "gap-1. 5",
+    badge: "px-2.5 py-1 text-xs sm:text-sm gap-1. 5",
+    icon: "w-3.5 h-3.5 sm:w-4 sm:h-4",
   },
   lg: {
-    container: "px-4 py-1. 5 text-base",
-    icon: "w-5 h-5",
-    gap: "gap-2",
+    badge: "px-3 py-1.5 text-sm sm:text-base gap-2",
+    icon: "w-4 h-4 sm:w-5 sm:h-5",
   },
 };
 
@@ -97,23 +90,20 @@ export function XenditTransactionStatusBadge({
   const config =
     statusConfig[status] || statusConfig[XenditTransactionStatus.PENDING];
   const sizes = sizeClasses[size];
+  const Icon = config.icon;
 
   return (
-    <span
+    <Badge
+      variant="outline"
       className={cn(
-        "inline-flex items-center rounded-full font-medium border",
-        sizes.container,
-        sizes.gap,
-        config.bgColor,
-        config.textColor,
-        config.borderColor,
+        "inline-flex items-center font-medium border rounded-full transition-colors",
+        sizes.badge,
+        config.className,
         className
       )}
     >
-      {showIcon && (
-        <span className={cn(sizes.icon, config.iconColor)}>{config.icon}</span>
-      )}
-      <span>{config.label}</span>
-    </span>
+      {showIcon && <Icon className={sizes.icon} />}
+      <span>{config.labelId}</span>
+    </Badge>
   );
 }

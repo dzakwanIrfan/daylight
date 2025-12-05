@@ -9,6 +9,8 @@ import {
   Ticket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import confetti from "canvas-confetti";
 
 interface PaymentSuccessProps {
@@ -72,7 +74,6 @@ export function XenditPaymentSuccess({
       });
     }, 250);
 
-    // Show content with delay
     setTimeout(() => setShowContent(true), 500);
 
     return () => clearInterval(interval);
@@ -81,22 +82,22 @@ export function XenditPaymentSuccess({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center py-12 px-6",
+        "flex flex-col items-center justify-center text-center py-8 sm:py-12 px-4 sm:px-6",
         className
       )}
     >
       {/* Success Icon */}
       <div
         className={cn(
-          "relative mb-6 transition-all duration-700",
+          "relative mb-5 sm:mb-6 transition-all duration-700",
           showContent ? "scale-100 opacity-100" : "scale-50 opacity-0"
         )}
       >
-        <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center">
-          <CheckCircle2 className="w-14 h-14 text-green-500" />
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircle2 className="w-10 h-10 sm:w-14 sm:h-14 text-green-500" />
         </div>
-        <div className="absolute -top-2 -right-2">
-          <PartyPopper className="w-8 h-8 text-yellow-500" />
+        <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2">
+          <PartyPopper className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
         </div>
       </div>
 
@@ -107,70 +108,76 @@ export function XenditPaymentSuccess({
           showContent ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         )}
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Payment Successful! 🎉
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1.5 sm:mb-2">
+          Pembayaran Berhasil!
         </h1>
-        <p className="text-gray-600 mb-8">
-          Your ticket has been confirmed. See you at the event!
+        <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 max-w-xs mx-auto">
+          Tiket kamu sudah dikonfirmasi. Sampai jumpa di event!
         </p>
       </div>
 
       {/* Event Card */}
       {eventTitle && (
-        <div
+        <Card
           className={cn(
-            "w-full max-w-md bg-white border border-gray-200 rounded-2xl p-6 mb-8 transition-all duration-700 delay-400",
+            "w-full max-w-sm sm:max-w-md mb-6 sm:mb-8 transition-all duration-700 delay-400",
             showContent
               ? "translate-y-0 opacity-100"
               : "translate-y-4 opacity-0"
           )}
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center">
-              <Ticket className="w-6 h-6 text-brand" />
-            </div>
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900">{eventTitle}</h3>
-              <p className="text-xs text-gray-500">Ticket Confirmed</p>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-sm">
-            {eventDate && (
-              <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <span>{eventDate}</span>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
+                <Ticket className="w-5 h-5 sm:w-6 sm:h-6 text-brand" />
               </div>
-            )}
-            {eventVenue && (
-              <div className="flex items-center gap-2 text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                <span>{eventVenue}</span>
+              <div className="text-left min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">
+                  {eventTitle}
+                </h3>
+                <p className="text-xs text-gray-500">Tiket Dikonfirmasi</p>
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-500">
-              Transaction ID: <span className="font-mono">{transactionId}</span>
-            </p>
-          </div>
-        </div>
+            <div className="space-y-2 text-xs sm:text-sm">
+              {eventDate && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
+                  <span className="truncate">{eventDate}</span>
+                </div>
+              )}
+              {eventVenue && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
+                  <span className="truncate">{eventVenue}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500">
+                ID Transaksi:{" "}
+                <span className="font-mono text-gray-700">{transactionId}</span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* CTA Button */}
       <div
         className={cn(
-          "w-full max-w-md transition-all duration-700 delay-600",
+          "w-full max-w-sm sm:max-w-md transition-all duration-700 delay-600",
           showContent ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         )}
       >
-        <button
+        <Button
           onClick={onContinue}
-          className="w-full bg-brand hover:bg-brand/90 text-white rounded-xl px-6 py-4 font-semibold text-lg transition-all hover:shadow-lg active:scale-[0.98]"
+          size="lg"
+          className="w-full h-11 sm:h-12 text-sm sm:text-base"
         >
-          View My Events
-        </button>
+          Lihat Event Saya
+        </Button>
       </div>
     </div>
   );

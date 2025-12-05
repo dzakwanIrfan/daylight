@@ -490,37 +490,51 @@ enum TransactionStatus {
   REFUNDED
 }
 
-model Transaction {
-  id String @id @default(uuid())
+model TransactionAction {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  eventId String?
-  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
-
-  paymentMethodId String
-  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
-
-  externalId String            @unique // Xendit ID
-  status     TransactionStatus @default(PENDING)
-
-  amount      Decimal @db.Decimal(19, 4)
-  totalFee    Decimal @db.Decimal(19, 4)
-  finalAmount Decimal @db.Decimal(19, 4)
-
-  paymentUrl String? @db.Text
-
-  // Relations
-  userSubscription UserSubscription?
-  matchingMember   MatchingMember?
+  type       String // PRESENT_TO_CUSTOMER, REDIRECT_CUSTOMER, API_POST_REQUEST
+  descriptor String // PAYMENT_CODE, QR_STRING, VIRTUAL_ACCOUNT_NUMBER, WEB_URL, etc
+  value      String @db.Text // The actual value (URL, code, QR string, etc)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([transactionId])
+  @@map("transaction_actions")
+}
+
+model Transaction {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  eventId         String?
+  event           Event?        @relation(fields: [eventId], references: [id])
+  paymentMethodId String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  externalId  String            @unique
+  status      TransactionStatus @default(PENDING)
+  amount      Decimal           @db.Decimal(10, 2)
+  totalFee    Decimal           @db.Decimal(10, 2)
+  finalAmount Decimal           @db.Decimal(10, 2)
+  paymentUrl  String?           @db.Text
+
+  actions TransactionAction[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  userSubscription UserSubscription?
+  matchingMember   MatchingMember?
+
   @@index([userId])
-  @@index([externalId])
+  @@index([eventId])
+  @@index([paymentMethodId])
   @@index([status])
+  @@index([externalId])
+  @@map("transactions")
 }
 
 enum TransactionType {

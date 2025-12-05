@@ -77,6 +77,21 @@ export class XenditController {
   }
 
   /**
+   * Endpoint untuk get transaction detail dengan actions
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('transaction/:id')
+  async getTransactionDetail(
+    @CurrentUser() user: User,
+    @Param('id') transactionId: string,
+  ) {
+    return await this.xenditService.getTransactionDetail(
+      transactionId,
+      user.id,
+    );
+  }
+
+  /**
    * Xendit akan hit endpoint ini saat ada perubahan status payment
    */
   @Public()

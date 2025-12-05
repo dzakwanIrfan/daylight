@@ -13,6 +13,7 @@ import {
   TransactionStatus,
   Prisma,
 } from '@prisma/client';
+import type { Transaction } from '@prisma/client';
 import {
   CreateXenditPaymentDto,
   ItemType,
@@ -25,6 +26,7 @@ import { XenditResponseParserService } from './services/xendit-response-parser.s
 import {
   CreatePaymentResponse,
   XenditPaymentResponse,
+  PaymentAction,
 } from './dto/payment-response.dto';
 import { XenditWebhookPayload } from './dto/xendit-webhook-payload.dto';
 
@@ -83,7 +85,7 @@ export class XenditService {
     // 7. Parse response
     const paymentInfo = this.responseParser.extractPaymentInfo(xenditResponse);
 
-    // 8. Simpan transaction ke database
+    // 8. Simpan transaction ke database (termasuk actions)
     const transaction = await this.saveTransaction(
       user,
       data,
@@ -106,6 +108,12 @@ export class XenditService {
         paymentCode:
           paymentInfo.paymentCode || paymentInfo.virtualAccountNumber,
         qrString: paymentInfo.qrString,
+        virtualAccountNumber: paymentInfo.virtualAccountNumber,
+        actions: transaction.actions?.map((action) => ({
+          type: action.type,
+          descriptor: action.descriptor,
+          value: action.value,
+        })),
       },
       xenditResponse,
     };
@@ -224,6 +232,9 @@ export class XenditService {
     return `DayLight Payment - ${type} #${itemId.substring(0, 8)}`;
   }
 
+  /**
+   * Simpan transaction beserta actions ke database
+   */
   private async saveTransaction(
     user: User,
     data: CreateXenditPaymentDto,
@@ -254,14 +265,29 @@ export class XenditService {
       };
     }
 
+    // Simpan actions jika ada
+    if (xenditResponse.actions && xenditResponse.actions.length > 0) {
+      transactionData.actions = {
+        create: xenditResponse.actions.map((action: PaymentAction) => ({
+          type: action.type,
+          descriptor: action.descriptor,
+          value: action.value,
+        })),
+      };
+    }
+
     const transaction = await this.prismaService.transaction.create({
       data: transactionData,
+      include: {
+        actions: true, // Include actions dalam response
+      },
     });
 
-    this.logger.log('Transaction created', {
+    this.logger.log('Transaction created with actions', {
       transactionId: transaction.id,
       externalId: transaction.externalId,
       amount: transaction.finalAmount.toNumber(),
+      actionsCount: transaction.actions?.length || 0,
     });
 
     return transaction;
@@ -285,6 +311,7 @@ export class XenditService {
       include: {
         event: true,
         user: true,
+        actions: true, // Include actions
       },
     });
 
@@ -300,7 +327,7 @@ export class XenditService {
   }
 
   private async updateTransactionStatus(
-    transaction: any,
+    transaction: Transaction,
     event: string,
     data: any,
   ): Promise<void> {
@@ -342,7 +369,7 @@ export class XenditService {
     });
   }
 
-  private async handleSuccessfulPayment(transaction: any): Promise<void> {
+  private async handleSuccessfulPayment(transaction: Transaction): Promise<void> {
     // Jika ada event, update currentParticipants
     if (transaction.eventId) {
       await this.prismaService.event.update({
@@ -411,5 +438,28 @@ export class XenditService {
       },
       calculation: feeInfo.feeInfo!.breakdown,
     };
+  }
+
+  /**
+   * Get transaction detail dengan actions
+   */
+  async getTransactionDetail(transactionId: string, userId: string) {
+    const transaction = await this.prismaService.transaction.findFirst({
+      where: {
+        id: transactionId,
+        userId: userId,
+      },
+      include: {
+        paymentMethod: true,
+        event: true,
+        actions: true,
+      },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found');
+    }
+
+    return transaction;
   }
 }

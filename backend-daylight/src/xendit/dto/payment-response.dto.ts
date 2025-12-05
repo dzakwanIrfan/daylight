@@ -1,6 +1,14 @@
 export interface PaymentAction {
-  type: string;
-  descriptor: string;
+  type: 'PRESENT_TO_CUSTOMER' | 'REDIRECT_CUSTOMER' | 'API_POST_REQUEST';
+  descriptor:
+    | 'CAPTURE_PAYMENT'
+    | 'PAYMENT_CODE'
+    | 'QR_STRING'
+    | 'VIRTUAL_ACCOUNT_NUMBER'
+    | 'WEB_URL'
+    | 'DEEPLINK_URL'
+    | 'VALIDATE_OTP'
+    | 'RESEND_OTP';
   value: string;
 }
 
@@ -23,6 +31,12 @@ export interface XenditPaymentResponse {
   actions?: PaymentAction[];
 }
 
+export interface TransactionActionData {
+  type: string;
+  descriptor: string;
+  value: string;
+}
+
 export interface CreatePaymentResponse {
   transaction: {
     id: string;
@@ -34,6 +48,8 @@ export interface CreatePaymentResponse {
     paymentUrl?: string;
     paymentCode?: string;
     qrString?: string;
+    virtualAccountNumber?: string;
+    actions?: TransactionActionData[];
   };
   xenditResponse: XenditPaymentResponse;
 }

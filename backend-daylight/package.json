@@ -24,6 +24,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:events": "ts-node prisma/seed-events.ts",
     "prisma:paymentMethods": "ts-node prisma/seed-paymentMethods.ts",
+    "prisma:xenditPaymentMethods": "ts-node prisma/seed-xenditPaymentMethods.ts",
     "prisma:subscriptions": "ts-node prisma/seed-subscriptions.ts",
     "prisma:archetypeDetails": "ts-node prisma/seed-archetypeDetails.ts",
     "prisma:locations": "ts-node prisma/seed-locations.ts",

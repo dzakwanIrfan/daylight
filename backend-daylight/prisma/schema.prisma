@@ -373,6 +373,7 @@ enum PaymentMethodType {
   OVER_THE_COUNTER
   PAYLATER
   QR_CODE
+  SUBSCRIPTION
 }
 
 model PaymentMethod {
@@ -524,6 +525,9 @@ model Transaction {
 
   actions TransactionAction[]
 
+  // Transaction Type
+  transactionType TransactionType @default(EVENT)
+
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   userSubscription UserSubscription?
@@ -641,9 +645,6 @@ model UserSubscription {
   startDate   DateTime? // When subscription becomes active
   endDate     DateTime? // When it expires
   cancelledAt DateTime?
-
-  // Auto-renewal (for future implementation)
-  autoRenew Boolean @default(false)
 
   // Metadata
   metadata Json? // For storing additional info

@@ -1,37 +1,81 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { AlertCircle } from 'lucide-react';
+import { AlertTriangle, Home, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { toast } from 'sonner';
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const message = searchParams.get('message') || 'Authentication failed';
 
-  return (
-    <div className="flex items-center justify-center min-h-screen px-4">
-      <div className="w-full max-w-md text-center space-y-6">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10">
-          <AlertCircle className="w-8 h-8 text-destructive" />
-        </div>
-        
-        <div className="space-y-2">
-          <h1 className="text-2xl font-heading font-bold">
-            Authentication Error
-          </h1>
-          <p className="text-muted-foreground">{message}</p>
-        </div>
+  useEffect(() => {
+    if (message === 'Please complete the persona test first') {
+      toast.error('Please complete the persona test first');
+      router.push('/personality-test');
+    }
+  }, [message, router]);
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button asChild>
-            <Link href="/auth/login">Try Again</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/">Go Home</Link>
-          </Button>
+  // Don't render content if we are redirecting
+  if (message === 'Please complete the persona test first') {
+    return null;
+  }
+
+  return (
+    <Card className="w-full max-w-md shadow-lg border-destructive/10">
+      <CardHeader className="text-center space-y-4 pb-2">
+        <div className="mx-auto inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 animate-pulse">
+          <AlertTriangle className="w-8 h-8 text-destructive" />
         </div>
-      </div>
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            Authentication Error
+          </CardTitle>
+          <CardDescription className="text-base">
+            We encountered an issue while signing you in.
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="text-center pb-2">
+        <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
+          <p className="text-sm text-foreground font-medium">{message}</p>
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-3 pt-6">
+        <Button className="w-full" asChild>
+          <Link href="/auth/login">
+            <RotateCw className="w-4 h-4 mr-2" />
+            Try Again
+          </Link>
+        </Button>
+        <Button variant="ghost" className="w-full" asChild>
+          <Link href="/">
+            <Home className="w-4 h-4 mr-2" />
+            Return Home
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Suspense fallback={null}>
+        <AuthErrorContent />
+      </Suspense>
     </div>
   );
 }

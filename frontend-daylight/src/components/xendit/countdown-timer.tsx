@@ -127,7 +127,7 @@ export function XenditCountdownTimer({
         )}
       >
         <AlertTriangle className="w-4 h-4 text-red-300" />
-        <span className="font-medium text-sm text-white">Kadaluarsa</span>
+        <span className="font-medium text-sm text-white">Expired</span>
       </div>
     );
   }
@@ -160,7 +160,7 @@ export function XenditCountdownTimer({
             isUrgent ? "text-red-300" : "text-white/70"
           )}
         />
-        <span className="text-[10px] sm:text-xs text-white/70">Sisa waktu</span>
+        <span className="text-[10px] sm:text-xs text-white/70">Time Left</span>
       </div>
 
       <div className="flex items-center gap-1. 5 sm:gap-2">
@@ -194,7 +194,7 @@ export function XenditCountdownTimer({
 
       {isWarning && !isUrgent && (
         <p className="text-[10px] sm:text-xs text-yellow-300 mt-1. 5 sm:mt-2">
-          ⚠️ Segera selesaikan pembayaran
+          Hurry up! Payment will expire soon.
         </p>
       )}
     </div>

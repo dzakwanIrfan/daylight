@@ -78,7 +78,7 @@ export function XenditFeeBreakdown({
           <div className="flex items-center gap-2">
             <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
             <h3 className="font-semibold text-sm sm:text-base text-gray-900">
-              Ringkasan Pembayaran
+              Payment Summary
             </h3>
           </div>
           <Badge variant="secondary" className="text-xs font-medium">
@@ -91,7 +91,7 @@ export function XenditFeeBreakdown({
       <CardContent className="space-y-3 pt-0">
         {/* Base Amount */}
         <div className="flex items-center justify-between text-sm sm:text-base">
-          <span className="text-gray-600">Harga Event</span>
+          <span className="text-gray-600">Base Amount</span>
           <span className="font-medium text-gray-900">
             {formatCurrency(calc.baseAmount, currency)}
           </span>
@@ -101,7 +101,7 @@ export function XenditFeeBreakdown({
         {calc.totalFee > 0 && (
           <div className="flex items-center justify-between text-sm sm:text-base">
             <div className="flex items-center gap-1.5">
-              <span className="text-gray-600">Biaya Layanan</span>
+              <span className="text-gray-600">Service Fee</span>
               {showDetails && (feePercentage || feeFixed) && (
                 <TooltipProvider>
                   <Tooltip>
@@ -143,7 +143,7 @@ export function XenditFeeBreakdown({
       <CardFooter className="bg-gray-50/80 border-t">
         <p className="text-xs text-gray-500 flex items-start justify-center gap-2">
           <Info className="w-3.5 h-3.5 shrink-0" />
-          <span>Biaya berbeda tergantung metode pembayaran yang dipilih.</span>
+          <span>Fee varies depending on the selected payment method.</span>
         </p>
       </CardFooter>
     </Card>

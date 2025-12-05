@@ -3,8 +3,6 @@ import { xenditService } from "@/services/xendit.service";
 import type {
   CreateXenditPaymentDto,
   QueryXenditTransactionsParams,
-  XenditTransaction,
-  XenditTransactionStatus,
 } from "@/types/xendit.types";
 
 // QUERY KEYS
@@ -42,7 +40,7 @@ export function useXenditFeeCalculation(
   });
 }
 
-// CREATE PAYMENT
+// CREATE PAYMENT (for both EVENT and SUBSCRIPTION)
 export function useXenditCreatePayment() {
   const queryClient = useQueryClient();
 

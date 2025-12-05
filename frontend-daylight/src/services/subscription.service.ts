@@ -5,6 +5,7 @@ import type {
   QueryUserSubscriptionsParams,
   QueryUserSubscriptionsResponse,
   CreateSubscriptionPaymentDto,
+  CreateXenditSubscriptionPaymentDto,
   CreateSubscriptionPlanDto,
   UpdateSubscriptionPlanDto,
   UpdateSubscriptionPlanPricesDto,
@@ -19,11 +20,14 @@ import {
   QuerySubscriptionsResponse,
   SubscriptionStats,
 } from "@/types/admin-subscription.types";
+import type { CreateXenditPaymentResponse } from "@/types/xendit.types";
 
 class SubscriptionService {
   private readonly baseURL = "/subscriptions";
 
+  // ============================================
   // USER ENDPOINTS
+  // ============================================
 
   async getActivePlans(): Promise<{
     success: boolean;
@@ -38,7 +42,7 @@ class SubscriptionService {
     data: SubscriptionPlan;
   }> {
     const response = await apiClient.get(`${this.baseURL}/plans/${planId}`);
-    return response. data;
+    return response.data;
   }
 
   async getMyActiveSubscription(): Promise<{
@@ -53,7 +57,7 @@ class SubscriptionService {
   async getMySubscriptions(
     params?: QueryUserSubscriptionsParams
   ): Promise<QueryUserSubscriptionsResponse> {
-    const response = await apiClient. get(`${this.baseURL}/my-subscriptions`, {
+    const response = await apiClient.get(`${this.baseURL}/my-subscriptions`, {
       params,
     });
     return response.data;
@@ -84,6 +88,47 @@ class SubscriptionService {
     return response.data;
   }
 
+  // ============================================
+  // XENDIT SUBSCRIPTION PAYMENT - NEW
+  // ============================================
+  async createXenditSubscriptionPayment(
+    dto: CreateXenditSubscriptionPaymentDto
+  ): Promise<{
+    success: boolean;
+    data?: CreateXenditPaymentResponse;
+    error?: string;
+  }> {
+    try {
+      const response = await apiClient.post<CreateXenditPaymentResponse>(
+        "/xendit/create",
+        {
+          type: "SUBSCRIPTION",
+          itemId: dto.planId,
+          paymentMethodId: dto.paymentMethodId,
+          customerName: dto.customerName,
+          customerEmail: dto.customerEmail,
+          customerPhone: dto.customerPhone,
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Failed to create subscription payment:", error);
+      return {
+        success: false,
+        error:
+          error?.response?.data?.message ||
+          "Failed to create subscription payment",
+      };
+    }
+  }
+
+  // ============================================
+  // LEGACY - Tripay (deprecated, keep for backward compatibility)
+  // ============================================
   async createSubscriptionPayment(dto: CreateSubscriptionPaymentDto): Promise<{
     success: boolean;
     message: string;
@@ -93,10 +138,12 @@ class SubscriptionService {
     };
   }> {
     const response = await apiClient.post("/payment/subscribe", dto);
-    return response. data;
+    return response.data;
   }
 
+  // ============================================
   // ADMIN - SUBSCRIPTION PLANS CRUD
+  // ============================================
 
   async getAllPlans(isActive?: boolean): Promise<{
     success: boolean;
@@ -115,7 +162,7 @@ class SubscriptionService {
     const response = await apiClient.get(
       `${this.baseURL}/admin/plans/${planId}`
     );
-    return response. data;
+    return response.data;
   }
 
   async createPlan(dto: CreateSubscriptionPlanDto): Promise<{
@@ -164,17 +211,19 @@ class SubscriptionService {
     const response = await apiClient.delete(
       `${this.baseURL}/admin/plans/${planId}`
     );
-    return response. data;
+    return response.data;
   }
 
+  // ============================================
   // ADMIN - SUBSCRIPTION PLAN PRICES CRUD
+  // ============================================
 
   async getPlanPrices(planId: string): Promise<{
     success: boolean;
     data: SubscriptionPlanPrice[];
   }> {
-    const response = await apiClient. get(
-      `${this. baseURL}/admin/plans/${planId}/prices`
+    const response = await apiClient.get(
+      `${this.baseURL}/admin/plans/${planId}/prices`
     );
     return response.data;
   }
@@ -219,14 +268,19 @@ class SubscriptionService {
     return response.data;
   }
 
+  // ============================================
   // ADMIN - USER SUBSCRIPTIONS MANAGEMENT
+  // ============================================
 
   async getAdminSubscriptions(
     params: QuerySubscriptionsParams
   ): Promise<QuerySubscriptionsResponse> {
-    const response = await apiClient.get(`${this.baseURL}/admin/subscriptions`, {
-      params,
-    });
+    const response = await apiClient.get(
+      `${this.baseURL}/admin/subscriptions`,
+      {
+        params,
+      }
+    );
     return response.data;
   }
 

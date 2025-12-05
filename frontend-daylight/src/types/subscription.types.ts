@@ -60,8 +60,17 @@ export interface UserSubscription {
   planId: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
+  // Xendit Transaction Reference
   transactionId: string | null;
   transaction: {
+    id: string;
+    externalId: string;
+    amount: number;
+    status: string;
+  } | null;
+  // Legacy Tripay Transaction Reference
+  legacyTransactionId: string | null;
+  legacyTransaction: {
     id: string;
     merchantRef: string;
     amount: number;
@@ -97,6 +106,20 @@ export interface QueryUserSubscriptionsResponse {
   };
 }
 
+// ============================================
+// XENDIT SUBSCRIPTION PAYMENT DTO - NEW
+// ============================================
+export interface CreateXenditSubscriptionPaymentDto {
+  planId: string;
+  paymentMethodId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+}
+
+// ============================================
+// LEGACY - Tripay DTO (deprecated)
+// ============================================
 export interface CreateSubscriptionPaymentDto {
   planId: string;
   paymentMethod: string;
@@ -105,7 +128,9 @@ export interface CreateSubscriptionPaymentDto {
   customerPhone?: string;
 }
 
-// Admin-specific types (with Country integration)
+// ============================================
+// ADMIN TYPES
+// ============================================
 export interface CreateSubscriptionPlanDto {
   name: string;
   type: SubscriptionPlanType;

@@ -30,7 +30,7 @@ const statusConfig: Record<
 > = {
   [XenditTransactionStatus.PENDING]: {
     label: "Pending",
-    labelId: "Menunggu",
+    labelId: "Waiting",
     icon: Clock,
     variant: "secondary",
     className:
@@ -38,28 +38,28 @@ const statusConfig: Record<
   },
   [XenditTransactionStatus.PAID]: {
     label: "Paid",
-    labelId: "Berhasil",
+    labelId: "Successful",
     icon: CheckCircle2,
     variant: "secondary",
     className: "bg-green-50 text-green-700 border-green-200 hover:bg-green-100",
   },
   [XenditTransactionStatus.FAILED]: {
     label: "Failed",
-    labelId: "Gagal",
+    labelId: "Failed",
     icon: XCircle,
     variant: "destructive",
     className: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
   },
   [XenditTransactionStatus.EXPIRED]: {
     label: "Expired",
-    labelId: "Kadaluarsa",
+    labelId: "Expired",
     icon: AlertCircle,
     variant: "outline",
     className: "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100",
   },
   [XenditTransactionStatus.REFUNDED]: {
     label: "Refunded",
-    labelId: "Dikembalikan",
+    labelId: "Refunded",
     icon: RefreshCw,
     variant: "secondary",
     className: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",

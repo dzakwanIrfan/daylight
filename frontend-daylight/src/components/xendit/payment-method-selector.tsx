@@ -194,7 +194,7 @@ function PaymentGroup({
               <div className="text-left">
                 <h3 className="font-semibold text-sm sm:text-base text-gray-900">{groupName}</h3>
                 <p className="text-xs text-gray-500 hidden sm:block">
-                  {methods.length} metode pembayaran
+                  {methods.length} payment method
                 </p>
               </div>
             </div>
@@ -244,10 +244,10 @@ export function XenditPaymentMethodSelector({
           <Wallet className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
         </div>
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
-          Tidak Ada Metode Pembayaran
+          Payment Methods Unavailable
         </h3>
         <p className="text-xs sm:text-sm text-gray-500 max-w-xs mx-auto">
-          Metode pembayaran belum tersedia untuk lokasi Anda
+          Currently, there are no payment methods available. Please try again later.
         </p>
       </div>
     );

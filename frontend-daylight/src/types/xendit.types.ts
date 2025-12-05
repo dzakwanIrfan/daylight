@@ -71,6 +71,25 @@ export interface TransactionAction {
   updatedAt: string;
 }
 
+// Subscription Plan Info untuk Transaction
+export interface TransactionSubscriptionPlan {
+  id: string;
+  name: string;
+  type: string;
+  durationInMonths: number;
+  features: string[];
+  description?: string;
+}
+
+// User Subscription dalam Transaction
+export interface TransactionUserSubscription {
+  id: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  plan?: TransactionSubscriptionPlan;
+}
+
 // Transaction dari database
 export interface XenditTransaction {
   id: string;
@@ -102,12 +121,7 @@ export interface XenditTransaction {
     partner: Partner | null;
   };
   actions: TransactionAction[];
-  userSubscription?: {
-    id: string;
-    status: string;
-    startDate: string | null;
-    endDate: string | null;
-  };
+  userSubscription?: TransactionUserSubscription;
 }
 
 // Create Payment DTO

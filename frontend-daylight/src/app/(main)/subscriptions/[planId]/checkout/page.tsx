@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/main/dashboard-layout";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuthStore } from "@/store/auth-store";
+import { usePlanById } from "@/hooks/use-subscriptions";
 import {
-  usePlanById,
-  useCreateSubscriptionPayment,
-} from "@/hooks/use-subscriptions";
-import { usePaymentChannels, useCalculateFee } from "@/hooks/use-payment";
+  useXenditPaymentMethods,
+  useXenditFeeCalculation,
+  useXenditCreatePayment,
+} from "@/hooks/use-xendit";
 import { useParams, useRouter } from "next/navigation";
 import {
   Loader2,
@@ -20,186 +21,216 @@ import {
   Mail,
   Phone,
   MapPin,
+  Calendar,
+  Sparkles,
 } from "lucide-react";
-import { PaymentMethodSelector } from "@/components/payment/payment-method-selector";
+import { XenditPaymentMethodSelector } from "@/components/xendit/payment-method-selector";
+import {
+  XenditFeeBreakdown,
+  FeeBreakdownSkeleton,
+} from "@/components/xendit/fee-breakdown";
+import { XenditPaymentMethod, ItemType } from "@/types/xendit.types";
+import { formatCurrency, cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/lib/utils";
-import { toast } from "sonner";
-import { ApiError, getUserFriendlyErrorMessage } from "@/lib/api-error";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export default function SubscriptionCheckoutPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const planId = params.planId as string;
 
+  // Queries
   const { data: planResponse, isLoading: isLoadingPlan } = usePlanById(planId);
-  const { data: paymentChannels, isLoading: isLoadingChannels } =
-    usePaymentChannels();
+  const {
+    data: paymentMethodsData,
+    isLoading: isLoadingMethods,
+    error: methodsError,
+  } = useXenditPaymentMethods();
 
   const plan = planResponse?.data;
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-    string | null
-  >(null);
-  const [customerName, setCustomerName] = useState(
-    user ? `${user.firstName} ${user.lastName}` : ""
-  );
-  const [customerPhone, setCustomerPhone] = useState(user?.phoneNumber || "");
+  // State
+  const [selectedMethod, setSelectedMethod] =
+    useState<XenditPaymentMethod | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
-  // Use currentPrice from backend (already calculated)
+  // Initialize form with user data
+  useEffect(() => {
+    if (user) {
+      setCustomerName(
+        `${user.firstName || ""} ${user.lastName || ""}`.trim() || ""
+      );
+      setCustomerEmail(user.email || "");
+      setCustomerPhone(user.phoneNumber || "");
+    }
+  }, [user]);
+
+  // Use currentPrice from backend (already calculated based on user location)
   const displayPrice = plan?.currentPrice || plan?.price || 0;
   const displayCurrency = plan?.currentCurrency || plan?.currency || "IDR";
 
-  // Calculate fee
-  const { data: feeCalculation } = useCalculateFee(
-    displayPrice,
-    selectedPaymentMethod || undefined
-  );
+  // Fee calculation
+  const { data: feeData, isLoading: isCalculatingFee } =
+    useXenditFeeCalculation(displayPrice, selectedMethod?.id || null);
 
-  const createPaymentMutation = useCreateSubscriptionPayment();
+  // Create payment mutation - using Xendit
+  const createPaymentMutation = useXenditCreatePayment();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const isLoading = isLoadingPlan || isLoadingMethods;
 
-    if (!plan || !selectedPaymentMethod || !user) {
-      toast.error("Please complete all required fields");
+  // Handle payment
+  const handlePayment = async () => {
+    if (!selectedMethod) {
+      toast.error("Please select a payment method");
       return;
     }
 
     if (!customerName.trim()) {
-      toast.error("Please enter your name");
+      toast.error("Full name is required");
+      return;
+    }
+
+    if (!customerEmail.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+
+    if (!plan) {
+      toast.error("Plan not found");
       return;
     }
 
     try {
       const result = await createPaymentMutation.mutateAsync({
-        planId: plan.id,
-        paymentMethod: selectedPaymentMethod,
+        type: ItemType.SUBSCRIPTION,
+        itemId: plan.id,
+        paymentMethodId: selectedMethod.id,
         customerName: customerName.trim(),
-        customerEmail: user.email,
+        customerEmail: customerEmail.trim(),
         customerPhone: customerPhone.trim() || undefined,
       });
 
-      if (result.success) {
-        toast.success("Payment created! Redirecting...");
+      if (result.success && result.data) {
+        toast.success("Payment created successfully!");
         router.push(`/payment/${result.data.transaction.id}`);
+      } else {
+        toast.error(result.error || "Failed to create payment");
       }
     } catch (error: any) {
       console.error("Payment creation error:", error);
-      if (error instanceof ApiError) {
-        const friendlyMessage = getUserFriendlyErrorMessage(error);
-        toast.error(friendlyMessage);
-      } else {
-        toast.error("Failed to create payment. Please try again.");
-      }
+      toast.error(error?.message || "Failed to create payment");
     }
   };
 
-  const isLoading = isLoadingPlan || isLoadingChannels;
-
+  // Loading state
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-brand" />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-brand mx-auto mb-3" />
+            <p className="text-sm sm:text-base text-gray-600">
+              Loading checkout...
+            </p>
+          </div>
         </div>
       </DashboardLayout>
     );
   }
 
+  // Plan not found
   if (!plan) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+          <AlertCircle className="w-12 h-12 text-gray-400 mb-3" />
           <h3 className="text-lg font-semibold mb-2">Plan not found</h3>
-          <button
-            onClick={() => router.push("/subscriptions")}
-            className="text-brand hover:underline"
-          >
+          <Button variant="link" onClick={() => router.push("/subscriptions")}>
             Back to Plans
-          </button>
+          </Button>
         </div>
       </DashboardLayout>
     );
   }
+
+  const hasValidMethods =
+    paymentMethodsData?.success &&
+    paymentMethodsData.data &&
+    paymentMethodsData.data.length > 0;
+
+  const canProceed =
+    selectedMethod &&
+    customerName.trim() &&
+    customerEmail.trim() &&
+    !createPaymentMutation.isPending &&
+    hasValidMethods;
 
   const monthlyPrice = displayPrice / plan.durationInMonths;
   const userLocation = plan.userLocation;
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto py-4 px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-32 lg:pb-8">
         {/* Back Button */}
         <button
           onClick={() => router.push("/subscriptions")}
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-brand transition-colors"
+          className="flex items-center gap-2 text-gray-600 hover:text-brand transition-colors mb-4 sm:mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm font-medium">Back to Plans</span>
         </button>
 
         {/* Header */}
-        <div className="bg-white border-2 border-brand/20 rounded-lg p-5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-linear-to-br from-brand to-orange-600 flex items-center justify-center shrink-0">
-              <Crown className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-gray-900 mb-1">
-                Complete Your Subscription
-              </h1>
-              <p className="text-sm text-gray-600">
-                You're upgrading to{" "}
-                <span className="font-semibold">{plan.name}</span>
-              </p>
-
-              {/* Location Badge */}
-              {userLocation &&
-                (userLocation.cityName || userLocation.currency) && (
-                  <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs">
-                    <MapPin className="w-3 h-3 text-blue-600" />
-                    <span className="text-blue-900">
-                      {userLocation.cityName && (
-                        <span className="font-medium">
-                          {userLocation.cityName}
-                        </span>
-                      )}
-                      {userLocation.cityName && userLocation.currency && (
-                        <span className="text-blue-600 mx-1">•</span>
-                      )}
-                      {userLocation.currency && (
-                        <span>Pricing in {userLocation.currency}</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-            </div>
-          </div>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+            Complete Your Subscription
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            Upgrade to{" "}
+            <span className="font-semibold text-brand">{plan.name}</span> and
+            unlock premium features!
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Form */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             {/* Plan Summary */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Crown className="w-5 h-5 text-brand" />
-                Plan Details
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg text-gray-900 mb-1">
-                    {plan.name}
-                  </h3>
+            <Card className="border-brand/20 bg-linear-to-br from-brand/5 to-orange-50/50">
+              <CardHeader className="flex flex-row items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-brand to-orange-600 flex items-center justify-center shrink-0 shadow-lg shadow-brand/20">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base sm:text-lg">
+                      {plan.name}
+                    </CardTitle>
+                    <Badge className="bg-brand/10 text-brand border-0 text-xs">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Premium
+                    </Badge>
+                  </div>
                   {plan.description && (
-                    <p className="text-sm text-gray-600">{plan.description}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                      {plan.description}
+                    </p>
                   )}
                 </div>
-
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {/* Pricing */}
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {formatCurrency(displayPrice, displayCurrency)}
                   </span>
                   <span className="text-sm text-gray-600">
@@ -209,201 +240,312 @@ export default function SubscriptionCheckoutPage() {
                 </div>
 
                 <p className="text-sm text-gray-600">
-                  Only {formatCurrency(monthlyPrice, displayCurrency)}/month
+                  Only{" "}
+                  <span className="font-semibold text-brand">
+                    {formatCurrency(monthlyPrice, displayCurrency)}
+                  </span>
+                  /month
                 </p>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="font-medium text-sm text-gray-900 mb-3">
-                    What's included:
-                  </p>
-                  <div className="space-y-2.5">
-                    {plan.features.map((feature, index) => (
-                      <div key={index} className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Customer Information */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-brand" />
-                  Customer Information
-                </h2>
-                <div className="space-y-4">
-                  <div>
-                    <Label
-                      htmlFor="customerName"
-                      className="text-sm font-medium"
-                    >
-                      Full Name <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="customerName"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="John Doe"
-                      required
-                      disabled={createPaymentMutation.isPending}
-                      className="mt-1.5"
-                    />
-                  </div>
-
-                  <div>
-                    <Label
-                      htmlFor="customerEmail"
-                      className="text-sm font-medium"
-                    >
-                      Email Address
-                    </Label>
-                    <div className="relative mt-1.5">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="customerEmail"
-                        type="email"
-                        value={user?.email || ""}
-                        disabled
-                        className="pl-10 bg-gray-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label
-                      htmlFor="customerPhone"
-                      className="text-sm font-medium"
-                    >
-                      Phone Number{" "}
-                      <span className="text-gray-500">(Optional)</span>
-                    </Label>
-                    <div className="relative mt-1.5">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="customerPhone"
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="+62 812 3456 7890"
-                        disabled={createPaymentMutation.isPending}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
+                  <CardTitle className="text-base sm:text-lg">
+                    Your Information
+                  </CardTitle>
                 </div>
-              </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="name"
+                    className="text-sm flex items-center gap-1.5"
+                  >
+                    <User className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Full Name</span>
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
+                    disabled={createPaymentMutation.isPending}
+                    required
+                  />
+                </div>
 
-              {/* Payment Method */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-brand" />
-                  Payment Method
-                </h2>
-                {paymentChannels?.success && (
-                  <PaymentMethodSelector
-                    methods={paymentChannels.data}
-                    flatMethods={paymentChannels.flat}
-                    selectedMethod={selectedPaymentMethod}
-                    onSelect={(method) => setSelectedPaymentMethod(method.code)}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="text-sm flex items-center gap-1.5"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Email</span>
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
+                    disabled={createPaymentMutation.isPending}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="phone"
+                    className="text-sm flex items-center gap-1.5"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Phone Number</span>
+                    <span className="text-gray-400 text-xs font-normal">
+                      (Optional)
+                    </span>
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Enter your phone number"
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                     disabled={createPaymentMutation.isPending}
                   />
-                )}
-              </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={
-                  !selectedPaymentMethod ||
-                  !customerName.trim() ||
-                  createPaymentMutation.isPending
-                }
-                className="w-full bg-linear-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-3.5 font-semibold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {createPaymentMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Crown className="w-5 h-5" />
-                    Complete Subscription
-                  </>
+            {/* Payment Method Selection */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
+                  <CardTitle className="text-base sm:text-lg">
+                    Payment Method
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {methodsError && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription className="text-xs sm:text-sm">
+                      Failed to load payment methods.Please refresh the page.
+                    </AlertDescription>
+                  </Alert>
                 )}
-              </button>
-            </form>
+
+                {isLoadingMethods ? (
+                  <div className="text-center py-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-brand mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Loading payment methods...
+                    </p>
+                  </div>
+                ) : hasValidMethods ? (
+                  <XenditPaymentMethodSelector
+                    methods={paymentMethodsData.data}
+                    groupedMethods={paymentMethodsData.grouped}
+                    selectedMethodId={selectedMethod?.id || null}
+                    onSelect={setSelectedMethod}
+                    disabled={createPaymentMutation.isPending}
+                  />
+                ) : (
+                  <div className="text-center py-6">
+                    <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      No payment methods available
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => window.location.reload()}
+                    >
+                      Refresh page
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Right Column - Summary */}
-          <div className="space-y-6">
-            {/* Payment Summary */}
-            {selectedPaymentMethod && feeCalculation?.success && (
-              <div className="bg-white border border-gray-200 rounded-lg p-5 sticky top-20">
-                <h3 className="font-semibold text-gray-900 mb-4 text-sm">
-                  Payment Summary
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Subscription Price</span>
-                    <span className="font-medium text-gray-900">
-                      {formatCurrency(displayPrice, displayCurrency)}
-                    </span>
-                  </div>
-
-                  {(feeCalculation.data as any).fee.customer.total > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Payment Fee</span>
-                      <span className="font-medium text-brand">
-                        +{" "}
-                        {formatCurrency(
-                          (feeCalculation.data as any).fee.customer.total,
-                          displayCurrency
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="border-t border-gray-200 pt-3 mt-3"></div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-900">
-                      Total Payment
-                    </span>
-                    <span className="font-bold text-lg text-brand">
-                      {formatCurrency(
-                        (feeCalculation.data as any).finalAmount,
-                        displayCurrency
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Security Notice */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-blue-900 mb-1">
-                    Secure Payment
+          {/* Sidebar - Fee Summary (Desktop) */}
+          <div className="hidden lg:block lg:col-span-2">
+            <div className="sticky top-20 space-y-4">
+              {/* Fee Breakdown */}
+              {selectedMethod && feeData?.success && feeData.data ? (
+                <SubscriptionFeeBreakdown
+                  calculation={feeData.data}
+                  currency={displayCurrency}
+                  planName={plan.name}
+                />
+              ) : isCalculatingFee && selectedMethod ? (
+                <FeeBreakdownSkeleton />
+              ) : (
+                <Card className="p-5">
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Payment Summary
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Select a payment method to see fee details
                   </p>
-                  <p className="text-blue-700 leading-relaxed">
-                    Your payment is processed securely through our trusted
-                    payment gateway. Your subscription will activate immediately
-                    after payment confirmation.
-                  </p>
-                </div>
-              </div>
+                </Card>
+              )}
+
+              {/* CTA Button */}
+              <Button
+                onClick={handlePayment}
+                disabled={!canProceed}
+                size="lg"
+                className="w-full h-12 text-base font-semibold bg-linear-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700"
+              >
+                {createPaymentMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </span>
+                ) : !hasValidMethods ? (
+                  "No Payment Methods Available"
+                ) : (
+                  <>
+                    <Crown className="w-5 h-5 mr-2" />
+                    Subscribe Now
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-gray-500">
+                By subscribing, you agree to our terms and conditions
+              </p>
             </div>
+          </div>
+        </div>
+
+        {/* Mobile Bottom Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 lg:hidden z-50 safe-area-bottom">
+          <div className="max-w-lg mx-auto">
+            {/* Price Summary */}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs text-gray-500">Total Payment</p>
+                <p className="text-lg font-bold text-brand">
+                  {feeData?.success && feeData.data
+                    ? formatCurrency(
+                        feeData.data.calculation.finalAmount,
+                        displayCurrency
+                      )
+                    : formatCurrency(displayPrice, displayCurrency)}
+                </p>
+              </div>
+              {selectedMethod && (
+                <Badge variant="outline" className="text-xs">
+                  {selectedMethod.name}
+                </Badge>
+              )}
+            </div>
+
+            {/* CTA Button */}
+            <Button
+              onClick={handlePayment}
+              disabled={!canProceed}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-linear-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700"
+            >
+              {createPaymentMutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Processing...
+                </span>
+              ) : !selectedMethod ? (
+                "Select Payment Method"
+              ) : !customerName.trim() || !customerEmail.trim() ? (
+                "Complete Your Information"
+              ) : (
+                <>
+                  <Crown className="w-5 h-5 mr-2" />
+                  Subscribe Now
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// Custom Fee Breakdown for Subscription
+function SubscriptionFeeBreakdown({
+  calculation,
+  currency = "IDR",
+  planName,
+}: {
+  calculation: any;
+  currency?: string;
+  planName: string;
+}) {
+  const { paymentMethod, calculation: calc } = calculation;
+
+  return (
+    <Card className="overflow-hidden">
+      {/* Header */}
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
+            <h3 className="font-semibold text-sm sm:text-base text-gray-900">
+              Payment Summary
+            </h3>
+          </div>
+          <Badge variant="secondary" className="text-xs font-medium">
+            {paymentMethod.name}
+          </Badge>
+        </div>
+      </CardHeader>
+
+      {/* Content */}
+      <CardContent className="space-y-3 pt-0">
+        {/* Plan */}
+        <div className="flex items-center justify-between text-sm sm:text-base">
+          <span className="text-gray-600">{planName}</span>
+          <span className="font-medium text-gray-900">
+            {formatCurrency(calc.baseAmount, currency)}
+          </span>
+        </div>
+
+        {/* Fee Breakdown */}
+        {calc.totalFee > 0 && (
+          <div className="flex items-center justify-between text-sm sm:text-base">
+            <span className="text-gray-600">Service Fee</span>
+            <span className="font-medium text-amber-600">
+              + {formatCurrency(calc.totalFee, currency)}
+            </span>
+          </div>
+        )}
+
+        <Separator className="my-2" />
+
+        {/* Total */}
+        <div className="flex items-center justify-between pt-1">
+          <span className="font-semibold text-sm sm:text-base text-gray-900">
+            Total
+          </span>
+          <span className="text-xl sm:text-2xl font-bold text-brand">
+            {formatCurrency(calc.finalAmount, currency)}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

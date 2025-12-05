@@ -21,6 +21,9 @@ import {
   CreditCard,
   Ticket,
   PartyPopper,
+  Crown,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { XenditPaymentInstructions } from "@/components/xendit/payment-instructions";
 import { XenditCountdownTimer } from "@/components/xendit/countdown-timer";
@@ -39,7 +42,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert } from "@/components/ui/alert";
 import confetti from "canvas-confetti";
 
-// Response type from xenditService. getTransactionDetail
+// Response type from xenditService.getTransactionDetail
 interface TransactionResponse {
   success: boolean;
   data?: XenditTransaction;
@@ -47,7 +50,13 @@ interface TransactionResponse {
 }
 
 // Success Banner Component
-function PaymentSuccessBanner({ onCelebrate }: { onCelebrate?: () => void }) {
+function PaymentSuccessBanner({
+  onCelebrate,
+  isSubscription = false,
+}: {
+  onCelebrate?: () => void;
+  isSubscription?: boolean;
+}) {
   return (
     <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-linear-to-r from-green-500 to-emerald-600 p-6 sm:p-8 text-white mb-6">
       {/* Background Pattern */}
@@ -60,17 +69,25 @@ function PaymentSuccessBanner({ onCelebrate }: { onCelebrate?: () => void }) {
         {/* Icon */}
         <div className="relative">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/20 flex items-center justify-center">
-            <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+            {isSubscription ? (
+              <Crown className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+            ) : (
+              <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+            )}
           </div>
         </div>
 
         {/* Text */}
         <div className="text-center sm:text-left flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1">
-            Payment Successful!
+            {isSubscription
+              ? "Subscription Activated!"
+              : "Payment Successful!"}
           </h1>
           <p className="text-white/90 text-sm sm:text-base">
-            Your ticket has been confirmed. See you at the event!
+            {isSubscription
+              ? "Welcome to DayLight Premium!  Enjoy all the exclusive features."
+              : "Your ticket has been confirmed.See you at the event!"}
           </p>
         </div>
 
@@ -82,10 +99,92 @@ function PaymentSuccessBanner({ onCelebrate }: { onCelebrate?: () => void }) {
           className="bg-white/20 hover:bg-white/30 text-white border-0"
         >
           <PartyPopper className="w-4 h-4 mr-2" />
-          Celebrate! 
+          Celebrate!
         </Button>
       </div>
     </div>
+  );
+}
+
+// Subscription Confirmed Card
+function SubscriptionConfirmedCard({
+  subscription,
+}: {
+  subscription: XenditTransaction["userSubscription"];
+}) {
+  if (!subscription) return null;
+
+  const plan = (subscription as any).plan;
+
+  return (
+    <Card className="border-green-200 bg-linear-to-br from-green-50/50 to-emerald-50/50">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-brand to-orange-600 flex items-center justify-center shadow-lg shadow-brand/20">
+              <Crown className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-base sm:text-lg text-gray-900">
+                Premium Subscription
+              </CardTitle>
+              <p className="text-xs text-gray-500">
+                {plan?.name || "DayLight Premium"}
+              </p>
+            </div>
+          </div>
+          <Badge className="bg-green-100 text-green-700 hover:bg-green-200">
+            <Sparkles className="w-3 h-3 mr-1" />
+            Active
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Subscription Period */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-lg p-3 border border-green-100">
+            <p className="text-xs text-gray-500 mb-1">Start Date</p>
+            <p className="font-medium text-gray-900 text-sm">
+              {subscription.startDate
+                ? format(new Date(subscription.startDate), "MMM dd, yyyy")
+                : "Immediately"}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg p-3 border border-green-100">
+            <p className="text-xs text-gray-500 mb-1">End Date</p>
+            <p className="font-medium text-gray-900 text-sm">
+              {subscription.endDate
+                ? format(new Date(subscription.endDate), "MMM dd, yyyy")
+                : "-"}
+            </p>
+          </div>
+        </div>
+
+        {/* Features */}
+        {plan?.features && plan.features.length > 0 && (
+          <div className="pt-2">
+            <p className="text-xs font-medium text-gray-700 mb-2">
+              Your Premium Benefits:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {plan.features
+                .slice(0, 4)
+                .map((feature: string, index: number) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-2 text-xs text-gray-600"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-2.5 h-2.5 text-green-600" />
+                    </div>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -107,6 +206,9 @@ export default function XenditPaymentDetailPage() {
   };
 
   const transaction: XenditTransaction | undefined = transactionResponse?.data;
+
+  // Determine if this is a subscription payment
+  const isSubscription = !!transaction?.userSubscription;
 
   // Status checks
   const isPending = transaction?.status === XenditTransactionStatus.PENDING;
@@ -170,15 +272,15 @@ export default function XenditPaymentDetailPage() {
     transactionId: isPending ? transactionId : undefined,
     enabled: isPending,
     onPaymentUpdate: () => {
-      console.log("🔄 Payment updated, refetching.. .");
+      console.log("🔄 Payment updated, refetching...");
       refetch();
     },
     onPaymentSuccess: () => {
-      console. log("✅ Payment success!");
+      console.log("✅ Payment success!");
       refetch();
     },
     onPaymentFailed: () => {
-      console. log("❌ Payment failed");
+      console.log("❌ Payment failed");
       refetch();
     },
     onPaymentExpired: () => {
@@ -189,7 +291,7 @@ export default function XenditPaymentDetailPage() {
 
   // Calculate expiry (default 30 minutes from creation)
   const expiryTime = transaction
-    ? new Date(new Date(transaction.createdAt). getTime() + 30 * 60 * 1000)
+    ? new Date(new Date(transaction.createdAt).getTime() + 30 * 60 * 1000)
     : null;
 
   // Loading state
@@ -228,9 +330,17 @@ export default function XenditPaymentDetailPage() {
     if (isPaid) {
       return {
         gradient: "from-green-500 to-emerald-600",
-        icon: <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7" />,
-        title: "Payment Successful!  🎉",
-        subtitle: "Your ticket has been confirmed",
+        icon: isSubscription ? (
+          <Crown className="w-6 h-6 sm:w-7 sm:h-7" />
+        ) : (
+          <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7" />
+        ),
+        title: isSubscription
+          ? "Subscription Activated!"
+          : "Payment Successful!",
+        subtitle: isSubscription
+          ? "Welcome to DayLight Premium"
+          : "Your ticket has been confirmed",
       };
     }
     if (isPending) {
@@ -259,20 +369,36 @@ export default function XenditPaymentDetailPage() {
 
   const statusConfig = getStatusConfig();
 
+  // Get back URL based on transaction type
+  const getBackUrl = () => {
+    if (isSubscription) return "/subscriptions";
+    return "/my-events";
+  };
+
+  const getBackLabel = () => {
+    if (isSubscription) return "Back to Subscriptions";
+    return "Back to My Events";
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-8">
         {/* Back Button */}
         <button
-          onClick={() => router.push("/my-events")}
+          onClick={() => router.push(getBackUrl())}
           className="flex items-center gap-2 text-gray-600 hover:text-brand transition-colors mb-4 sm:mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">Back to My Events</span>
+          <span className="text-sm font-medium">{getBackLabel()}</span>
         </button>
 
         {/* Success Banner - Only for paid transactions */}
-        {isPaid && <PaymentSuccessBanner onCelebrate={triggerConfetti} />}
+        {isPaid && (
+          <PaymentSuccessBanner
+            onCelebrate={triggerConfetti}
+            isSubscription={isSubscription}
+          />
+        )}
 
         {/* Connection Status - Only for pending */}
         {isPending && (
@@ -332,7 +458,7 @@ export default function XenditPaymentDetailPage() {
                   {statusConfig.icon}
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-lg sm:text-2xl font-bold mb-0. 5 sm:mb-1 leading-tight">
+                  <h1 className="text-lg sm:text-2xl font-bold mb-0.5 sm:mb-1 leading-tight">
                     {statusConfig.title}
                   </h1>
                   <p className="text-white/90 text-xs sm:text-sm">
@@ -344,7 +470,7 @@ export default function XenditPaymentDetailPage() {
               {/* Countdown Timer */}
               {isPending && expiryTime && (
                 <XenditCountdownTimer
-                  expiredAt={expiryTime. toISOString()}
+                  expiredAt={expiryTime.toISOString()}
                   onExpired={() => refetch()}
                   size="sm"
                   className="self-end sm:self-start"
@@ -361,13 +487,20 @@ export default function XenditPaymentDetailPage() {
             transaction.actions.length > 0 && (
               <XenditPaymentInstructions
                 actions={transaction.actions}
-                paymentMethodType={transaction.paymentMethod. type}
+                paymentMethodType={transaction.paymentMethod.type}
                 paymentMethodName={transaction.paymentMethod.name}
               />
             )}
 
-          {/* Ticket Confirmation Card - Only for paid */}
-          {isPaid && transaction.event && (
+          {/* Subscription Confirmation Card - Only for paid subscription */}
+          {isPaid && isSubscription && transaction.userSubscription && (
+            <SubscriptionConfirmedCard
+              subscription={transaction.userSubscription}
+            />
+          )}
+
+          {/* Ticket Confirmation Card - Only for paid event */}
+          {isPaid && !isSubscription && transaction.event && (
             <Card className="border-green-200 bg-green-50/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -391,13 +524,13 @@ export default function XenditPaymentDetailPage() {
                     {transaction.event.title}
                   </h3>
                   <Badge variant="secondary" className="mt-2 text-xs">
-                    {transaction.event. category}
+                    {transaction.event.category}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2 text-sm text-gray-600 bg-white rounded-lg p-3">
-                    <Calendar className="w-4 h-4 text-green-500 shrink-0 mt-0. 5" />
+                    <Calendar className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs text-gray-500">Date</p>
                       <p className="font-medium text-gray-900">
@@ -423,8 +556,55 @@ export default function XenditPaymentDetailPage() {
             </Card>
           )}
 
-          {/* Event Details - For non-paid statuses */}
-          {!isPaid && transaction.event && (
+          {/* Subscription Details - For non-paid subscription statuses */}
+          {!isPaid && isSubscription && transaction.userSubscription && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
+                  <CardTitle className="text-base sm:text-lg">
+                    Subscription Details
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <h3 className="font-semibold text-base sm:text-lg text-gray-900 leading-tight">
+                    {(transaction.userSubscription as any).plan?.name ||
+                      "DayLight Premium"}
+                  </h3>
+                  <Badge variant="secondary" className="mt-2 text-xs">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    {(transaction.userSubscription as any).plan
+                      ?.durationInMonths || 1}{" "}
+                    Month
+                    {((transaction.userSubscription as any).plan
+                      ?.durationInMonths || 1) > 1
+                      ? "s"
+                      : ""}
+                  </Badge>
+                </div>
+                {(transaction.userSubscription as any).plan?.features && (
+                  <div className="pt-2 space-y-2">
+                    {(transaction.userSubscription as any).plan.features
+                      .slice(0, 3)
+                      .map((feature: string, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-start gap-2 text-xs sm:text-sm text-gray-600"
+                        >
+                          <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Event Details - For non-paid event statuses */}
+          {!isPaid && !isSubscription && transaction.event && (
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -440,7 +620,7 @@ export default function XenditPaymentDetailPage() {
                     {transaction.event.title}
                   </h3>
                   <Badge variant="secondary" className="mt-2 text-xs">
-                    {transaction.event. category}
+                    {transaction.event.category}
                   </Badge>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
@@ -454,9 +634,9 @@ export default function XenditPaymentDetailPage() {
                   </span>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
-                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0. 5" />
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <span>
-                    {transaction.event.venue}, {transaction.event. city}
+                    {transaction.event.venue}, {transaction.event.city}
                   </span>
                 </div>
               </CardContent>
@@ -481,7 +661,9 @@ export default function XenditPaymentDetailPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-gray-600">Event Price</span>
+                <span className="text-gray-600">
+                  {isSubscription ? "Subscription Price" : "Event Price"}
+                </span>
                 <span className="font-medium text-gray-900">
                   {formatCurrency(
                     Number(transaction.amount),
@@ -541,12 +723,28 @@ export default function XenditPaymentDetailPage() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2. 5 sm:space-y-3 text-xs sm:text-sm">
+            <CardContent className="space-y-2.5 sm:space-y-3 text-xs sm:text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-gray-500">Transaction ID</span>
-                <code className="font-mono text-[10px] sm:text-xs bg-gray-100 px-1. 5 py-0.5 rounded truncate max-w-[150px] sm:max-w-none">
+                <code className="font-mono text-[10px] sm:text-xs bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[150px] sm:max-w-none">
                   {transaction.externalId}
                 </code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Type</span>
+                <Badge variant="outline" className="text-xs">
+                  {isSubscription ? (
+                    <>
+                      <Crown className="w-3 h-3 mr-1" />
+                      Subscription
+                    </>
+                  ) : (
+                    <>
+                      <Ticket className="w-3 h-3 mr-1" />
+                      Event
+                    </>
+                  )}
+                </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Status</span>
@@ -592,10 +790,30 @@ export default function XenditPaymentDetailPage() {
 
           {/* CTA Buttons */}
           <div className="space-y-3 pt-2 pb-4">
-            {isPaid && (
+            {isPaid && isSubscription && (
               <>
                 <Button
-                  onClick={() => router. push("/my-events")}
+                  onClick={() => router.push("/subscriptions")}
+                  size="lg"
+                  className="w-full h-11 sm:h-12 text-sm sm:text-base bg-linear-to-r from-brand to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  View My Subscription
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/events")}
+                  className="w-full h-10 sm:h-11 text-sm"
+                >
+                  Explore Premium Events
+                </Button>
+              </>
+            )}
+
+            {isPaid && !isSubscription && (
+              <>
+                <Button
+                  onClick={() => router.push("/my-events")}
                   size="lg"
                   className="w-full h-11 sm:h-12 text-sm sm:text-base"
                 >
@@ -612,13 +830,15 @@ export default function XenditPaymentDetailPage() {
               </>
             )}
 
-            {(isFailed || isExpired) && transaction.event && (
+            {(isFailed || isExpired) && (
               <Button
-                onClick={() =>
-                  router.push(
-                    `/events/${transaction. event?. slug || ""}/payment`
-                  )
-                }
+                onClick={() => {
+                  if (isSubscription) {
+                    router.push("/subscriptions");
+                  } else if (transaction.event) {
+                    router.push(`/events/${transaction.event.slug}/payment`);
+                  }
+                }}
                 size="lg"
                 className="w-full h-11 sm:h-12 text-sm sm:text-base"
               >

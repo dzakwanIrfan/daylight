@@ -1,20 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { subscriptionService } from '@/services/subscription.service';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { subscriptionService } from "@/services/subscription.service";
 import type {
   QueryUserSubscriptionsParams,
   CreateSubscriptionPaymentDto,
-} from '@/types/subscription.types';
+  CreateXenditSubscriptionPaymentDto,
+} from "@/types/subscription.types";
+import { xenditKeys } from "./use-xendit";
 
 // Query Keys
 export const subscriptionKeys = {
-  all: ['subscriptions'] as const,
-  plans: () => [...subscriptionKeys.all, 'plans'] as const,
-  plan: (id: string) => [...subscriptionKeys.all, 'plan', id] as const,
-  myActive: () => [...subscriptionKeys.all, 'my-active'] as const,
+  all: ["subscriptions"] as const,
+  plans: () => [...subscriptionKeys.all, "plans"] as const,
+  plan: (id: string) => [...subscriptionKeys.all, "plan", id] as const,
+  myActive: () => [...subscriptionKeys.all, "my-active"] as const,
   mySubscriptions: (params?: QueryUserSubscriptionsParams) =>
-    [...subscriptionKeys.all, 'my-subscriptions', params] as const,
+    [...subscriptionKeys.all, "my-subscriptions", params] as const,
   mySubscription: (id: string) =>
-    [...subscriptionKeys.all, 'my-subscription', id] as const,
+    [...subscriptionKeys.all, "my-subscription", id] as const,
 };
 
 // Get Active Plans
@@ -85,7 +87,24 @@ export function useCancelSubscription() {
   });
 }
 
-// Create Subscription Payment
+// Create Xendit Subscription Payment 
+export function useCreateXenditSubscriptionPayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: CreateXenditSubscriptionPaymentDto) =>
+      subscriptionService.createXenditSubscriptionPayment(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.myActive() });
+      queryClient.invalidateQueries({
+        queryKey: subscriptionKeys.mySubscriptions(),
+      });
+      queryClient.invalidateQueries({ queryKey: xenditKeys.transactions() });
+    },
+  });
+}
+
+// Legacy - Create Subscription Payment (Tripay - deprecated)
 export function useCreateSubscriptionPayment() {
   const queryClient = useQueryClient();
 

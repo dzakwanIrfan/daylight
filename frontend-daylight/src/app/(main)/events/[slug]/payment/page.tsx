@@ -19,7 +19,6 @@ import {
   Mail,
   Phone,
   AlertCircle,
-  Shield,
   CreditCard,
   Ticket,
 } from "lucide-react";
@@ -30,7 +29,7 @@ import {
 } from "@/components/xendit/fee-breakdown";
 import { XenditPaymentMethod, ItemType } from "@/types/xendit.types";
 import { format } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,22 +84,22 @@ export default function CreateXenditPaymentPage() {
   // Handle payment
   const handlePayment = async () => {
     if (!selectedMethod) {
-      toast.error("Pilih metode pembayaran");
+      toast.error("Please select a payment method");
       return;
     }
 
     if (!customerName.trim()) {
-      toast.error("Nama lengkap wajib diisi");
+      toast.error("Full name is required");
       return;
     }
 
     if (!customerEmail.trim()) {
-      toast.error("Email wajib diisi");
+      toast.error("Email is required");
       return;
     }
 
     if (!event) {
-      toast.error("Event tidak ditemukan");
+      toast.error("Event not found");
       return;
     }
 
@@ -115,14 +114,14 @@ export default function CreateXenditPaymentPage() {
       });
 
       if (result.success && result.data) {
-        toast.success("Pembayaran berhasil dibuat!");
+        toast.success("Payment created successfully!");
         router.push(`/payment/${result.data.transaction.id}`);
       } else {
-        toast.error(result.error || "Gagal membuat pembayaran");
+        toast.error(result.error || "Failed to create payment");
       }
     } catch (error: any) {
       console.error("Payment creation error:", error);
-      toast.error(error?.message || "Gagal membuat pembayaran");
+      toast.error(error?.message || "Failed to create payment");
     }
   };
 
@@ -134,7 +133,7 @@ export default function CreateXenditPaymentPage() {
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-brand mx-auto mb-3" />
             <p className="text-sm sm:text-base text-gray-600">
-              Memuat data pembayaran...
+              Loading payment data...
             </p>
           </div>
         </div>
@@ -148,9 +147,9 @@ export default function CreateXenditPaymentPage() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <AlertCircle className="w-12 h-12 text-gray-400 mb-3" />
-          <h3 className="text-lg font-semibold mb-2">Event tidak ditemukan</h3>
+          <h3 className="text-lg font-semibold mb-2">Event not found</h3>
           <Button variant="link" onClick={() => router.back()}>
-            Kembali
+            Go Back
           </Button>
         </div>
       </DashboardLayout>
@@ -178,16 +177,16 @@ export default function CreateXenditPaymentPage() {
           className="flex items-center gap-2 text-gray-600 hover:text-brand transition-colors mb-4 sm:mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">Kembali ke Event</span>
+          <span className="text-sm font-medium">Back to Event</span>
         </button>
 
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
-            Selesaikan Pembayaran
+            Complete Your Payment
           </h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">
-            Satu langkah lagi untuk bergabung di event ini!
+            Just one more step to join this event!
           </p>
         </div>
 
@@ -200,7 +199,7 @@ export default function CreateXenditPaymentPage() {
                 <div className="flex items-center gap-2">
                   <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
                   <CardTitle className="text-base sm:text-lg">
-                    Detail Event
+                    Event Details
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -217,8 +216,8 @@ export default function CreateXenditPaymentPage() {
                 <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
                   <Calendar className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <span>
-                    {format(new Date(event.eventDate), "EEEE, dd MMMM yyyy", {
-                      locale: idLocale,
+                    {format(new Date(event.eventDate), "EEEE, MMMM dd, yyyy", {
+                      locale: enUS,
                     })}
                   </span>
                 </div>
@@ -233,7 +232,7 @@ export default function CreateXenditPaymentPage() {
                 <Separator className="my-2 sm:my-3" />
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Harga Event</span>
+                  <span className="text-sm text-gray-600">Event Price</span>
                   <span className="font-bold text-lg sm:text-xl text-brand">
                     {formatCurrency(event.price, event.currency)}
                   </span>
@@ -247,7 +246,7 @@ export default function CreateXenditPaymentPage() {
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
                   <CardTitle className="text-base sm:text-lg">
-                    Informasi Kamu
+                    Your Information
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -258,7 +257,7 @@ export default function CreateXenditPaymentPage() {
                     className="text-sm flex items-center gap-1.5"
                   >
                     <User className="w-3.5 h-3.5 text-gray-500" />
-                    <span>Nama Lengkap</span>
+                    <span>Full Name</span>
                     <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -266,7 +265,7 @@ export default function CreateXenditPaymentPage() {
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Masukkan nama lengkap"
+                    placeholder="Enter your full name"
                     className="h-10 sm:h-11 text-sm sm:text-base"
                     required
                   />
@@ -286,7 +285,7 @@ export default function CreateXenditPaymentPage() {
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="Masukkan email"
+                    placeholder="Enter your email"
                     className="h-10 sm:h-11 text-sm sm:text-base"
                     required
                   />
@@ -298,9 +297,9 @@ export default function CreateXenditPaymentPage() {
                     className="text-sm flex items-center gap-1.5"
                   >
                     <Phone className="w-3.5 h-3.5 text-gray-500" />
-                    <span>Nomor Telepon</span>
+                    <span>Phone Number</span>
                     <span className="text-gray-400 text-xs font-normal">
-                      (Opsional)
+                      (Optional)
                     </span>
                   </Label>
                   <Input
@@ -308,7 +307,7 @@ export default function CreateXenditPaymentPage() {
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Masukkan nomor telepon"
+                    placeholder="Enter your phone number"
                     className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
@@ -321,7 +320,7 @@ export default function CreateXenditPaymentPage() {
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
                   <CardTitle className="text-base sm:text-lg">
-                    Metode Pembayaran
+                    Payment Method
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -330,7 +329,7 @@ export default function CreateXenditPaymentPage() {
                   <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="w-4 h-4" />
                     <AlertDescription className="text-xs sm:text-sm">
-                      Gagal memuat metode pembayaran. Silakan refresh halaman.
+                      Failed to load payment methods.Please refresh the page.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -339,7 +338,7 @@ export default function CreateXenditPaymentPage() {
                   <div className="text-center py-2">
                     <Loader2 className="h-6 w-6 animate-spin text-brand mx-auto mb-2" />
                     <p className="text-xs sm:text-sm text-gray-600">
-                      Memuat metode pembayaran...{" "}
+                      Loading payment methods...
                     </p>
                   </div>
                 ) : hasValidMethods ? (
@@ -354,14 +353,14 @@ export default function CreateXenditPaymentPage() {
                   <div className="text-center py-4">
                     <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                     <p className="text-sm text-gray-600 mb-2">
-                      Tidak ada metode pembayaran tersedia
+                      No payment methods available
                     </p>
                     <Button
                       variant="link"
                       size="sm"
                       onClick={() => window.location.reload()}
                     >
-                      Refresh halaman
+                      Refresh page
                     </Button>
                   </div>
                 )}
@@ -383,10 +382,10 @@ export default function CreateXenditPaymentPage() {
               ) : (
                 <Card className="p-5">
                   <h3 className="font-semibold text-gray-900 mb-2">
-                    Ringkasan Pembayaran
+                    Payment Summary
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Pilih metode pembayaran untuk melihat rincian biaya
+                    Select a payment method to see fee details
                   </p>
                 </Card>
               )}
@@ -401,17 +400,17 @@ export default function CreateXenditPaymentPage() {
                 {createPaymentMutation.isPending ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Memproses...
+                    Processing...
                   </span>
                 ) : !hasValidMethods ? (
-                  "Tidak Ada Metode Pembayaran"
+                  "No Payment Methods Available"
                 ) : (
-                  "Lanjutkan Pembayaran"
+                  "Continue to Payment"
                 )}
               </Button>
 
               <p className="text-xs text-center text-gray-500">
-                Dengan melanjutkan, kamu setuju dengan syarat dan ketentuan kami
+                By continuing, you agree to our terms and conditions
               </p>
             </div>
           </div>
@@ -423,7 +422,7 @@ export default function CreateXenditPaymentPage() {
             {/* Price Summary */}
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-xs text-gray-500">Total Pembayaran</p>
+                <p className="text-xs text-gray-500">Total Payment</p>
                 <p className="text-lg font-bold text-brand">
                   {feeData?.success && feeData.data
                     ? formatCurrency(
@@ -450,14 +449,14 @@ export default function CreateXenditPaymentPage() {
               {createPaymentMutation.isPending ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Memproses...
+                  Processing...
                 </span>
               ) : !selectedMethod ? (
-                "Pilih Metode Pembayaran"
+                "Select Payment Method"
               ) : !customerName.trim() || !customerEmail.trim() ? (
-                "Lengkapi Data Diri"
+                "Complete Your Information"
               ) : (
-                "Bayar Sekarang"
+                "Pay Now"
               )}
             </Button>
           </div>

@@ -21,8 +21,6 @@ import {
   CreditCard,
   Ticket,
   PartyPopper,
-  Download,
-  Share2,
 } from "lucide-react";
 import { XenditPaymentInstructions } from "@/components/xendit/payment-instructions";
 import { XenditCountdownTimer } from "@/components/xendit/countdown-timer";
@@ -32,16 +30,16 @@ import {
   type XenditTransaction,
 } from "@/types/xendit.types";
 import { format } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import confetti from "canvas-confetti";
 
-// Response type dari xenditService.getTransactionDetail
+// Response type from xenditService. getTransactionDetail
 interface TransactionResponse {
   success: boolean;
   data?: XenditTransaction;
@@ -69,10 +67,10 @@ function PaymentSuccessBanner({ onCelebrate }: { onCelebrate?: () => void }) {
         {/* Text */}
         <div className="text-center sm:text-left flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1">
-            Pembayaran Berhasil!
+            Payment Successful!
           </h1>
           <p className="text-white/90 text-sm sm:text-base">
-            Tiket kamu sudah dikonfirmasi. Sampai jumpa di event!
+            Your ticket has been confirmed. See you at the event!
           </p>
         </div>
 
@@ -84,7 +82,7 @@ function PaymentSuccessBanner({ onCelebrate }: { onCelebrate?: () => void }) {
           className="bg-white/20 hover:bg-white/30 text-white border-0"
         >
           <PartyPopper className="w-4 h-4 mr-2" />
-          Rayakan!
+          Celebrate! 
         </Button>
       </div>
     </div>
@@ -97,7 +95,7 @@ export default function XenditPaymentDetailPage() {
   const transactionId = params.id as string;
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
-  // Query transaction dengan explicit type
+  // Query transaction with explicit type
   const {
     data: transactionResponse,
     isLoading,
@@ -172,15 +170,15 @@ export default function XenditPaymentDetailPage() {
     transactionId: isPending ? transactionId : undefined,
     enabled: isPending,
     onPaymentUpdate: () => {
-      console.log("🔄 Payment updated, refetching...");
+      console.log("🔄 Payment updated, refetching.. .");
       refetch();
     },
     onPaymentSuccess: () => {
-      console.log("✅ Payment success!");
+      console. log("✅ Payment success!");
       refetch();
     },
     onPaymentFailed: () => {
-      console.log("❌ Payment failed");
+      console. log("❌ Payment failed");
       refetch();
     },
     onPaymentExpired: () => {
@@ -191,7 +189,7 @@ export default function XenditPaymentDetailPage() {
 
   // Calculate expiry (default 30 minutes from creation)
   const expiryTime = transaction
-    ? new Date(new Date(transaction.createdAt).getTime() + 30 * 60 * 1000)
+    ? new Date(new Date(transaction.createdAt). getTime() + 30 * 60 * 1000)
     : null;
 
   // Loading state
@@ -202,7 +200,7 @@ export default function XenditPaymentDetailPage() {
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-brand mx-auto mb-3" />
             <p className="text-sm sm:text-base text-gray-600">
-              Memuat detail pembayaran...
+              Loading payment details...
             </p>
           </div>
         </div>
@@ -216,11 +214,9 @@ export default function XenditPaymentDetailPage() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
           <AlertCircle className="w-12 h-12 text-gray-400 mb-3" />
-          <h3 className="text-lg font-semibold mb-2">
-            Transaksi tidak ditemukan
-          </h3>
+          <h3 className="text-lg font-semibold mb-2">Transaction not found</h3>
           <Button variant="link" onClick={() => router.push("/my-events")}>
-            Lihat Event Saya
+            View My Events
           </Button>
         </div>
       </DashboardLayout>
@@ -233,31 +229,31 @@ export default function XenditPaymentDetailPage() {
       return {
         gradient: "from-green-500 to-emerald-600",
         icon: <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7" />,
-        title: "Pembayaran Berhasil!  🎉",
-        subtitle: "Tiket kamu sudah dikonfirmasi",
+        title: "Payment Successful!  🎉",
+        subtitle: "Your ticket has been confirmed",
       };
     }
     if (isPending) {
       return {
         gradient: "from-brand to-orange-500",
         icon: <Clock className="w-6 h-6 sm:w-7 sm:h-7" />,
-        title: "Menunggu Pembayaran",
-        subtitle: "Selesaikan pembayaran sebelum waktu habis",
+        title: "Awaiting Payment",
+        subtitle: "Complete your payment before time runs out",
       };
     }
     if (isFailed) {
       return {
         gradient: "from-red-500 to-red-600",
         icon: <XCircle className="w-6 h-6 sm:w-7 sm:h-7" />,
-        title: "Pembayaran Gagal",
-        subtitle: "Silakan coba lagi dengan metode lain",
+        title: "Payment Failed",
+        subtitle: "Please try again with another method",
       };
     }
     return {
       gradient: "from-gray-500 to-gray-600",
       icon: <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7" />,
-      title: "Pembayaran Kadaluarsa",
-      subtitle: "Link pembayaran sudah tidak berlaku",
+      title: "Payment Expired",
+      subtitle: "Payment link is no longer valid",
     };
   };
 
@@ -272,7 +268,7 @@ export default function XenditPaymentDetailPage() {
           className="flex items-center gap-2 text-gray-600 hover:text-brand transition-colors mb-4 sm:mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">Kembali ke Event Saya</span>
+          <span className="text-sm font-medium">Back to My Events</span>
         </button>
 
         {/* Success Banner - Only for paid transactions */}
@@ -293,21 +289,21 @@ export default function XenditPaymentDetailPage() {
                 <>
                   <Wifi className="w-4 h-4" />
                   <span className="text-xs sm:text-sm">
-                    Update otomatis aktif
+                    Auto-update enabled
                   </span>
                   {isSubscribed && (
                     <Badge
                       variant="secondary"
                       className="text-[10px] bg-green-100 text-green-700"
                     >
-                      Terhubung
+                      Connected
                     </Badge>
                   )}
                 </>
               ) : (
                 <>
                   <WifiOff className="w-4 h-4" />
-                  <span className="text-xs sm:text-sm">Menghubungkan...</span>
+                  <span className="text-xs sm:text-sm">Connecting...</span>
                 </>
               )}
             </div>
@@ -336,7 +332,7 @@ export default function XenditPaymentDetailPage() {
                   {statusConfig.icon}
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-lg sm:text-2xl font-bold mb-0.5 sm:mb-1 leading-tight">
+                  <h1 className="text-lg sm:text-2xl font-bold mb-0. 5 sm:mb-1 leading-tight">
                     {statusConfig.title}
                   </h1>
                   <p className="text-white/90 text-xs sm:text-sm">
@@ -348,7 +344,7 @@ export default function XenditPaymentDetailPage() {
               {/* Countdown Timer */}
               {isPending && expiryTime && (
                 <XenditCountdownTimer
-                  expiredAt={expiryTime.toISOString()}
+                  expiredAt={expiryTime. toISOString()}
                   onExpired={() => refetch()}
                   size="sm"
                   className="self-end sm:self-start"
@@ -365,7 +361,7 @@ export default function XenditPaymentDetailPage() {
             transaction.actions.length > 0 && (
               <XenditPaymentInstructions
                 actions={transaction.actions}
-                paymentMethodType={transaction.paymentMethod.type}
+                paymentMethodType={transaction.paymentMethod. type}
                 paymentMethodName={transaction.paymentMethod.name}
               />
             )}
@@ -380,12 +376,12 @@ export default function XenditPaymentDetailPage() {
                       <Ticket className="w-4 h-4 text-green-600" />
                     </div>
                     <CardTitle className="text-base sm:text-lg text-green-800">
-                      Tiket Dikonfirmasi
+                      Ticket Confirmed
                     </CardTitle>
                   </div>
                   <Badge className="bg-green-100 text-green-700 hover:bg-green-200">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
-                    Aktif
+                    Active
                   </Badge>
                 </div>
               </CardHeader>
@@ -395,20 +391,20 @@ export default function XenditPaymentDetailPage() {
                     {transaction.event.title}
                   </h3>
                   <Badge variant="secondary" className="mt-2 text-xs">
-                    {transaction.event.category}
+                    {transaction.event. category}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2 text-sm text-gray-600 bg-white rounded-lg p-3">
-                    <Calendar className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                    <Calendar className="w-4 h-4 text-green-500 shrink-0 mt-0. 5" />
                     <div>
-                      <p className="text-xs text-gray-500">Tanggal</p>
+                      <p className="text-xs text-gray-500">Date</p>
                       <p className="font-medium text-gray-900">
                         {format(
                           new Date(transaction.event.eventDate),
-                          "EEEE, dd MMMM yyyy",
-                          { locale: idLocale }
+                          "EEEE, MMMM dd, yyyy",
+                          { locale: enUS }
                         )}
                       </p>
                     </div>
@@ -416,7 +412,7 @@ export default function XenditPaymentDetailPage() {
                   <div className="flex items-start gap-2 text-sm text-gray-600 bg-white rounded-lg p-3">
                     <MapPin className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Lokasi</p>
+                      <p className="text-xs text-gray-500">Location</p>
                       <p className="font-medium text-gray-900">
                         {transaction.event.venue}, {transaction.event.city}
                       </p>
@@ -434,7 +430,7 @@ export default function XenditPaymentDetailPage() {
                 <div className="flex items-center gap-2">
                   <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
                   <CardTitle className="text-base sm:text-lg">
-                    Detail Event
+                    Event Details
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -444,7 +440,7 @@ export default function XenditPaymentDetailPage() {
                     {transaction.event.title}
                   </h3>
                   <Badge variant="secondary" className="mt-2 text-xs">
-                    {transaction.event.category}
+                    {transaction.event. category}
                   </Badge>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
@@ -452,15 +448,15 @@ export default function XenditPaymentDetailPage() {
                   <span>
                     {format(
                       new Date(transaction.event.eventDate),
-                      "EEEE, dd MMMM yyyy",
-                      { locale: idLocale }
+                      "EEEE, MMMM dd, yyyy",
+                      { locale: enUS }
                     )}
                   </span>
                 </div>
                 <div className="flex items-start gap-2 text-xs sm:text-sm text-gray-600">
-                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0. 5" />
                   <span>
-                    {transaction.event.venue}, {transaction.event.city}
+                    {transaction.event.venue}, {transaction.event. city}
                   </span>
                 </div>
               </CardContent>
@@ -473,19 +469,19 @@ export default function XenditPaymentDetailPage() {
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-brand" />
                 <CardTitle className="text-base sm:text-lg">
-                  Ringkasan Pembayaran
+                  Payment Summary
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-gray-600">Metode Pembayaran</span>
+                <span className="text-gray-600">Payment Method</span>
                 <span className="font-medium text-gray-900">
                   {transaction.paymentMethod.name}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-gray-600">Harga Event</span>
+                <span className="text-gray-600">Event Price</span>
                 <span className="font-medium text-gray-900">
                   {formatCurrency(
                     Number(transaction.amount),
@@ -495,7 +491,7 @@ export default function XenditPaymentDetailPage() {
               </div>
               {Number(transaction.totalFee) > 0 && (
                 <div className="flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-gray-600">Biaya Layanan</span>
+                  <span className="text-gray-600">Service Fee</span>
                   <span className="font-medium text-amber-600">
                     +{" "}
                     {formatCurrency(
@@ -508,7 +504,7 @@ export default function XenditPaymentDetailPage() {
               <Separator className="my-2" />
               <div className="flex items-center justify-between pt-1">
                 <span className="font-semibold text-sm sm:text-base text-gray-900">
-                  Total Pembayaran
+                  Total Payment
                 </span>
                 <span
                   className={cn(
@@ -528,7 +524,7 @@ export default function XenditPaymentDetailPage() {
                 <div className="flex items-center justify-center gap-2 pt-3 mt-3 border-t border-green-100">
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
                   <span className="text-sm font-medium text-green-600">
-                    Pembayaran telah diterima
+                    Payment has been received
                   </span>
                 </div>
               )}
@@ -541,14 +537,14 @@ export default function XenditPaymentDetailPage() {
               <div className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                 <CardTitle className="text-sm sm:text-base font-semibold text-gray-700">
-                  Informasi Transaksi
+                  Transaction Information
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2.5 sm:space-y-3 text-xs sm:text-sm">
+            <CardContent className="space-y-2. 5 sm:space-y-3 text-xs sm:text-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-gray-500">ID Transaksi</span>
-                <code className="font-mono text-[10px] sm:text-xs bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[150px] sm:max-w-none">
+                <span className="text-gray-500">Transaction ID</span>
+                <code className="font-mono text-[10px] sm:text-xs bg-gray-100 px-1. 5 py-0.5 rounded truncate max-w-[150px] sm:max-w-none">
                   {transaction.externalId}
                 </code>
               </div>
@@ -560,39 +556,33 @@ export default function XenditPaymentDetailPage() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Dibuat Pada</span>
+                <span className="text-gray-500">Created At</span>
                 <span className="text-gray-700">
                   {format(
                     new Date(transaction.createdAt),
-                    "dd MMM yyyy, HH:mm",
-                    {
-                      locale: idLocale,
-                    }
+                    "MMM dd, yyyy, HH:mm",
+                    { locale: enUS }
                   )}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Terakhir Update</span>
+                <span className="text-gray-500">Last Updated</span>
                 <span className="text-gray-700">
                   {format(
                     new Date(transaction.updatedAt),
-                    "dd MMM yyyy, HH:mm",
-                    {
-                      locale: idLocale,
-                    }
+                    "MMM dd, yyyy, HH:mm",
+                    { locale: enUS }
                   )}
                 </span>
               </div>
               {isPaid && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Dibayar Pada</span>
+                  <span className="text-gray-500">Paid At</span>
                   <span className="text-green-600 font-medium">
                     {format(
                       new Date(transaction.updatedAt),
-                      "dd MMM yyyy, HH:mm",
-                      {
-                        locale: idLocale,
-                      }
+                      "MMM dd, yyyy, HH:mm",
+                      { locale: enUS }
                     )}
                   </span>
                 </div>
@@ -605,19 +595,19 @@ export default function XenditPaymentDetailPage() {
             {isPaid && (
               <>
                 <Button
-                  onClick={() => router.push("/my-events")}
+                  onClick={() => router. push("/my-events")}
                   size="lg"
                   className="w-full h-11 sm:h-12 text-sm sm:text-base"
                 >
                   <Ticket className="w-4 h-4 mr-2" />
-                  Lihat Event Saya
+                  View My Events
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => router.push("/events")}
                   className="w-full h-10 sm:h-11 text-sm"
                 >
-                  Jelajahi Event Lainnya
+                  Explore Other Events
                 </Button>
               </>
             )}
@@ -626,13 +616,13 @@ export default function XenditPaymentDetailPage() {
               <Button
                 onClick={() =>
                   router.push(
-                    `/events/${transaction.event?.slug || ""}/payment`
+                    `/events/${transaction. event?. slug || ""}/payment`
                   )
                 }
                 size="lg"
                 className="w-full h-11 sm:h-12 text-sm sm:text-base"
               >
-                Coba Lagi
+                Try Again
               </Button>
             )}
 

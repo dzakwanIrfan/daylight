@@ -1,7 +1,25 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Sparkles, Share2, ArrowRight, Eye } from 'lucide-react';
+import {
+  Loader2,
+  Sparkles,
+  Share2,
+  ArrowRight,
+  Eye,
+  Moon,
+  Sun,
+  Wrench,
+  Palette,
+  ClipboardList,
+  Waves,
+  Brain,
+  Heart,
+  Shield,
+  PartyPopper,
+  Coffee,
+  Gem
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image, { StaticImageData } from 'next/image';
 
@@ -38,73 +56,97 @@ const archetypeImages: Record<string, StaticImageData> = {
   PERFECT_DAY: PERFECT_DAY_IMG,
 };
 
-// Persona dimensions
+// ✅ FIXED: Persona dimensions dengan label yang AKURAT sesuai backend
+// Backend: negative score = LEFT side, positive score = RIGHT side
 const personalityDimensions = [
   {
     key: 'energy',
-    leftLabel: 'Extroverted',
-    rightLabel: 'Introverted',
-    leftIcon: '🌟',
-    rightIcon: '🌙',
+    leftLabel: 'Introverted',      // Score < 50 (negative E in backend)
+    rightLabel: 'Extroverted',     // Score > 50 (positive E in backend)
+    leftIcon: Moon,
+    rightIcon: Sun,
     description: 'How you energize and interact with the world',
   },
   {
     key: 'openness',
-    leftLabel: 'Abstract',
-    rightLabel: 'Practical',
-    leftIcon: '🎨',
-    rightIcon: '🔧',
+    leftLabel: 'Practical',        // Score < 50 (negative O in backend)
+    rightLabel: 'Abstract',        // Score > 50 (positive O in backend)
+    leftIcon: Wrench,
+    rightIcon: Palette,
     description: 'Your approach to ideas and experiences',
   },
   {
     key: 'structure',
-    leftLabel: 'Flexible',
-    rightLabel: 'Structured',
-    leftIcon: '🌊',
-    rightIcon: '📋',
+    leftLabel: 'Structured',       // Score < 50 (negative S in backend)
+    rightLabel: 'Flexible',        // Score > 50 (positive S in backend)
+    leftIcon: ClipboardList,
+    rightIcon: Waves,
     description: 'How you prefer to organize your life',
   },
   {
     key: 'affect',
-    leftLabel: 'Feeling',
-    rightLabel: 'Thinking',
-    leftIcon: '❤️',
-    rightIcon: '🧠',
+    leftLabel: 'Thinking',         // Score < 50 (negative A in backend)
+    rightLabel: 'Feeling',         // Score > 50 (positive A in backend)
+    leftIcon: Brain,
+    rightIcon: Heart,
     description: 'How you make decisions',
   },
   {
     key: 'comfort',
-    leftLabel: 'Reserved',
-    rightLabel: 'Outgoing',
-    leftIcon: '🤝',
-    rightIcon: '🎉',
-    description: 'Your comfort with new people',
+    leftLabel: 'Cautious',         // Score < 50 (low C in backend)
+    rightLabel: 'Open',            // Score > 50 (high C in backend)
+    leftIcon: Shield,
+    rightIcon: PartyPopper,
+    description: 'Your comfort with meeting new people',
   },
   {
     key: 'lifestyle',
-    leftLabel: 'Conscious',
-    rightLabel: 'Premium',
-    leftIcon: '☕',
-    rightIcon: '🍷',
-    description: 'Your lifestyle preferences',
+    leftLabel: 'Budget-Conscious',  // Score < 50 (low L in backend: tier 1)
+    rightLabel: 'Premium',          // Score > 50 (high L in backend: tier 3)
+    leftIcon: Coffee,
+    rightIcon: Gem,
+    description: 'Your lifestyle and spending preferences',
   },
 ];
 
-function getPositionLabel(score: number): 'Strong' | 'Moderate' | 'Slight' | 'Balanced' {
+// ✅ FIXED: Lebih akurat dalam menentukan strength
+function getPositionLabel(score: number): 'Very Strong' | 'Strong' | 'Moderate' | 'Slight' | 'Balanced' {
   const distance = Math.abs(score - 50);
-  if (distance < 10) return 'Balanced';
-  if (distance < 25) return 'Slight';
-  if (distance < 40) return 'Moderate';
-  return 'Strong';
+
+  if (distance < 8) return 'Balanced';      // 42-58: Balanced
+  if (distance < 20) return 'Slight';       // 30-42 or 58-70: Slight
+  if (distance < 35) return 'Moderate';     // 15-30 or 70-85: Moderate
+  if (distance < 45) return 'Strong';       // 5-15 or 85-95: Strong
+  return 'Very Strong';                     // 0-5 or 95-100: Very Strong
 }
 
 function getDominantSide(score: number, leftLabel: string, rightLabel: string) {
-  if (Math.abs(score - 50) < 10) {
-    return { side: 'Balanced', label: `${leftLabel} / ${rightLabel}` };
+  const distance = Math.abs(score - 50);
+
+  // Balanced: sangat dekat dengan 50
+  if (distance < 8) {
+    return {
+      side: 'balanced',
+      label: `Balanced ${leftLabel} / ${rightLabel}`,
+      isBalanced: true
+    };
   }
-  return score > 50
-    ? { side: 'right', label: rightLabel }
-    : { side: 'left', label: leftLabel };
+
+  // Left side: score < 50
+  if (score < 50) {
+    return {
+      side: 'left',
+      label: leftLabel,
+      isBalanced: false
+    };
+  }
+
+  // Right side: score > 50
+  return {
+    side: 'right',
+    label: rightLabel,
+    isBalanced: false
+  };
 }
 
 export function PersonalityResultView() {
@@ -293,7 +335,6 @@ export function PersonalityResultView() {
                 const scoreValue = result.scores[dimension.key as keyof typeof result.scores];
                 const dominant = getDominantSide(scoreValue, dimension.leftLabel, dimension.rightLabel);
                 const strength = getPositionLabel(scoreValue);
-                const isBalanced = strength === 'Balanced';
 
                 return (
                   <motion.div
@@ -306,7 +347,7 @@ export function PersonalityResultView() {
                     {/* Dimension Header */}
                     <div className="space-y-0">
                       <h4 className="font-bold text-lg text-center md:text-left">
-                        {!isBalanced && (
+                        {!dominant.isBalanced && (
                           <>
                             <span className="text-brand">{strength}</span>
                             {' '}
@@ -323,14 +364,14 @@ export function PersonalityResultView() {
                     <div className="space-y-3">
                       {/* Desktop View - Horizontal */}
                       <div className="hidden md:flex items-center gap-3">
-                        {/* Left Label */}
+                        {/* ✅ FIXED: Left Label - highlight when score < 45 */}
                         <div className={cn(
                           "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-w-40 justify-center",
-                          scoreValue < 40
+                          scoreValue < 45
                             ? "bg-brand/10 border-brand font-bold"
                             : "bg-muted border-border"
                         )}>
-                          <span className="text-lg">{dimension.leftIcon}</span>
+                          <dimension.leftIcon className="w-6 h-6" />
                           <span className="text-sm font-medium whitespace-nowrap">{dimension.leftLabel}</span>
                         </div>
 
@@ -349,15 +390,15 @@ export function PersonalityResultView() {
                           />
                         </div>
 
-                        {/* Right Label */}
+                        {/* ✅ FIXED: Right Label - highlight when score > 55 */}
                         <div className={cn(
                           "flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all min-w-40 justify-center",
-                          scoreValue > 60
+                          scoreValue > 55
                             ? "bg-brand/10 border-brand font-bold"
                             : "bg-muted border-border"
                         )}>
                           <span className="text-sm font-medium whitespace-nowrap">{dimension.rightLabel}</span>
-                          <span className="text-lg">{dimension.rightIcon}</span>
+                          <dimension.rightIcon className="w-6 h-6" />
                         </div>
                       </div>
 
@@ -365,24 +406,26 @@ export function PersonalityResultView() {
                       <div className="md:hidden space-y-3">
                         {/* Labels Row */}
                         <div className="flex justify-between gap-2">
+                          {/* ✅ FIXED: Left side highlight */}
                           <div className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 transition-all flex-1 justify-center",
-                            scoreValue < 40
+                            scoreValue < 45
                               ? "bg-brand/10 border-brand font-bold"
                               : "bg-muted border-border"
                           )}>
-                            <span className="text-base">{dimension.leftIcon}</span>
+                            <dimension.leftIcon className="w-4 h-4" />
                             <span className="text-xs font-medium">{dimension.leftLabel}</span>
                           </div>
 
+                          {/* ✅ FIXED: Right side highlight */}
                           <div className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 transition-all flex-1 justify-center",
-                            scoreValue > 60
+                            scoreValue > 55
                               ? "bg-brand/10 border-brand font-bold"
                               : "bg-muted border-border"
                           )}>
                             <span className="text-xs font-medium">{dimension.rightLabel}</span>
-                            <span className="text-base">{dimension.rightIcon}</span>
+                            <dimension.rightIcon className="w-4 h-4" />
                           </div>
                         </div>
 
@@ -403,10 +446,10 @@ export function PersonalityResultView() {
                       </div>
 
                       {/* Strength Indicator */}
-                      {!isBalanced && (
+                      {!dominant.isBalanced && (
                         <div className="text-center">
                           <span className="text-xs font-medium text-muted-foreground px-3 py-1 bg-muted rounded-full border border-border inline-block">
-                            {strength} preference
+                            {strength} preference • {Math.round(scoreValue)}% score
                           </span>
                         </div>
                       )}

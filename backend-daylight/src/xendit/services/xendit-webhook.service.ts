@@ -84,6 +84,7 @@ export class XenditWebhookService {
             where: { id: transaction.id },
             data: {
                 status: newStatus,
+                paidAt: new Date(),
                 updatedAt: new Date(),
             },
             include: {

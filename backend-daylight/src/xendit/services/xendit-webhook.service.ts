@@ -4,6 +4,7 @@ import { XenditWebhookPayload } from '../dto/xendit-webhook-payload.dto';
 import { TransactionStatus } from '@prisma/client';
 import { XenditPaymentGateway } from '../xendit-payment.gateway';
 import { XenditSubscriptionService } from './xendit-subscription.service';
+import { EmailService, EventEmailData, TransactionWithRelations } from 'src/email/email.service';
 
 @Injectable()
 export class XenditWebhookService {
@@ -14,6 +15,7 @@ export class XenditWebhookService {
         @Inject(forwardRef(() => XenditPaymentGateway))
         private readonly paymentGateway: XenditPaymentGateway,
         private readonly subscriptionService: XenditSubscriptionService,
+        private readonly emailService: EmailService,
     ) { }
 
     /**
@@ -35,7 +37,16 @@ export class XenditWebhookService {
                 event: true,
                 user: true,
                 actions: true,
-                userSubscription: true,
+                userSubscription: {
+                    include: {
+                        plan: true,
+                    },
+                },
+                paymentMethod: {
+                    include: {
+                        country: true,
+                    },
+                },
             },
         });
 
@@ -47,11 +58,15 @@ export class XenditWebhookService {
         }
 
         // Update transaction status berdasarkan event
-        await this.updateTransactionStatus(transaction, event, data);
+        await this.updateTransactionStatus(
+            transaction as TransactionWithRelations,
+            event,
+            data,
+        );
     }
 
     private async updateTransactionStatus(
-        transaction: any,
+        transaction: TransactionWithRelations,
         event: string,
         data: any,
     ): Promise<void> {
@@ -84,11 +99,18 @@ export class XenditWebhookService {
             where: { id: transaction.id },
             data: {
                 status: newStatus,
-                paidAt: new Date(),
+                paidAt: newStatus === TransactionStatus.PAID ? new Date() : undefined,
                 updatedAt: new Date(),
             },
             include: {
                 event: true,
+                user: true,
+                actions: true,
+                paymentMethod: {
+                    include: {
+                        country: true,
+                    },
+                },
                 userSubscription: {
                     include: {
                         plan: true,
@@ -103,12 +125,94 @@ export class XenditWebhookService {
             newStatus,
         });
 
+        // Send email notification based on status
+        await this.sendEmailNotification(
+            updatedTransaction as TransactionWithRelations,
+            newStatus,
+        );
+
         // Emit WebSocket event
-        this.emitPaymentStatusUpdate(updatedTransaction, newStatus);
+        this.emitPaymentStatusUpdate(
+            updatedTransaction as TransactionWithRelations,
+            newStatus,
+        );
+    }
+
+    /**
+     * Send email notification based on transaction status
+     */
+    private async sendEmailNotification(
+        transaction: TransactionWithRelations,
+        status: TransactionStatus,
+    ): Promise<void> {
+        try {
+            // For event transactions
+            if (transaction.event) {
+                const eventEmailData: EventEmailData = {
+                    id: transaction.event.id,
+                    title: transaction.event.title,
+                    slug: transaction.event.slug,
+                    eventDate: transaction.event.eventDate,
+                    startTime: transaction.event.startTime,
+                    endTime: transaction.event.endTime,
+                    venue: transaction.event.venue,
+                    address: transaction.event.address,
+                    city: transaction.event.city,
+                    googleMapsUrl: transaction.event.googleMapsUrl,
+                    requirements: transaction.event.requirements,
+                };
+
+                switch (status) {
+                    case TransactionStatus.PAID:
+                        await this.emailService.sendPaymentSuccessEmail(
+                            transaction,
+                            eventEmailData,
+                        );
+                        await this.emailService.sendTransactionNotificationToAdmin(
+                            transaction,
+                        );
+                        break;
+
+                    case TransactionStatus.FAILED:
+                        await this.emailService.sendPaymentFailedEmail(
+                            transaction,
+                            eventEmailData,
+                        );
+                        break;
+
+                    case TransactionStatus.EXPIRED:
+                        await this.emailService.sendPaymentExpiredEmail(
+                            transaction,
+                            eventEmailData,
+                        );
+                        break;
+                }
+            }
+
+            // For subscription transactions
+            if (transaction.userSubscription && status === TransactionStatus.PAID) {
+                await this.emailService.sendSubscriptionPaymentSuccessEmail(
+                    transaction,
+                );
+                await this.emailService.sendTransactionNotificationToAdmin(transaction);
+            }
+
+            this.logger.log('Email notification sent', {
+                transactionId: transaction.id,
+                status,
+                type: transaction.transactionType,
+            });
+        } catch (error) {
+            this.logger.error('Failed to send email notification', {
+                transactionId: transaction.id,
+                error: error.message,
+            });
+            // Do not throw - email failure should not affect webhook processing
+        }
     }
 
     private emitPaymentStatusUpdate(
-        transaction: any,
+        transaction: TransactionWithRelations,
         newStatus: TransactionStatus,
     ): void {
         const eventData = {
@@ -146,7 +250,9 @@ export class XenditWebhookService {
         }
     }
 
-    private async handleSuccessfulPayment(transaction: any): Promise<void> {
+    private async handleSuccessfulPayment(
+        transaction: TransactionWithRelations,
+    ): Promise<void> {
         // Jika ada event, update currentParticipants
         if (transaction.eventId) {
             await this.prismaService.event.update({
@@ -171,7 +277,9 @@ export class XenditWebhookService {
         }
     }
 
-    private async handleFailedPayment(transaction: any): Promise<void> {
+    private async handleFailedPayment(
+        transaction: TransactionWithRelations,
+    ): Promise<void> {
         // Cancel subscription jika ada
         if (transaction.userSubscription) {
             await this.prismaService.userSubscription.update({
@@ -191,7 +299,9 @@ export class XenditWebhookService {
         }
     }
 
-    private async handleExpiredPayment(transaction: any): Promise<void> {
+    private async handleExpiredPayment(
+        transaction: TransactionWithRelations,
+    ): Promise<void> {
         // Cancel subscription jika ada
         if (transaction.userSubscription) {
             await this.prismaService.userSubscription.update({

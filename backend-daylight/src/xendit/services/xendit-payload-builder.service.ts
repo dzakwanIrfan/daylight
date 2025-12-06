@@ -18,7 +18,7 @@ export interface PaymentPayloadOptions {
 
 @Injectable()
 export class XenditPayloadBuilderService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   private generateReferenceId(userId: string): string {
     return `DL-${userId}-${Date.now()}`;

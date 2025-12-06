@@ -11,9 +11,10 @@ import { XenditSubscriptionService } from './services/xendit-subscription.servic
 import { XenditTransactionService } from './services/xendit-transaction.service';
 import { XenditWebhookService } from './services/xendit-webhook.service';
 import { XenditPaymentService } from './services/xendit-payment.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [JwtModule],
+  imports: [JwtModule, EmailModule],
   controllers: [XenditController],
   providers: [
     XenditService,

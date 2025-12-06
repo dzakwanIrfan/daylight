@@ -28,6 +28,7 @@ import {
     PaymentAction,
 } from '../dto/payment-response.dto';
 import { XenditSubscriptionService } from './xendit-subscription.service';
+import { EmailService, EventEmailData, TransactionWithRelations } from 'src/email/email.service';
 
 @Injectable()
 export class XenditPaymentService {
@@ -40,6 +41,7 @@ export class XenditPaymentService {
         private readonly payloadBuilder: XenditPayloadBuilderService,
         private readonly responseParser: XenditResponseParserService,
         private readonly subscriptionService: XenditSubscriptionService,
+        private readonly emailService: EmailService,
     ) { }
 
     async createXenditPayment(
@@ -49,10 +51,12 @@ export class XenditPaymentService {
         // 1. Validasi dan ambil item (Event atau Subscription)
         const item = await this.getItemByType(data.type, data.itemId);
         let amount: number;
+        let eventData: Event | null = null;
 
         // Tentukan amount berdasarkan tipe item
         if (data.type === ItemType.EVENT) {
-            amount = (item as Event).price;
+            eventData = item as Event;
+            amount = eventData.price;
         } else if (data.type === ItemType.SUBSCRIPTION) {
             // Untuk subscription, ambil harga berdasarkan country user
             const userWithLocation = await this.prismaService.user.findUnique({
@@ -158,7 +162,12 @@ export class XenditPaymentService {
             finalAmount: feeCalculation.feeInfo!.finalAmount.toNumber(),
         });
 
-        // 9. Return response
+        // 9. Send pending payment email for EVENT transactions
+        if (data.type === ItemType.EVENT && eventData) {
+            await this.sendPendingPaymentEmail(transaction, eventData);
+        }
+
+        // 10. Return response
         return {
             transaction: {
                 id: transaction.id,
@@ -180,6 +189,73 @@ export class XenditPaymentService {
             },
             xenditResponse,
         };
+    }
+
+    /**
+     * Send pending payment email after transaction created
+     */
+    private async sendPendingPaymentEmail(
+        transaction: any,
+        event: Event,
+    ): Promise<void> {
+        try {
+            // Fetch full transaction with relations for email
+            const fullTransaction = await this.prismaService.transaction.findUnique({
+                where: { id: transaction.id },
+                include: {
+                    user: true,
+                    event: true,
+                    paymentMethod: {
+                        include: {
+                            country: true,
+                        },
+                    },
+                    actions: true,
+                    userSubscription: {
+                        include: {
+                            plan: true,
+                        },
+                    },
+                },
+            });
+
+            if (!fullTransaction) {
+                this.logger.warn('Transaction not found for email', {
+                    transactionId: transaction.id,
+                });
+                return;
+            }
+
+            const eventEmailData: EventEmailData = {
+                id: event.id,
+                title: event.title,
+                slug: event.slug,
+                eventDate: event.eventDate,
+                startTime: event.startTime,
+                endTime: event.endTime,
+                venue: event.venue,
+                address: event.address,
+                city: event.city,
+                googleMapsUrl: event.googleMapsUrl,
+                requirements: event.requirements,
+            };
+
+            await this.emailService.sendPaymentPendingEmail(
+                fullTransaction as TransactionWithRelations,
+                eventEmailData,
+            );
+
+            this.logger.log('Pending payment email sent', {
+                transactionId: transaction.id,
+                userEmail: fullTransaction.user.email,
+            });
+        } catch (error) {
+            // Log error but do not throw - email failure should not affect payment creation
+            this.logger.error('Failed to send pending payment email', {
+                transactionId: transaction.id,
+                error: error.message,
+            });
+        }
     }
 
     private async getItemByType(

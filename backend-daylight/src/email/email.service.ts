@@ -1,6 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import {
+  Transaction,
+  Event,
+  User,
+  PaymentMethod,
+  TransactionAction,
+  UserSubscription,
+  SubscriptionPlan,
+} from '@prisma/client';
+
+// Type definitions for email service
+export interface TransactionWithRelations extends Transaction {
+  user: User;
+  event?: Event | null;
+  paymentMethod?: PaymentMethod | null;
+  actions?: TransactionAction[];
+  userSubscription?: (UserSubscription & { plan: SubscriptionPlan }) | null;
+}
+
+export interface EventEmailData {
+  id: string;
+  title: string;
+  slug: string;
+  eventDate: Date;
+  startTime: Date;
+  endTime: Date;
+  venue: string;
+  address: string;
+  city: string;
+  googleMapsUrl?: string | null;
+  requirements?: string[];
+}
 
 @Injectable()
 export class EmailService {
@@ -20,7 +52,7 @@ export class EmailService {
 
   private getEmailTemplate(content: string): string {
     return `
-      <!DOCTYPE html>
+      <! DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
@@ -61,7 +93,7 @@ export class EmailService {
           .email-body {
             padding: 40px;
           }
-          .greeting {
+          . greeting {
             font-size: 18px;
             font-weight: 600;
             color: #1a1a1a;
@@ -116,7 +148,7 @@ export class EmailService {
             padding: 24px;
             margin: 24px 0;
           }
-          .info-box-title {
+          . info-box-title {
             font-size: 16px;
             font-weight: 600;
             color: #1a1a1a;
@@ -130,7 +162,7 @@ export class EmailService {
             padding: 12px 0;
             border-bottom: 1px solid #e5e5e5;
           }
-          .info-row:last-child {
+          . info-row:last-child {
             border-bottom: none;
           }
           .info-label {
@@ -253,9 +285,9 @@ export class EmailService {
           </div>
           ${content}
           <div class="email-footer">
-            <p class="footer-text">© 2025 DayLight. All rights reserved.</p>
+            <p class="footer-text">2025 DayLight.  All rights reserved.</p>
             <p class="footer-text">
-              Need help? Contact us at <a href="mailto:support@daylight.com" class="footer-link">support@daylight.com</a>
+              Need help? Contact us at <a href="mailto:support@daylight. com" class="footer-link">support@daylight.com</a>
             </p>
           </div>
         </div>
@@ -264,13 +296,87 @@ export class EmailService {
     `;
   }
 
+  /**
+   * Format currency based on currency code
+   */
+  private formatCurrency(amount: number, currency: string = 'IDR'): string {
+    const localeMap: Record<string, string> = {
+      IDR: 'id-ID',
+      USD: 'en-US',
+      SGD: 'en-SG',
+      MYR: 'ms-MY',
+      PHP: 'en-PH',
+      THB: 'th-TH',
+      VND: 'vi-VN',
+    };
+
+    const locale = localeMap[currency] || 'en-US';
+
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
+
+  /**
+   * Format date with timezone support
+   */
+  private formatDate(date: Date, timezone: string = 'Asia/Jakarta'): string {
+    return new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: timezone,
+    }).format(new Date(date));
+  }
+
+  /**
+   * Format time only
+   */
+  private formatTime(date: Date, timezone: string = 'Asia/Jakarta'): string {
+    return new Intl.DateTimeFormat('en-US', {
+      timeStyle: 'short',
+      timeZone: timezone,
+    }).format(new Date(date));
+  }
+
+  /**
+   * Extract payment code from transaction actions
+   */
+  private extractPaymentCode(actions?: TransactionAction[]): string | null {
+    if (!actions || actions.length === 0) return null;
+
+    const paymentAction = actions.find(
+      (action) =>
+        action.descriptor === 'PAYMENT_CODE' ||
+        action.descriptor === 'VIRTUAL_ACCOUNT_NUMBER',
+    );
+
+    return paymentAction?.value || null;
+  }
+
+  /**
+   * Extract payment URL from transaction actions
+   */
+  private extractPaymentUrl(actions?: TransactionAction[]): string | null {
+    if (!actions || actions.length === 0) return null;
+
+    const urlAction = actions.find(
+      (action) =>
+        action.descriptor === 'WEB_URL' || action.descriptor === 'DEEPLINK_URL',
+    );
+
+    return urlAction?.value || null;
+  }
+
   async sendVerificationEmail(email: string, token: string, name: string) {
-    const verificationUrl = `${this.configService.get('FRONTEND_URL')}/auth/verify-email?token=${token}`;
-    
+    const verificationUrl = `${this.configService.get('FRONTEND_URL')}/auth/verify-email? token=${token}`;
+
     const content = `
       <div class="email-body">
         <h2 class="greeting">Hello ${name},</h2>
-        <p class="text">Thank you for registering with DayLight. We're excited to have you join our community.</p>
+        <p class="text">Thank you for registering with DayLight. We are excited to have you join our community. </p>
         <p class="text">To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
         
         <div class="button-container">
@@ -278,17 +384,17 @@ export class EmailService {
         </div>
 
         <div class="link-fallback">
-          <p class="link-fallback-text">If the button doesn't work, copy and paste this link into your browser:</p>
+          <p class="link-fallback-text">If the button does not work, copy and paste this link into your browser:</p>
           <a href="${verificationUrl}" class="link">${verificationUrl}</a>
         </div>
 
         <div class="alert-box alert-info">
-          <strong>Important:</strong> This verification link will expire in 24 hours for security purposes.
+          <strong>Important:</strong> This verification link will expire in 24 hours for security purposes. 
         </div>
 
         <div class="divider"></div>
 
-        <p class="text" style="font-size: 13px; color: #999;">If you didn't create an account with DayLight, please disregard this email.</p>
+        <p class="text" style="font-size: 13px; color: #999;">If you did not create an account with DayLight, please disregard this email. </p>
       </div>
     `;
 
@@ -302,11 +408,11 @@ export class EmailService {
 
   async sendResetPasswordEmail(email: string, token: string, name: string) {
     const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/reset-password?token=${token}`;
-    
+
     const content = `
       <div class="email-body">
         <h2 class="greeting">Hello ${name},</h2>
-        <p class="text">We received a request to reset your password for your DayLight account.</p>
+        <p class="text">We received a request to reset your password for your DayLight account. </p>
         <p class="text">To create a new password, click the button below:</p>
         
         <div class="button-container">
@@ -314,17 +420,17 @@ export class EmailService {
         </div>
 
         <div class="link-fallback">
-          <p class="link-fallback-text">If the button doesn't work, copy and paste this link into your browser:</p>
+          <p class="link-fallback-text">If the button does not work, copy and paste this link into your browser:</p>
           <a href="${resetUrl}" class="link">${resetUrl}</a>
         </div>
 
         <div class="alert-box alert-warning">
-          <strong>Security Notice:</strong> This password reset link will expire in 1 hour.
+          <strong>Security Notice:</strong> This password reset link will expire in 1 hour. 
         </div>
 
         <div class="divider"></div>
 
-        <p class="text" style="font-size: 13px; color: #999;">If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
+        <p class="text" style="font-size: 13px; color: #999;">If you did not request a password reset, please ignore this email.  Your password will remain unchanged.</p>
       </div>
     `;
 
@@ -340,7 +446,7 @@ export class EmailService {
     const content = `
       <div class="email-body">
         <h2 class="greeting">Welcome to DayLight, ${name}!</h2>
-        <p class="text">Your email has been successfully verified. We're thrilled to have you as part of our community.</p>
+        <p class="text">Your email has been successfully verified. We are thrilled to have you as part of our community. </p>
         
         <div class="info-box">
           <h3 class="info-box-title">Your Persona Profile</h3>
@@ -351,10 +457,10 @@ export class EmailService {
         </div>
 
         <div class="alert-box alert-success">
-          <strong>Assessment Complete:</strong> You've completed your persona assessment. We'll use this to connect you with like-minded individuals at DayLight gatherings.
+          <strong>Assessment Complete:</strong> You have completed your persona assessment. We will use this to connect you with like-minded individuals at DayLight gatherings.
         </div>
 
-        <p class="text">Get ready to experience meaningful connections and discover new friendships at your next DayLight event.</p>
+        <p class="text">Get ready to experience meaningful connections and discover new friendships at your next DayLight event. </p>
 
         <div class="button-container">
           <a href="${this.configService.get('FRONTEND_URL')}/events" class="button">Explore Events</a>
@@ -370,28 +476,21 @@ export class EmailService {
     });
   }
 
-  // PAYMENT NOTIFICATION EMAILS
+  // PAYMENT NOTIFICATION EMAILS (Xendit Integration)
 
-  async sendPaymentCreatedEmail(
-    email: string,
-    name: string,
-    transaction: any,
-    event: any,
+  /**
+   * Send payment pending notification email
+   */
+  async sendPaymentPendingEmail(
+    transaction: TransactionWithRelations,
+    event: EventEmailData,
   ) {
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-      }).format(amount);
-    };
-
-    const formatDate = (date: Date) => {
-      return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'full',
-        timeStyle: 'short',
-      }).format(new Date(date));
-    };
+    const user = transaction.user;
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const currency = transaction.paymentMethod?.currency || 'IDR';
+    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
+    const paymentCode = this.extractPaymentCode(transaction.actions);
+    const paymentUrl = this.extractPaymentUrl(transaction.actions) || transaction.paymentUrl;
 
     const content = `
       <div class="email-body">
@@ -405,8 +504,8 @@ export class EmailService {
             <span class="info-value">${event.title}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Date & Time: </span>
-            <span class="info-value">${formatDate(event.eventDate)}</span>
+            <span class="info-label">Date and Time: </span>
+            <span class="info-value">${this.formatDate(event.eventDate)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Location: </span>
@@ -417,37 +516,41 @@ export class EmailService {
         <div class="info-box">
           <h3 class="info-box-title">Payment Details</h3>
           <div class="info-row">
-            <span class="info-label">Invoice Number: </span>
-            <span class="info-value">${transaction.merchantRef}</span>
+            <span class="info-label">Transaction ID: </span>
+            <span class="info-value">${transaction.externalId}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Payment Method: </span>
-            <span class="info-value">${transaction.paymentName}</span>
+            <span class="info-value">${paymentMethodName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Subtotal: </span>
+            <span class="info-value">${this.formatCurrency(transaction.amount.toNumber(), currency)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Transaction Fee: </span>
+            <span class="info-value">${this.formatCurrency(transaction.totalFee.toNumber(), currency)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Total Amount: </span>
-            <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Payment Expires: </span>
-            <span class="info-value">${formatDate(transaction.expiredAt)}</span>
+            <span class="info-value">${this.formatCurrency(transaction.finalAmount.toNumber(), currency)}</span>
           </div>
         </div>
 
-        ${transaction.payCode ? `
+        ${paymentCode ? `
         <div class="payment-code-box">
           <p class="payment-code-label">Payment Code</p>
-          <div class="payment-code">${transaction.payCode}</div>
+          <div class="payment-code">${paymentCode}</div>
         </div>
         ` : ''}
 
         <div class="alert-box alert-warning">
-          <strong>Action Required:</strong> Please complete your payment before ${formatDate(transaction.expiredAt)} to secure your spot at this event.
+          <strong>Action Required:</strong> Please complete your payment as soon as possible to secure your spot at this event.
         </div>
 
-        ${transaction.checkoutUrl ? `
+        ${paymentUrl ? `
         <div class="button-container">
-          <a href="${transaction.checkoutUrl}" class="button">Complete Payment</a>
+          <a href="${paymentUrl}" class="button">Complete Payment</a>
         </div>
         ` : ''}
       </div>
@@ -455,40 +558,31 @@ export class EmailService {
 
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
-      to: email,
+      to: user.email,
       subject: `Payment Pending - ${event.title}`,
       html: this.getEmailTemplate(content),
     });
   }
 
+  /**
+   * Send payment success notification email
+   */
   async sendPaymentSuccessEmail(
-    email: string,
-    name: string,
-    transaction: any,
-    event: any,
+    transaction: TransactionWithRelations,
+    event: EventEmailData,
   ) {
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-      }).format(amount);
-    };
-
-    const formatDate = (date: Date) => {
-      return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'full',
-        timeStyle: 'short',
-      }).format(new Date(date));
-    };
+    const user = transaction.user;
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const currency = transaction.paymentMethod?.currency || 'IDR';
+    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
 
     const content = `
       <div class="email-body">
         <h2 class="greeting">Hello ${name},</h2>
-        <p class="text">Great news! Your payment has been successfully processed. You're all set for <strong>${event.title}</strong>.</p>
+        <p class="text">Great news! Your payment has been successfully processed.  You are all set for <strong>${event.title}</strong>.</p>
         
         <div class="alert-box alert-success">
-          <strong>Registration Confirmed:</strong> Your spot at this event has been secured.
+          <strong>Registration Confirmed:</strong> Your spot at this event has been secured. 
         </div>
 
         <div class="info-box">
@@ -498,8 +592,8 @@ export class EmailService {
             <span class="info-value">${event.title}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Date & Time: </span>
-            <span class="info-value">${formatDate(event.eventDate)}</span>
+            <span class="info-label">Date and Time: </span>
+            <span class="info-value">${this.formatDate(event.eventDate)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Location: </span>
@@ -510,20 +604,20 @@ export class EmailService {
         <div class="info-box">
           <h3 class="info-box-title">Payment Summary</h3>
           <div class="info-row">
-            <span class="info-label">Invoice Number: </span>
-            <span class="info-value">${transaction.merchantRef}</span>
+            <span class="info-label">Transaction ID: </span>
+            <span class="info-value">${transaction.externalId}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Payment Method: </span>
-            <span class="info-value">${transaction.paymentName}</span>
+            <span class="info-value">${paymentMethodName}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Amount Paid: </span>
-            <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
+            <span class="info-value">${this.formatCurrency(transaction.finalAmount.toNumber(), currency)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Payment Date: </span>
-            <span class="info-value">${formatDate(transaction.paidAt)}</span>
+            <span class="info-value">${this.formatDate(transaction.paidAt || new Date())}</span>
           </div>
         </div>
 
@@ -533,10 +627,10 @@ export class EmailService {
 
         <div class="divider"></div>
 
-        <p class="text"><strong>What's Next?</strong></p>
+        <p class="text"><strong>What is Next?</strong></p>
         <ul class="list">
-          <li class="list-item">Mark your calendar for ${formatDate(event.eventDate)}</li>
-          <li class="list-item">You'll receive event details and reminders closer to the date</li>
+          <li class="list-item">Mark your calendar for ${this.formatDate(event.eventDate)}</li>
+          <li class="list-item">You will receive event details and reminders closer to the date</li>
           <li class="list-item">Check your DayLight dashboard for updates and announcements</li>
         </ul>
       </div>
@@ -544,28 +638,32 @@ export class EmailService {
 
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
-      to: email,
+      to: user.email,
       subject: `Payment Successful - ${event.title}`,
       html: this.getEmailTemplate(content),
     });
   }
 
+  /**
+   * Send payment expired notification email
+   */
   async sendPaymentExpiredEmail(
-    email: string,
-    name: string,
-    transaction: any,
-    event: any,
+    transaction: TransactionWithRelations,
+    event: EventEmailData,
   ) {
+    const user = transaction.user;
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+
     const content = `
       <div class="email-body">
         <h2 class="greeting">Hello ${name},</h2>
-        <p class="text">Your payment for <strong>${event.title}</strong> has expired.</p>
+        <p class="text">Your payment for <strong>${event.title}</strong> has expired. </p>
         
         <div class="alert-box alert-warning">
-          <strong>Payment Expired:</strong> Invoice #${transaction.merchantRef} is no longer valid and cannot be processed.
+          <strong>Payment Expired:</strong> Transaction ${transaction.externalId} is no longer valid and cannot be processed.
         </div>
 
-        <p class="text">Don't worry! You can still attend this event by creating a new booking. Simply visit the event page and complete a new registration.</p>
+        <p class="text">Do not worry! You can still attend this event by creating a new booking. Simply visit the event page and complete a new registration.</p>
 
         <div class="button-container">
           <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">Book Again</a>
@@ -573,31 +671,35 @@ export class EmailService {
 
         <div class="divider"></div>
 
-        <p class="text" style="font-size: 13px; color: #999;">If you have any questions or need assistance, please don't hesitate to reach out to our support team.</p>
+        <p class="text" style="font-size: 13px; color: #999;">If you have any questions or need assistance, please do not hesitate to reach out to our support team.</p>
       </div>
     `;
 
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
-      to: email,
+      to: user.email,
       subject: `Payment Expired - ${event.title}`,
       html: this.getEmailTemplate(content),
     });
   }
 
+  /**
+   * Send payment failed notification email
+   */
   async sendPaymentFailedEmail(
-    email: string,
-    name: string,
-    transaction: any,
-    event: any,
+    transaction: TransactionWithRelations,
+    event: EventEmailData,
   ) {
+    const user = transaction.user;
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+
     const content = `
       <div class="email-body">
         <h2 class="greeting">Hello ${name},</h2>
-        <p class="text">We're sorry, but your payment for <strong>${event.title}</strong> could not be processed.</p>
+        <p class="text">We are sorry, but your payment for <strong>${event.title}</strong> could not be processed. </p>
         
         <div class="alert-box alert-error">
-          <strong>Payment Failed:</strong> Invoice #${transaction.merchantRef} was not successfully processed.
+          <strong>Payment Failed:</strong> Transaction ${transaction.externalId} was not successfully processed.
         </div>
 
         <p class="text"><strong>What You Can Do:</strong></p>
@@ -614,14 +716,94 @@ export class EmailService {
 
         <div class="divider"></div>
 
-        <p class="text" style="font-size: 13px; color: #999;">We're here to help. If you continue experiencing issues, please contact our support team and we'll assist you with your booking.</p>
+        <p class="text" style="font-size: 13px; color: #999;">We are here to help.  If you continue experiencing issues, please contact our support team and we will assist you with your booking.</p>
       </div>
     `;
 
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
-      to: email,
+      to: user.email,
       subject: `Payment Failed - ${event.title}`,
+      html: this.getEmailTemplate(content),
+    });
+  }
+
+  /**
+   * Send subscription payment success email
+   */
+  async sendSubscriptionPaymentSuccessEmail(
+    transaction: TransactionWithRelations,
+  ) {
+    const user = transaction.user;
+    const subscription = transaction.userSubscription;
+
+    if (!subscription) {
+      throw new Error('Subscription data is required for subscription payment email');
+    }
+
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const currency = transaction.paymentMethod?.currency || 'IDR';
+    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
+
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">Your subscription payment has been successfully processed.  Welcome to DayLight Premium!</p>
+        
+        <div class="alert-box alert-success">
+          <strong>Subscription Activated:</strong> You now have access to all premium features.
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Subscription Details</h3>
+          <div class="info-row">
+            <span class="info-label">Plan: </span>
+            <span class="info-value">${subscription.plan.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Duration: </span>
+            <span class="info-value">${subscription.plan.durationInMonths} Month(s)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Start Date: </span>
+            <span class="info-value">${subscription.startDate ? this.formatDate(subscription.startDate) : 'Immediately'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">End Date: </span>
+            <span class="info-value">${subscription.endDate ? this.formatDate(subscription.endDate) : 'N/A'}</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Payment Summary</h3>
+          <div class="info-row">
+            <span class="info-label">Transaction ID: </span>
+            <span class="info-value">${transaction.externalId}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Payment Method: </span>
+            <span class="info-value">${paymentMethodName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Amount Paid: </span>
+            <span class="info-value">${this.formatCurrency(transaction.finalAmount.toNumber(), currency)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Payment Date: </span>
+            <span class="info-value">${this.formatDate(transaction.paidAt || new Date())}</span>
+          </div>
+        </div>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/dashboard" class="button">Go to Dashboard</a>
+        </div>
+      </div>
+    `;
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: user.email,
+      subject: `Subscription Activated - ${subscription.plan.name}`,
       html: this.getEmailTemplate(content),
     });
   }
@@ -630,37 +812,24 @@ export class EmailService {
    * Send transaction notification to admin
    */
   async sendTransactionNotificationToAdmin(
-    transaction: any,
-    event: any | null,
-    subscription: any | null,
+    transaction: TransactionWithRelations,
   ) {
     const adminEmail = this.configService.get('ADMIN_EMAIL') || 'contact@himgroup.asia';
-
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-      }).format(amount);
-    };
-
-    const formatDate = (date: Date) => {
-      return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'full',
-        timeStyle: 'short',
-      }).format(new Date(date));
-    };
+    const currency = transaction.paymentMethod?.currency || 'IDR';
+    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
 
     const transactionType = transaction.transactionType === 'EVENT' ? 'Event Registration' : 'Subscription';
-    const itemName = event?.title || subscription?.plan?.name || 'N/A';
+    const itemName = transaction.event?.title || transaction.userSubscription?.plan?.name || 'N/A';
+
+    const userName = `${transaction.user.firstName || ''} ${transaction.user.lastName || ''}`.trim() || 'N/A';
 
     const content = `
       <div class="email-body">
         <h2 class="greeting">New Transaction Alert</h2>
         <p class="text">A new transaction has been created on DayLight platform.</p>
         
-        <div class="alert-box ${transaction.paymentStatus === 'PAID' ? 'alert-success' : 'alert-warning'}">
-          <strong>Status:</strong> ${transaction.paymentStatus}
+        <div class="alert-box ${transaction.status === 'PAID' ? 'alert-success' : 'alert-warning'}">
+          <strong>Status:</strong> ${transaction.status}
         </div>
 
         <div class="info-box">
@@ -670,8 +839,8 @@ export class EmailService {
             <span class="info-value">${transaction.id}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Invoice Number:</span>
-            <span class="info-value">${transaction.merchantRef}</span>
+            <span class="info-label">External ID:</span>
+            <span class="info-value">${transaction.externalId}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Transaction Type:</span>
@@ -682,20 +851,24 @@ export class EmailService {
             <span class="info-value">${itemName}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Amount:</span>
-            <span class="info-value">${formatCurrency(transaction.amount)}</span>
+            <span class="info-label">Base Amount:</span>
+            <span class="info-value">${this.formatCurrency(transaction.amount.toNumber(), currency)}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Total (with fees):</span>
-            <span class="info-value">${formatCurrency(transaction.amount + transaction.feeCustomer)}</span>
+            <span class="info-label">Fee:</span>
+            <span class="info-value">${this.formatCurrency(transaction.totalFee.toNumber(), currency)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Total Amount:</span>
+            <span class="info-value">${this.formatCurrency(transaction.finalAmount.toNumber(), currency)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Payment Method:</span>
-            <span class="info-value">${transaction.paymentName}</span>
+            <span class="info-value">${paymentMethodName}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Created At:</span>
-            <span class="info-value">${formatDate(transaction.createdAt)}</span>
+            <span class="info-value">${this.formatDate(transaction.createdAt)}</span>
           </div>
         </div>
 
@@ -703,46 +876,46 @@ export class EmailService {
           <h3 class="info-box-title">Customer Information</h3>
           <div class="info-row">
             <span class="info-label">Name:</span>
-            <span class="info-value">${transaction.customerName}</span>
+            <span class="info-value">${userName}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Email:</span>
-            <span class="info-value">${transaction.customerEmail}</span>
+            <span class="info-value">${transaction.user.email}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Phone:</span>
-            <span class="info-value">${transaction.customerPhone || '-'}</span>
+            <span class="info-value">${transaction.user.phoneNumber || '-'}</span>
           </div>
         </div>
 
-        ${event ? `
+        ${transaction.event ? `
         <div class="info-box">
           <h3 class="info-box-title">Event Details</h3>
           <div class="info-row">
             <span class="info-label">Event Name:</span>
-            <span class="info-value">${event.title}</span>
+            <span class="info-value">${transaction.event.title}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Event Date:</span>
-            <span class="info-value">${formatDate(event.eventDate)}</span>
+            <span class="info-value">${this.formatDate(transaction.event.eventDate)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Location:</span>
-            <span class="info-value">${event.venue}, ${event.city}</span>
+            <span class="info-value">${transaction.event.venue}, ${transaction.event.city}</span>
           </div>
         </div>
         ` : ''}
 
-        ${subscription ? `
+        ${transaction.userSubscription ? `
         <div class="info-box">
           <h3 class="info-box-title">Subscription Details</h3>
           <div class="info-row">
             <span class="info-label">Plan:</span>
-            <span class="info-value">${subscription.plan?.name}</span>
+            <span class="info-value">${transaction.userSubscription.plan?.name}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Duration:</span>
-            <span class="info-value">${subscription.plan?.durationInMonths} Month(s)</span>
+            <span class="info-value">${transaction.userSubscription.plan?.durationInMonths} Month(s)</span>
           </div>
         </div>
         ` : ''}
@@ -750,7 +923,7 @@ export class EmailService {
         <div class="divider"></div>
 
         <p class="text" style="font-size: 13px; color: #999;">
-          This is an automated notification from DayLight transaction system.
+          This is an automated notification from DayLight transaction system. 
         </p>
       </div>
     `;
@@ -758,7 +931,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
       to: adminEmail,
-      subject: `[DayLight] New ${transactionType} - ${transaction.merchantRef}`,
+      subject: `[DayLight] New ${transactionType} - ${transaction.externalId}`,
       html: this.getEmailTemplate(content),
     });
   }
@@ -767,23 +940,11 @@ export class EmailService {
    * Send event reminder to participant (H-1)
    */
   async sendEventReminderEmail(
-    email: string,
-    name: string,
-    event: any,
-    transaction: any,
+    transaction: TransactionWithRelations,
+    event: EventEmailData,
   ) {
-    const formatDate = (date: Date) => {
-      return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'full',
-        timeStyle: 'short',
-      }).format(new Date(date));
-    };
-
-    const formatTime = (date: Date) => {
-      return new Intl.DateTimeFormat('id-ID', {
-        timeStyle: 'short',
-      }).format(new Date(date));
-    };
+    const user = transaction.user;
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
 
     const content = `
       <div class="email-body">
@@ -791,7 +952,7 @@ export class EmailService {
         <p class="text">This is a friendly reminder that your DayLight event is happening <strong>tomorrow</strong>!</p>
         
         <div class="alert-box alert-info">
-          <strong>Event Tomorrow:</strong> Don't forget to mark your calendar!
+          <strong>Event Tomorrow:</strong> Do not forget to mark your calendar! 
         </div>
 
         <div class="info-box">
@@ -802,11 +963,11 @@ export class EmailService {
           </div>
           <div class="info-row">
             <span class="info-label">Date:</span>
-            <span class="info-value">${formatDate(event.eventDate)}</span>
+            <span class="info-value">${this.formatDate(event.eventDate)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Time:</span>
-            <span class="info-value">${formatTime(event.startTime)} - ${formatTime(event.endTime)}</span>
+            <span class="info-value">${this.formatTime(event.startTime)} - ${this.formatTime(event.endTime)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Location:</span>
@@ -827,9 +988,9 @@ export class EmailService {
         <div class="info-box">
           <h3 class="info-box-title">What to Bring</h3>
           <ul class="list">
-            <li class="list-item">Your booking confirmation (Invoice: ${transaction.merchantRef})</li>
+            <li class="list-item">Your booking confirmation (Transaction ID: ${transaction.externalId})</li>
             <li class="list-item">Valid ID card</li>
-            <li class="list-item">Positive energy and open mind! 😊</li>
+            <li class="list-item">Positive energy and open mind! </li>
           </ul>
         </div>
 
@@ -843,7 +1004,7 @@ export class EmailService {
         ` : ''}
 
         <div class="alert-box alert-warning">
-          <strong>Important:</strong> Please arrive 15 minutes before the event starts.
+          <strong>Important:</strong> Please arrive 15 minutes before the event starts. 
         </div>
 
         <div class="divider"></div>
@@ -853,14 +1014,14 @@ export class EmailService {
           <a href="mailto:support@daylight.com" class="link">support@daylight.com</a>
         </p>
 
-        <p class="text">We're excited to see you tomorrow!</p>
+        <p class="text">We are excited to see you tomorrow!</p>
       </div>
     `;
 
     await this.transporter.sendMail({
       from: this.configService.get('EMAIL_FROM'),
-      to: email,
-      subject: `Reminder: ${event.title} is Tomorrow! 🎉`,
+      to: user.email,
+      subject: `Reminder: ${event.title} is Tomorrow!`,
       html: this.getEmailTemplate(content),
     });
   }
@@ -868,12 +1029,12 @@ export class EmailService {
   /**
    * Send bulk event reminders
    */
-  async sendBulkEventReminders(participants: Array<{
-    email: string;
-    name: string;
-    event: any;
-    transaction: any;
-  }>) {
+  async sendBulkEventReminders(
+    participants: Array<{
+      transaction: TransactionWithRelations;
+      event: EventEmailData;
+    }>,
+  ) {
     const results = {
       success: 0,
       failed: 0,
@@ -883,16 +1044,14 @@ export class EmailService {
     for (const participant of participants) {
       try {
         await this.sendEventReminderEmail(
-          participant.email,
-          participant.name,
-          participant.event,
           participant.transaction,
+          participant.event,
         );
         results.success++;
       } catch (error) {
         results.failed++;
         results.errors.push({
-          email: participant.email,
+          email: participant.transaction.user.email,
           error: error.message,
         });
       }

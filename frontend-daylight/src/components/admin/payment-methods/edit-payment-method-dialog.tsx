@@ -1,16 +1,35 @@
 'use client';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PaymentMethod, PaymentChannelType } from '@/types/payment-method.types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  PaymentMethod,
+  PaymentMethodType,
+  PaymentMethodTypeLabels,
+} from '@/types/payment-method.types';
 import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Separator } from '@/components/ui/separator';
-import { usePaymentMethodMutations } from '@/hooks/use-payment-methods';
+import {
+  usePaymentMethodMutations,
+  useAvailableCountries,
+} from '@/hooks/use-payment-methods';
 
 interface EditPaymentMethodDialogProps {
   method: PaymentMethod;
@@ -20,40 +39,45 @@ interface EditPaymentMethodDialogProps {
 
 interface EditPaymentMethodFormData {
   name: string;
-  group: string;
-  type: PaymentChannelType;
-  feeMerchantFlat: number;
-  feeMerchantPercent: number;
-  feeCustomerFlat: number;
-  feeCustomerPercent: number;
-  minimumFee: number;
-  maximumFee: number;
-  minimumAmount: number;
-  maximumAmount: number;
-  iconUrl: string;
+  countryCode: string;
+  currency: string;
+  type: PaymentMethodType;
+  adminFeeRate: number;
+  adminFeeFixed: number;
+  minAmount: number;
+  maxAmount: number;
+  logoUrl: string;
   isActive: boolean;
-  sortOrder: number;
 }
 
-export function EditPaymentMethodDialog({ method, open, onOpenChange }: EditPaymentMethodDialogProps) {
+export function EditPaymentMethodDialog({
+  method,
+  open,
+  onOpenChange,
+}: EditPaymentMethodDialogProps) {
   const { updatePaymentMethod } = usePaymentMethodMutations();
-  
-  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<EditPaymentMethodFormData>({
+  const { data: countriesData } = useAvailableCountries();
+  const countries = countriesData?.data || [];
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    reset,
+  } = useForm<EditPaymentMethodFormData>({
     defaultValues: {
       name: method.name,
-      group: method.group,
+      countryCode: method.countryCode,
+      currency: method.currency,
       type: method.type,
-      feeMerchantFlat: method.feeMerchantFlat,
-      feeMerchantPercent: method.feeMerchantPercent,
-      feeCustomerFlat: method.feeCustomerFlat,
-      feeCustomerPercent: method.feeCustomerPercent,
-      minimumFee: method.minimumFee || 0,
-      maximumFee: method.maximumFee || 0,
-      minimumAmount: method.minimumAmount,
-      maximumAmount: method.maximumAmount,
-      iconUrl: method.iconUrl,
+      adminFeeRate: method.adminFeeRatePercent, // Use percent for display
+      adminFeeFixed: method.adminFeeFixed,
+      minAmount: method.minAmount,
+      maxAmount: method.maxAmount,
+      logoUrl: method.logoUrl || '',
       isActive: method.isActive,
-      sortOrder: method.sortOrder,
     },
   });
 
@@ -62,19 +86,15 @@ export function EditPaymentMethodDialog({ method, open, onOpenChange }: EditPaym
     if (open) {
       reset({
         name: method.name,
-        group: method.group,
+        countryCode: method.countryCode,
+        currency: method.currency,
         type: method.type,
-        feeMerchantFlat: method.feeMerchantFlat,
-        feeMerchantPercent: method.feeMerchantPercent,
-        feeCustomerFlat: method.feeCustomerFlat,
-        feeCustomerPercent: method.feeCustomerPercent,
-        minimumFee: method.minimumFee || 0,
-        maximumFee: method.maximumFee || 0,
-        minimumAmount: method.minimumAmount,
-        maximumAmount: method.maximumAmount,
-        iconUrl: method.iconUrl,
+        adminFeeRate: method.adminFeeRatePercent,
+        adminFeeFixed: method.adminFeeFixed,
+        minAmount: method.minAmount,
+        maxAmount: method.maxAmount,
+        logoUrl: method.logoUrl || '',
         isActive: method.isActive,
-        sortOrder: method.sortOrder,
       });
     }
   }, [method, open, reset]);
@@ -86,24 +106,29 @@ export function EditPaymentMethodDialog({ method, open, onOpenChange }: EditPaym
     }
   }, [updatePaymentMethod.isSuccess, onOpenChange]);
 
+  // Update currency when country changes
+  const watchCountryCode = watch('countryCode');
+  useEffect(() => {
+    const selectedCountry = countries.find((c) => c.code === watchCountryCode);
+    if (selectedCountry) {
+      setValue('currency', selectedCountry.currency);
+    }
+  }, [watchCountryCode, countries, setValue]);
+
   const onSubmit = async (data: EditPaymentMethodFormData) => {
     updatePaymentMethod.mutate({
       code: method.code,
       data: {
         name: data.name,
-        group: data.group,
+        countryCode: data.countryCode,
+        currency: data.currency,
         type: data.type,
-        feeMerchantFlat: Number(data.feeMerchantFlat),
-        feeMerchantPercent: Number(data.feeMerchantPercent),
-        feeCustomerFlat: Number(data.feeCustomerFlat),
-        feeCustomerPercent: Number(data.feeCustomerPercent),
-        minimumFee: data.minimumFee ? Number(data.minimumFee) : undefined,
-        maximumFee: data.maximumFee ? Number(data.maximumFee) : undefined,
-        minimumAmount: Number(data.minimumAmount),
-        maximumAmount: Number(data.maximumAmount),
-        iconUrl: data.iconUrl,
+        adminFeeRate: Number(data.adminFeeRate) / 100, // Convert percent to decimal
+        adminFeeFixed: Number(data.adminFeeFixed),
+        minAmount: Number(data.minAmount),
+        maxAmount: Number(data.maxAmount),
+        logoUrl: data.logoUrl || undefined,
         isActive: data.isActive,
-        sortOrder: Number(data.sortOrder),
       },
     });
   };
@@ -116,8 +141,9 @@ export function EditPaymentMethodDialog({ method, open, onOpenChange }: EditPaym
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="col-span-2 space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
@@ -129,182 +155,166 @@ export function EditPaymentMethodDialog({ method, open, onOpenChange }: EditPaym
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="group">Group</Label>
-              <Input
-                id="group"
-                {...register('group', { required: 'Group is required' })}
-              />
-              {errors.group && (
-                <p className="text-xs text-red-600">{errors.group.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="countryCode">Country</Label>
               <Select
-                value={watch('type')}
-                onValueChange={(value) => setValue('type', value as PaymentChannelType)}
+                value={watch('countryCode')}
+                onValueChange={(value) => setValue('countryCode', value)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select country" />
                 </SelectTrigger>
-                <SelectContent className='bg-white'>
-                  <SelectItem value={PaymentChannelType.DIRECT}>DIRECT</SelectItem>
-                  <SelectItem value={PaymentChannelType.REDIRECT}>REDIRECT</SelectItem>
+                <SelectContent className="bg-white">
+                  {countries.map((country) => (
+                    <SelectItem key={country.code} value={country.code}>
+                      {country.name} ({country.code})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sortOrder">Sort Order</Label>
+              <Label htmlFor="currency">Currency</Label>
               <Input
-                id="sortOrder"
-                type="number"
-                {...register('sortOrder', { 
-                  required: 'Sort order is required',
-                  min: { value: 0, message: 'Must be 0 or greater' }
-                })}
+                id="currency"
+                {...register('currency', { required: 'Currency is required' })}
+                className="font-mono"
               />
-              {errors.sortOrder && (
-                <p className="text-xs text-red-600">{errors.sortOrder.message}</p>
+              {errors.currency && (
+                <p className="text-xs text-red-600">{errors.currency.message}</p>
               )}
             </div>
           </div>
 
-          <Separator className="my-4" />
-
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-900">Merchant Fees</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="feeMerchantFlat">Flat (Rp)</Label>
-                <Input
-                  id="feeMerchantFlat"
-                  type="number"
-                  step="0.01"
-                  {...register('feeMerchantFlat', { 
-                    required: 'Required',
-                    min: { value: 0, message: 'Must be 0 or greater' }
-                  })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="feeMerchantPercent">Percent (%)</Label>
-                <Input
-                  id="feeMerchantPercent"
-                  type="number"
-                  step="0.01"
-                  {...register('feeMerchantPercent', { 
-                    required: 'Required',
-                    min: { value: 0, message: 'Must be 0 or greater' }
-                  })}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-900">Customer Fees</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="feeCustomerFlat">Flat (Rp)</Label>
-                <Input
-                  id="feeCustomerFlat"
-                  type="number"
-                  step="0.01"
-                  {...register('feeCustomerFlat', { 
-                    required: 'Required',
-                    min: { value: 0, message: 'Must be 0 or greater' }
-                  })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="feeCustomerPercent">Percent (%)</Label>
-                <Input
-                  id="feeCustomerPercent"
-                  type="number"
-                  step="0.01"
-                  {...register('feeCustomerPercent', { 
-                    required: 'Required',
-                    min: { value: 0, message: 'Must be 0 or greater' }
-                  })}
-                />
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="type">Type</Label>
+            <Select
+              value={watch('type')}
+              onValueChange={(value) => setValue('type', value as PaymentMethodType)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                {Object.values(PaymentMethodType).map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {PaymentMethodTypeLabels[type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Separator className="my-4" />
 
+          {/* Admin Fee */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-900">Fee Limits</h4>
+            <h4 className="text-sm font-semibold text-gray-900">Admin Fee</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="minimumFee">Minimum Fee (Rp)</Label>
+                <Label htmlFor="adminFeeRate">Percentage (%)</Label>
                 <Input
-                  id="minimumFee"
+                  id="adminFeeRate"
                   type="number"
                   step="0.01"
-                  {...register('minimumFee')}
+                  min="0"
+                  max="100"
+                  {...register('adminFeeRate', {
+                    required: 'Required',
+                    min: { value: 0, message: 'Must be 0 or greater' },
+                    max: { value: 100, message: 'Must be 100 or less' },
+                  })}
                 />
+                {errors.adminFeeRate && (
+                  <p className="text-xs text-red-600">
+                    {errors.adminFeeRate.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maximumFee">Maximum Fee (Rp)</Label>
+                <Label htmlFor="adminFeeFixed">
+                  Fixed Amount ({watch('currency')})
+                </Label>
                 <Input
-                  id="maximumFee"
+                  id="adminFeeFixed"
                   type="number"
                   step="0.01"
-                  {...register('maximumFee')}
+                  min="0"
+                  {...register('adminFeeFixed', {
+                    required: 'Required',
+                    min: { value: 0, message: 'Must be 0 or greater' },
+                  })}
                 />
+                {errors.adminFeeFixed && (
+                  <p className="text-xs text-red-600">
+                    {errors.adminFeeFixed.message}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
+          <Separator className="my-4" />
+
+          {/* Transaction Limits */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-900">Transaction Limits</h4>
+            <h4 className="text-sm font-semibold text-gray-900">
+              Transaction Limits
+            </h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="minimumAmount">Minimum Amount (Rp)</Label>
+                <Label htmlFor="minAmount">
+                  Minimum Amount ({watch('currency')})
+                </Label>
                 <Input
-                  id="minimumAmount"
+                  id="minAmount"
                   type="number"
                   step="0.01"
-                  {...register('minimumAmount', { 
+                  min="0"
+                  {...register('minAmount', {
                     required: 'Required',
-                    min: { value: 0, message: 'Must be 0 or greater' }
+                    min: { value: 0, message: 'Must be 0 or greater' },
                   })}
                 />
+                {errors.minAmount && (
+                  <p className="text-xs text-red-600">
+                    {errors.minAmount.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maximumAmount">Maximum Amount (Rp)</Label>
+                <Label htmlFor="maxAmount">
+                  Maximum Amount ({watch('currency')})
+                </Label>
                 <Input
-                  id="maximumAmount"
+                  id="maxAmount"
                   type="number"
                   step="0.01"
-                  {...register('maximumAmount', { 
+                  min="0"
+                  {...register('maxAmount', {
                     required: 'Required',
-                    min: { value: 0, message: 'Must be 0 or greater' }
+                    min: { value: 0, message: 'Must be 0 or greater' },
                   })}
                 />
+                {errors.maxAmount && (
+                  <p className="text-xs text-red-600">
+                    {errors.maxAmount.message}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="iconUrl">Icon URL</Label>
+            <Label htmlFor="logoUrl">Logo URL (optional)</Label>
             <Input
-              id="iconUrl"
+              id="logoUrl"
               type="url"
-              {...register('iconUrl', { required: 'Icon URL is required' })}
+              placeholder="https://example.com/logo.png"
+              {...register('logoUrl')}
             />
-            {errors.iconUrl && (
-              <p className="text-xs text-red-600">{errors.iconUrl.message}</p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -316,7 +326,7 @@ export function EditPaymentMethodDialog({ method, open, onOpenChange }: EditPaym
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className='bg-white'>
+              <SelectContent className="bg-white">
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
@@ -332,12 +342,14 @@ export function EditPaymentMethodDialog({ method, open, onOpenChange }: EditPaym
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={updatePaymentMethod.isPending}
-              className='bg-brand hover:bg-brand-dark border border-black text-white font-bold'
+              className="bg-brand hover:bg-brand-dark border border-black text-white font-bold"
             >
-              {updatePaymentMethod.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {updatePaymentMethod.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Save Changes
             </Button>
           </DialogFooter>

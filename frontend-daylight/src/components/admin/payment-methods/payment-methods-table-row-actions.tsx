@@ -1,7 +1,7 @@
 'use client';
 
 import { Row } from '@tanstack/react-table';
-import { MoreHorizontal, Pencil, Eye, Power, PowerOff } from 'lucide-react';
+import { MoreHorizontal, Pencil, Eye, Power, PowerOff, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import { PaymentMethod } from '@/types/payment-method.types';
 import { useState } from 'react';
 import { PaymentMethodDetailsDialog } from './payment-method-details-dialog';
 import { EditPaymentMethodDialog } from './edit-payment-method-dialog';
+import { DeletePaymentMethodDialog } from './delete-payment-method-dialog';
 import { usePaymentMethodMutations } from '@/hooks/use-payment-methods';
 
 interface PaymentMethodsTableRowActionsProps {
@@ -25,10 +26,15 @@ export function PaymentMethodsTableRowActions({ row }: PaymentMethodsTableRowAct
   const method = row.original;
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { togglePaymentMethod } = usePaymentMethodMutations();
 
   const handleToggle = () => {
-    if (confirm(`Are you sure you want to ${method.isActive ? 'deactivate' : 'activate'} this payment method?`)) {
+    if (
+      confirm(
+        `Are you sure you want to ${method.isActive ? 'deactivate' : 'activate'} this payment method?`
+      )
+    ) {
       togglePaymentMethod.mutate(method.code);
     }
   };
@@ -48,22 +54,26 @@ export function PaymentMethodsTableRowActions({ row }: PaymentMethodsTableRowAct
         <DropdownMenuContent align="end" className="w-[200px] glass-card">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          
+
           <DropdownMenuItem onClick={() => setShowDetailsDialog(true)}>
             <Eye className="mr-2 h-4 w-4" />
             View Details
           </DropdownMenuItem>
-          
+
           <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Edit Method
           </DropdownMenuItem>
-          
+
           <DropdownMenuSeparator />
-          
-          <DropdownMenuItem 
+
+          <DropdownMenuItem
             onClick={handleToggle}
-            className={method.isActive ? 'text-red-600 focus:text-red-600' : 'text-green-600 focus:text-green-600'}
+            className={
+              method.isActive
+                ? 'text-orange-600 focus:text-orange-600'
+                : 'text-green-600 focus:text-green-600'
+            }
           >
             {method.isActive ? (
               <>
@@ -77,6 +87,14 @@ export function PaymentMethodsTableRowActions({ row }: PaymentMethodsTableRowAct
               </>
             )}
           </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={() => setShowDeleteDialog(true)}
+            className="text-red-600 focus:text-red-600"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -85,11 +103,17 @@ export function PaymentMethodsTableRowActions({ row }: PaymentMethodsTableRowAct
         open={showDetailsDialog}
         onOpenChange={setShowDetailsDialog}
       />
-      
+
       <EditPaymentMethodDialog
         method={method}
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
+      />
+
+      <DeletePaymentMethodDialog
+        method={method}
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
       />
     </>
   );

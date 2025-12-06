@@ -4,10 +4,24 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
-import { PaymentMethod, PaymentChannelType } from '@/types/payment-method.types';
+import { PaymentMethod, PaymentMethodType, PaymentMethodTypeLabels } from '@/types/payment-method.types';
 import { formatDistanceToNow } from 'date-fns';
 import { PaymentMethodsTableRowActions } from './payment-methods-table-row-actions';
+import { formatCurrency } from '@/lib/utils';
 import Image from 'next/image';
+import { Globe, CreditCard } from 'lucide-react';
+
+// Type badge color mapping
+const typeBadgeColors: Record<PaymentMethodType, string> = {
+  [PaymentMethodType.BANK_TRANSFER]: 'bg-blue-100 text-blue-800 border-blue-200',
+  [PaymentMethodType.CARDS]: 'bg-purple-100 text-purple-800 border-purple-200',
+  [PaymentMethodType.EWALLET]: 'bg-green-100 text-green-800 border-green-200',
+  [PaymentMethodType.ONLINE_BANKING]: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  [PaymentMethodType.OVER_THE_COUNTER]: 'bg-orange-100 text-orange-800 border-orange-200',
+  [PaymentMethodType.PAYLATER]: 'bg-pink-100 text-pink-800 border-pink-200',
+  [PaymentMethodType.QR_CODE]: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  [PaymentMethodType.SUBSCRIPTION]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+};
 
 export const columns: ColumnDef<PaymentMethod>[] = [
   {
@@ -41,16 +55,22 @@ export const columns: ColumnDef<PaymentMethod>[] = [
     ),
     cell: ({ row }) => {
       const method = row.original;
-      
+
       return (
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-200 shrink-0">
-            <Image
-              src={method.iconUrl}
-              alt={method.name}
-              fill
-              className="object-contain p-1"
-            />
+          <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-200 shrink-0 bg-white">
+            {method.logoUrl ? (
+              <Image
+                src={method.logoUrl}
+                alt={method.name}
+                fill
+                className="object-contain p-1"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <CreditCard className="w-5 h-5 text-gray-400" />
+              </div>
+            )}
           </div>
           <div className="flex flex-col min-w-0">
             <span className="font-medium text-gray-900 truncate">
@@ -65,15 +85,40 @@ export const columns: ColumnDef<PaymentMethod>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'group',
+    accessorKey: 'countryCode',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Group" />
+      <DataTableColumnHeader column={column} title="Country" />
     ),
     cell: ({ row }) => {
-      const group = row.getValue('group') as string;
+      const method = row.original;
       return (
-        <Badge variant="outline" className="font-medium">
-          {group}
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-gray-400" />
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-900">
+              {method.countryCode}
+            </span>
+            {method.country && (
+              <span className="text-xs text-gray-500">{method.country.name}</span>
+            )}
+          </div>
+        </div>
+      );
+    },
+    filterFn: (row, id, value) => {
+      return Array.isArray(value) && value.includes(row.getValue(id));
+    },
+  },
+  {
+    accessorKey: 'currency',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Currency" />
+    ),
+    cell: ({ row }) => {
+      const currency = row.getValue('currency') as string;
+      return (
+        <Badge variant="outline" className="font-mono font-medium">
+          {currency}
         </Badge>
       );
     },
@@ -87,13 +132,13 @@ export const columns: ColumnDef<PaymentMethod>[] = [
       <DataTableColumnHeader column={column} title="Type" />
     ),
     cell: ({ row }) => {
-      const type = row.getValue('type') as PaymentChannelType;
+      const type = row.getValue('type') as PaymentMethodType;
+      const label = PaymentMethodTypeLabels[type] || type;
+      const colorClass = typeBadgeColors[type] || 'bg-gray-100 text-gray-800';
+
       return (
-        <Badge 
-          variant={type === PaymentChannelType.DIRECT ? 'default' : 'secondary'}
-          className="font-medium"
-        >
-          {type}
+        <Badge variant="outline" className={`font-medium ${colorClass}`}>
+          {label}
         </Badge>
       );
     },
@@ -103,17 +148,27 @@ export const columns: ColumnDef<PaymentMethod>[] = [
   },
   {
     accessorKey: 'fees',
-    header: 'Fees',
+    header: 'Admin Fee',
     cell: ({ row }) => {
       const method = row.original;
+      const hasPercentFee = method.adminFeeRate > 0;
+      const hasFixedFee = method.adminFeeFixed > 0;
+
       return (
         <div className="flex flex-col text-sm">
-          <span className="text-gray-900">
-            M: {method.feeMerchantFlat.toLocaleString('id-ID')} + {method.feeMerchantPercent}%
-          </span>
-          <span className="text-gray-600">
-            C: {method.feeCustomerFlat.toLocaleString('id-ID')} + {method.feeCustomerPercent}%
-          </span>
+          {hasPercentFee && (
+            <span className="text-gray-900">
+              {method.adminFeeRatePercent.toFixed(2)}%
+            </span>
+          )}
+          {hasFixedFee && (
+            <span className="text-gray-600">
+              + {formatCurrency(method.adminFeeFixed, method.currency)}
+            </span>
+          )}
+          {!hasPercentFee && !hasFixedFee && (
+            <span className="text-gray-400">No fee</span>
+          )}
         </div>
       );
     },
@@ -127,28 +182,15 @@ export const columns: ColumnDef<PaymentMethod>[] = [
       return (
         <div className="flex flex-col text-sm">
           <span className="text-gray-900">
-            Min: Rp {method.minimumAmount.toLocaleString('id-ID')}
+            Min: {formatCurrency(method.minAmount, method.currency)}
           </span>
           <span className="text-gray-600">
-            Max: Rp {method.maximumAmount.toLocaleString('id-ID')}
+            Max: {formatCurrency(method.maxAmount, method.currency)}
           </span>
         </div>
       );
     },
     enableSorting: false,
-  },
-  {
-    accessorKey: 'sortOrder',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Order" />
-    ),
-    cell: ({ row }) => {
-      return (
-        <span className="text-sm font-medium text-gray-900">
-          {row.getValue('sortOrder')}
-        </span>
-      );
-    },
   },
   {
     accessorKey: 'isActive',
@@ -158,9 +200,9 @@ export const columns: ColumnDef<PaymentMethod>[] = [
     cell: ({ row }) => {
       const isActive = row.getValue('isActive') as boolean;
       return (
-        <Badge 
+        <Badge
           variant={isActive ? 'default' : 'secondary'}
-          className="font-medium"
+          className={`font-medium ${isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}
         >
           {isActive ? 'Active' : 'Inactive'}
         </Badge>

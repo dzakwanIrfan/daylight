@@ -3,6 +3,7 @@ import {
   Get,
   Put,
   Post,
+  Delete,
   Param,
   Query,
   Body,
@@ -16,26 +17,46 @@ import { Public } from '../common/decorators/public.decorator';
 import { UserRole } from '@prisma/client';
 import { QueryPaymentMethodsDto } from './dto/query-payment-methods.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { BulkActionDto } from './dto/bulk-action.dto';
 
 @Controller('payment-methods')
 export class PaymentMethodsController {
   constructor(private paymentMethodsService: PaymentMethodsService) {}
 
+  // PUBLIC ENDPOINTS
+
   /**
    * Get all active payment methods (Public)
+   * Optional query params: countryCode, currency
    */
   @Public()
   @Get()
-  async getActivePaymentMethods() {
-    return this.paymentMethodsService.getActivePaymentMethods();
+  async getActivePaymentMethods(
+    @Query('countryCode') countryCode?: string,
+    @Query('currency') currency?: string,
+  ) {
+    return this.paymentMethodsService.getActivePaymentMethods(
+      countryCode,
+      currency,
+    );
+  }
+
+  /**
+   * Get payment methods by country (Public)
+   * For checkout page - returns methods grouped by type
+   */
+  @Public()
+  @Get('country/:countryCode')
+  async getPaymentMethodsByCountry(@Param('countryCode') countryCode: string) {
+    return this.paymentMethodsService.getPaymentMethodsByCountry(countryCode);
   }
 
   /**
    * Get payment method by code (Public)
    */
   @Public()
-  @Get(':code')
+  @Get('code/:code')
   async getPaymentMethodByCode(@Param('code') code: string) {
     return this.paymentMethodsService.getPaymentMethodByCode(code);
   }
@@ -44,7 +65,7 @@ export class PaymentMethodsController {
    * Calculate fee for payment method (Public)
    */
   @Public()
-  @Get(':code/calculate-fee')
+  @Get('code/:code/calculate-fee')
   async calculateFee(
     @Param('code') code: string,
     @Query('amount') amount: string,
@@ -61,7 +82,17 @@ export class PaymentMethodsController {
   @Roles(UserRole.ADMIN)
   @Get('admin/list')
   async getPaymentMethods(@Query() queryDto: QueryPaymentMethodsDto) {
-    return this.paymentMethodsService.getPaymentMethods(queryDto);
+    return this.paymentMethodsService. getPaymentMethods(queryDto);
+  }
+
+  /**
+   * Get statistics (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin/statistics')
+  async getStatistics() {
+    return this.paymentMethodsService.getStatistics();
   }
 
   /**
@@ -71,17 +102,47 @@ export class PaymentMethodsController {
   @Roles(UserRole.ADMIN)
   @Get('admin/export')
   async exportPaymentMethods(@Query() queryDto: QueryPaymentMethodsDto) {
-    return this.paymentMethodsService.exportPaymentMethods(queryDto);
+    return this. paymentMethodsService.exportPaymentMethods(queryDto);
   }
 
   /**
-   * Get unique groups (Admin)
+   * Get available countries (Admin)
    */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Get('admin/groups')
-  async getUniqueGroups() {
-    return this.paymentMethodsService.getUniqueGroups();
+  @Get('admin/countries')
+  async getAvailableCountries() {
+    return this. paymentMethodsService.getAvailableCountries();
+  }
+
+  /**
+   * Get available currencies (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin/currencies')
+  async getAvailableCurrencies() {
+    return this. paymentMethodsService.getAvailableCurrencies();
+  }
+
+  /**
+   * Get payment method types (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin/types')
+  async getPaymentMethodTypes() {
+    return this. paymentMethodsService.getPaymentMethodTypes();
+  }
+
+  /**
+   * Create payment method (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post('admin')
+  async createPaymentMethod(@Body() data: CreatePaymentMethodDto) {
+    return this.paymentMethodsService.createPaymentMethod(data);
   }
 
   /**
@@ -104,7 +165,17 @@ export class PaymentMethodsController {
     @Param('code') code: string,
     @Body() data: UpdatePaymentMethodDto,
   ) {
-    return this.paymentMethodsService.updatePaymentMethod(code, data);
+    return this. paymentMethodsService.updatePaymentMethod(code, data);
+  }
+
+  /**
+   * Delete payment method (Admin)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Delete('admin/:code')
+  async deletePaymentMethod(@Param('code') code: string) {
+    return this. paymentMethodsService.deletePaymentMethod(code);
   }
 
   /**
@@ -114,16 +185,6 @@ export class PaymentMethodsController {
   @Roles(UserRole.ADMIN)
   @Post('admin/bulk')
   async bulkAction(@Body() bulkActionDto: BulkActionDto) {
-    return this.paymentMethodsService.bulkAction(bulkActionDto);
-  }
-
-  /**
-   * Sync with Tripay (Admin)
-   */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Post('admin/sync')
-  async syncWithTripay(@Body() body: { data: any[] }) {
-    return this.paymentMethodsService.syncWithTripay(body.data);
+    return this. paymentMethodsService.bulkAction(bulkActionDto);
   }
 }

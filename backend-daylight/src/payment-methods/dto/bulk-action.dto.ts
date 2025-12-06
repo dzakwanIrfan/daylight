@@ -1,8 +1,9 @@
-import { IsArray, IsEnum, IsBoolean, IsOptional, ArrayMinSize } from 'class-validator';
+import { IsArray, IsEnum, ArrayMinSize } from 'class-validator';
 
 export enum BulkActionType {
   ACTIVATE = 'activate',
   DEACTIVATE = 'deactivate',
+  DELETE = 'delete',
 }
 
 export class BulkActionDto {

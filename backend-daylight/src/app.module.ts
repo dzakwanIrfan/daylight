@@ -11,7 +11,6 @@ import { UploadModule } from './upload/upload.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AdminModule } from './admin/admin.module';
 import { EventsModule } from './events/events.module';
-import { PaymentModule } from './payment/payment.module';
 import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { UserEventsModule } from './user-events/user-events.module';
 import { TransactionsModule } from './transactions/transactions.module';
@@ -51,7 +50,6 @@ import { XenditModule } from './xendit/xendit.module';
     AdminModule,
     EventsModule,
     PaymentMethodsModule,
-    PaymentModule,
     UserEventsModule,
     TransactionsModule,
     SubscriptionsModule,
@@ -79,4 +77,4 @@ import { XenditModule } from './xendit/xendit.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

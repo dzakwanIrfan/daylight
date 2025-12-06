@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsEnum, IsInt, Min, IsBoolean } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PaymentChannelType } from '@prisma/client';
+import { Type, Transform } from 'class-transformer';
+import { PaymentMethodType } from '@prisma/client';
 
 export enum SortOrder {
   ASC = 'asc',
@@ -12,8 +12,9 @@ export enum PaymentMethodSortField {
   UPDATED_AT = 'updatedAt',
   NAME = 'name',
   CODE = 'code',
-  GROUP = 'group',
-  SORT_ORDER = 'sortOrder',
+  COUNTRY_CODE = 'countryCode',
+  CURRENCY = 'currency',
+  TYPE = 'type',
 }
 
 export class QueryPaymentMethodsDto {
@@ -35,22 +36,30 @@ export class QueryPaymentMethodsDto {
 
   @IsOptional()
   @IsEnum(PaymentMethodSortField)
-  sortBy?: PaymentMethodSortField = PaymentMethodSortField.SORT_ORDER;
+  sortBy?: PaymentMethodSortField = PaymentMethodSortField.CREATED_AT;
 
   @IsOptional()
   @IsEnum(SortOrder)
-  sortOrder?: SortOrder = SortOrder.ASC;
+  sortOrder?: SortOrder = SortOrder.DESC;
 
   @IsOptional()
   @IsString()
-  group?: string;
+  countryCode?: string; // Filter by country (e.g., "ID", "PH", "SG")
 
   @IsOptional()
-  @IsEnum(PaymentChannelType)
-  type?: PaymentChannelType;
+  @IsString()
+  currency?: string; // Filter by currency (e.g., "IDR", "PHP", "SGD")
 
   @IsOptional()
-  @Type(() => Boolean)
+  @IsEnum(PaymentMethodType)
+  type?: PaymentMethodType;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   isActive?: boolean;
 }

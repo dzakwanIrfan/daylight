@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PaymentStatus } from '@prisma/client';
+import { TransactionStatus, TransactionType } from '@prisma/client';
 
 export enum SortOrder {
   ASC = 'asc',
@@ -12,7 +12,7 @@ export enum TransactionSortField {
   UPDATED_AT = 'updatedAt',
   PAID_AT = 'paidAt',
   AMOUNT = 'amount',
-  AMOUNT_RECEIVED = 'amountReceived',
+  FINAL_AMOUNT = 'finalAmount',
 }
 
 export class QueryTransactionsDto {
@@ -41,12 +41,12 @@ export class QueryTransactionsDto {
   sortOrder?: SortOrder = SortOrder.DESC;
 
   @IsOptional()
-  @IsEnum(PaymentStatus)
-  paymentStatus?: PaymentStatus;
+  @IsEnum(TransactionStatus)
+  status?: TransactionStatus;
 
   @IsOptional()
   @IsString()
-  paymentMethod?: string;
+  paymentMethodId?: string;
 
   @IsOptional()
   @IsString()
@@ -57,10 +57,18 @@ export class QueryTransactionsDto {
   eventId?: string;
 
   @IsOptional()
+  @IsEnum(TransactionType)
+  transactionType?: TransactionType;
+
+  @IsOptional()
   @IsString()
   dateFrom?: string;
 
   @IsOptional()
   @IsString()
   dateTo?: string;
+
+  @IsOptional()
+  @IsString()
+  countryCode?: string; // For filtering by country
 }

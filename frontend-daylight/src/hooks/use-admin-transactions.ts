@@ -47,6 +47,20 @@ export function useTransactionDashboardStats() {
 export function useAdminTransactionMutations() {
   const queryClient = useQueryClient();
 
+  const updateTransaction = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { status?: string } }) =>
+      transactionService.updateTransaction(id, data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: transactionKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: transactionKeys.detail(data.id) });
+      toast.success('Transaction updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update transaction');
+    },
+  });
+
   const deleteTransaction = useMutation({
     mutationFn: ({ id, hardDelete }: { id: string; hardDelete?: boolean }) =>
       transactionService.deleteTransaction(id, hardDelete),
@@ -73,6 +87,7 @@ export function useAdminTransactionMutations() {
   });
 
   return {
+    updateTransaction,
     deleteTransaction,
     bulkAction,
   };

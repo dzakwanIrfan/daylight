@@ -196,9 +196,9 @@ export class UserEventsService {
         paymentMethodName: PaymentMethodType.SUBSCRIPTION,
         externalId,
         status: TransactionStatus.PAID, // Immediately PAID
-        amount: event.price,
+        amount: 0,
         totalFee: 0,
-        finalAmount: event.price,
+        finalAmount: 0,
         paymentUrl: null,
         actions: {
           create: [

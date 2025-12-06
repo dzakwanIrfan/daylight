@@ -28,6 +28,14 @@ class TransactionService {
   }
 
   /**
+   * Update transaction
+   */
+  async updateTransaction(id: string, data: { status?: string }): Promise<Transaction> {
+    const response = await apiClient.patch(`${this.baseURL}/${id}`, data);
+    return response.data;
+  }
+
+  /**
    * Delete transaction
    */
   async deleteTransaction(id: string, hardDelete = false): Promise<{ message: string }> {

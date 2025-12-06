@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -17,10 +18,11 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { QueryTransactionsDto } from './dto/query-transactions.dto';
 import { BulkActionTransactionDto } from './dto/bulk-action-transaction.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
 
 @Controller('transactions')
 export class TransactionsController {
-  constructor(private transactionsService: TransactionsService) {}
+  constructor(private transactionsService: TransactionsService) { }
 
   // ADMIN ENDPOINTS
 
@@ -54,8 +56,21 @@ export class TransactionsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Patch(':id')
+  async updateTransaction(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateTransactionDto,
+  ) {
+    return this.transactionsService.updateTransaction(id, updateDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Delete(':id')
-  async deleteTransaction(@Param('id') id: string, @Query('hard') hard?: string) {
+  async deleteTransaction(
+    @Param('id') id: string,
+    @Query('hard') hard?: string,
+  ) {
     const hardDelete = hard === 'true';
     return this.transactionsService.deleteTransaction(id, hardDelete);
   }

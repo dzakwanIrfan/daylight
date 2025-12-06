@@ -10,12 +10,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Transaction, PaymentStatus } from '@/types/transaction.types';
+import { Transaction, TransactionStatus } from '@/types/transaction.types';
 import { useAdminTransactionMutations } from '@/hooks/use-admin-transactions';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
+import { formatCurrency } from '@/lib/utils';
 
 interface DeleteTransactionDialogProps {
   transaction: Transaction;
@@ -43,7 +44,8 @@ export function DeleteTransactionDialog({
     );
   };
 
-  const isPaidTransaction = transaction.paymentStatus === PaymentStatus.PAID;
+  const isPaidTransaction = transaction.status === TransactionStatus.PAID;
+  const currency = transaction.paymentMethod?.currency || 'IDR';
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -56,18 +58,20 @@ export function DeleteTransactionDialog({
             {isPaidTransaction ? (
               <div className="space-y-3">
                 <p className="text-red-600 font-medium">
-                  ⚠️ Warning: This is a PAID transaction!
+                  Warning: This is a PAID transaction!
                 </p>
                 <p>
                   Deleting a paid transaction is generally not recommended as it may cause
                   accounting discrepancies. Are you absolutely sure you want to proceed?
                 </p>
                 <p className="text-sm text-gray-600">
-                  <strong>Transaction:</strong> {transaction.merchantRef}
+                  <strong>Transaction:</strong> {transaction.externalId}
                   <br />
-                  <strong>Customer:</strong> {transaction.customerName}
+                  <strong>Customer:</strong> {transaction.user?.email || 'N/A'}
                   <br />
-                  <strong>Amount:</strong> IDR {transaction.amountReceived.toLocaleString('id-ID')}
+                  <strong>Amount:</strong> {formatCurrency(Number(transaction.finalAmount), currency)}
+                  <br />
+                  <strong>Payment Method:</strong> {transaction.paymentMethod?.name || transaction.paymentMethodName}
                 </p>
                 <div className="flex items-center space-x-2 pt-2">
                   <Checkbox
@@ -90,11 +94,13 @@ export function DeleteTransactionDialog({
                   from the database.
                 </p>
                 <p className="text-sm text-gray-600">
-                  <strong>Transaction:</strong> {transaction.merchantRef}
+                  <strong>Transaction:</strong> {transaction.externalId}
                   <br />
-                  <strong>Customer:</strong> {transaction.customerName}
+                  <strong>Customer:</strong> {transaction.user?.email || 'N/A'}
                   <br />
-                  <strong>Status:</strong> {transaction.paymentStatus}
+                  <strong>Status:</strong> {transaction.status}
+                  <br />
+                  <strong>Amount:</strong> {formatCurrency(Number(transaction.finalAmount), currency)}
                 </p>
               </div>
             )}

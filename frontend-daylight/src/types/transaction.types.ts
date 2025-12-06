@@ -1,4 +1,4 @@
-export enum PaymentStatus {
+export enum TransactionStatus {
   PENDING = 'PENDING',
   PAID = 'PAID',
   FAILED = 'FAILED',
@@ -11,37 +11,61 @@ export enum TransactionType {
   SUBSCRIPTION = 'SUBSCRIPTION',
 }
 
+export enum PaymentMethodType {
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  CARDS = 'CARDS',
+  EWALLET = 'EWALLET',
+  ONLINE_BANKING = 'ONLINE_BANKING',
+  OVER_THE_COUNTER = 'OVER_THE_COUNTER',
+  PAYLATER = 'PAYLATER',
+  QR_CODE = 'QR_CODE',
+  SUBSCRIPTION = 'SUBSCRIPTION',
+}
+
+export interface PaymentMethod {
+  id: string;
+  code: string;
+  name: string;
+  type: PaymentMethodType;
+  currency: string;
+  countryCode: string;
+  minAmount: number;
+  maxAmount: number;
+  adminFeeRate: number;
+  adminFeeFixed: number;
+  country: {
+    name: string;
+    currency: string;
+  };
+}
+
+export interface TransactionAction {
+  id: string;
+  transactionId: string;
+  type: string; // PRESENT_TO_CUSTOMER, REDIRECT_CUSTOMER, API_POST_REQUEST
+  descriptor: string; // PAYMENT_CODE, QR_STRING, VIRTUAL_ACCOUNT_NUMBER, WEB_URL
+  value: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Transaction {
   id: string;
   userId: string;
   eventId: string | null;
-  tripayReference: string;
-  merchantRef: string;
-  paymentMethodCode: string | null;
-  paymentMethod: string;
-  paymentName: string;
-  paymentStatus: PaymentStatus;
-  transactionType: TransactionType;
+  externalId: string;
+  status: TransactionStatus;
   amount: number;
-  feeMerchant: number;
-  feeCustomer: number;
   totalFee: number;
-  amountReceived: number;
-  payCode: string | null;
-  payUrl: string | null;
-  checkoutUrl: string | null;
-  qrString: string | null;
-  qrUrl: string | null;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string | null;
-  expiredAt: string | null;
+  finalAmount: number;
+  paymentUrl: string | null;
+  paymentMethodId: string | null;
+  paymentMethodName: string;
+  transactionType: TransactionType;
   paidAt: string | null;
-  instructions: any;
-  orderItems: any;
-  callbackData: any;
   createdAt: string;
   updatedAt: string;
+
   user?: {
     id: string;
     email: string;
@@ -49,22 +73,38 @@ export interface Transaction {
     lastName: string | null;
     phoneNumber: string | null;
     profilePicture: string | null;
+    currentCity?: {
+      id: string;
+      name: string;
+      country: {
+        code: string;
+        name: string;
+        currency: string;
+      };
+    };
   };
+
   event?: {
     id: string;
     title: string;
     slug: string;
     category: string;
-    description: string;
     eventDate: string;
-    startTime: string;
-    endTime: string;
     venue: string;
-    address: string;
     city: string;
-    price: number;
-    currency: string;
+    cityRelation?: {
+      name: string;
+      country: {
+        code: string;
+        name: string;
+      };
+    };
   } | null;
+
+  paymentMethod?: PaymentMethod | null;
+
+  actions?: TransactionAction[];
+
   userSubscription?: {
     id: string;
     status: string;
@@ -75,7 +115,19 @@ export interface Transaction {
       name: string;
       type: string;
       durationInMonths: number;
-      price: number;
+    };
+  } | null;
+
+  matchingMember?: {
+    id: string;
+    group: {
+      id: string;
+      groupNumber: number;
+      status: string;
+      event: {
+        title: string;
+        eventDate: string;
+      };
     };
   } | null;
 }
@@ -84,15 +136,16 @@ export interface QueryTransactionsParams {
   page?: number;
   limit?: number;
   search?: string;
-  sortBy?: 'createdAt' | 'updatedAt' | 'paidAt' | 'amount' | 'amountReceived';
+  sortBy?: 'createdAt' | 'updatedAt' | 'paidAt' | 'amount' | 'finalAmount';
   sortOrder?: 'asc' | 'desc';
-  paymentStatus?: PaymentStatus;
-  paymentMethod?: string;
+  status?: TransactionStatus;
+  paymentMethodId?: string;
   userId?: string;
   eventId?: string;
   transactionType?: TransactionType;
   dateFrom?: string;
   dateTo?: string;
+  countryCode?: string;
 }
 
 export interface QueryTransactionsResponse {
@@ -122,12 +175,24 @@ export interface TransactionDashboardStats {
   };
   breakdown: {
     byStatus: Array<{
-      status: PaymentStatus;
+      status: TransactionStatus;
       count: number;
       totalAmount: number;
     }>;
     byPaymentMethod: Array<{
       method: string;
+      count: number;
+      totalAmount: number;
+    }>;
+    byCountry: Array<{
+      countryCode: string;
+      countryName: string;
+      currency: string;
+      count: number;
+      totalAmount: number;
+    }>;
+    byType: Array<{
+      type: TransactionType;
       count: number;
       totalAmount: number;
     }>;

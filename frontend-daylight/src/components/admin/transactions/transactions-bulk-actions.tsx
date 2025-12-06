@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAdminTransactionMutations } from '@/hooks/use-admin-transactions';
-import { Transaction, TransactionBulkActionType, PaymentStatus } from '@/types/transaction.types';
+import { Transaction, TransactionBulkActionType, TransactionStatus } from '@/types/transaction.types';
 
 interface TransactionsBulkActionsProps {
   selectedTransactions: Transaction[];
@@ -39,22 +39,22 @@ export function TransactionsBulkActions({
 
   const transactionIds = selectedTransactions.map((t) => t.id);
   const hasPaidTransactions = selectedTransactions.some(
-    (t) => t.paymentStatus === PaymentStatus.PAID
+    (t) => t.status === TransactionStatus.PAID
   );
 
   const handleBulkAction = (action: TransactionBulkActionType) => {
     // Check if action is allowed
     if (action === TransactionBulkActionType.DELETE && hasPaidTransactions) {
-      alert('Cannot delete paid transactions. Please deselect paid transactions first.');
+      alert('Cannot delete paid transactions.Please deselect paid transactions first.');
       return;
     }
 
     if (action === TransactionBulkActionType.REFUND) {
       const allPaid = selectedTransactions.every(
-        (t) => t.paymentStatus === PaymentStatus.PAID
+        (t) => t.status === TransactionStatus.PAID
       );
       if (!allPaid) {
-        alert('Can only refund paid transactions. Please select only paid transactions.');
+        alert('Can only refund paid transactions.Please select only paid transactions.');
         return;
       }
     }
@@ -94,7 +94,7 @@ export function TransactionsBulkActions({
 
   const getActionDescription = (action: TransactionBulkActionType): string => {
     const descriptions: Record<TransactionBulkActionType, string> = {
-      [TransactionBulkActionType.MARK_PAID]: `Mark ${selectedTransactions.length} transaction(s) as PAID?`,
+      [TransactionBulkActionType.MARK_PAID]: `Mark ${selectedTransactions.length} transaction(s) as PAID? `,
       [TransactionBulkActionType.MARK_FAILED]: `Mark ${selectedTransactions.length} transaction(s) as FAILED?`,
       [TransactionBulkActionType.MARK_EXPIRED]: `Mark ${selectedTransactions.length} transaction(s) as EXPIRED?`,
       [TransactionBulkActionType.REFUND]: `Refund ${selectedTransactions.length} paid transaction(s)?`,
@@ -118,29 +118,29 @@ export function TransactionsBulkActions({
         <DropdownMenuContent align="start" className="w-[200px] bg-white">
           <DropdownMenuLabel>Status Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          
+
           <DropdownMenuItem onClick={() => handleBulkAction(TransactionBulkActionType.MARK_PAID)}>
             Mark as Paid
           </DropdownMenuItem>
-          
+
           <DropdownMenuItem onClick={() => handleBulkAction(TransactionBulkActionType.MARK_FAILED)}>
             Mark as Failed
           </DropdownMenuItem>
-          
+
           <DropdownMenuItem onClick={() => handleBulkAction(TransactionBulkActionType.MARK_EXPIRED)}>
             Mark as Expired
           </DropdownMenuItem>
 
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={() => handleBulkAction(TransactionBulkActionType.REFUND)}
-            disabled={!selectedTransactions.every((t) => t.paymentStatus === PaymentStatus.PAID)}
+            disabled={!selectedTransactions.every((t) => t.status === TransactionStatus.PAID)}
           >
             Refund
           </DropdownMenuItem>
-          
+
           <DropdownMenuSeparator />
-          
-          <DropdownMenuItem 
+
+          <DropdownMenuItem
             onClick={() => handleBulkAction(TransactionBulkActionType.DELETE)}
             className="text-red-600 focus:text-red-600"
             disabled={hasPaidTransactions}

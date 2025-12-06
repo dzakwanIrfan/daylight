@@ -1,7 +1,7 @@
 'use client';
 
 import { Row } from '@tanstack/react-table';
-import { MoreHorizontal, Eye, Trash2, Copy, CheckCircle, XCircle } from 'lucide-react';
+import { MoreHorizontal, Eye, Trash2, Copy, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Transaction, PaymentStatus } from '@/types/transaction.types';
+import { Transaction, TransactionStatus } from '@/types/transaction.types';
 import { useState } from 'react';
 import { TransactionDetailsDialog } from './transaction-details-dialog';
 import { DeleteTransactionDialog } from './delete-transaction-dialog';
@@ -26,15 +26,24 @@ export function TransactionsTableRowActions({ row }: TransactionsTableRowActions
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const handleCopyRef = () => {
-    navigator.clipboard.writeText(transaction.merchantRef);
-    toast.success('Transaction reference copied to clipboard');
+  const handleCopyExternalId = () => {
+    navigator.clipboard.writeText(transaction.externalId);
+    toast.success('Transaction ID copied to clipboard');
   };
 
-  const handleCopyTripayRef = () => {
-    navigator.clipboard.writeText(transaction.tripayReference);
-    toast.success('Tripay reference copied to clipboard');
+  const handleOpenPaymentUrl = () => {
+    if (transaction.paymentUrl) {
+      window.open(transaction.paymentUrl, '_blank');
+    } else if (transaction.actions && transaction.actions.length > 0) {
+      const webUrlAction = transaction.actions.find(a => a.descriptor === 'WEB_URL');
+      if (webUrlAction) {
+        window.open(webUrlAction.value, '_blank');
+      }
+    }
   };
+
+  const hasPaymentUrl = transaction.paymentUrl ||
+    (transaction.actions && transaction.actions.some(a => a.descriptor === 'WEB_URL'));
 
   return (
     <>
@@ -51,37 +60,30 @@ export function TransactionsTableRowActions({ row }: TransactionsTableRowActions
         <DropdownMenuContent align="end" className="w-[200px] bg-white">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          
+
           <DropdownMenuItem onClick={() => setShowDetailsDialog(true)}>
             <Eye className="mr-2 h-4 w-4" />
             View Details
           </DropdownMenuItem>
-          
-          <DropdownMenuItem onClick={handleCopyRef}>
+
+          <DropdownMenuItem onClick={handleCopyExternalId}>
             <Copy className="mr-2 h-4 w-4" />
-            Copy Merchant Ref
+            Copy Transaction ID
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={handleCopyTripayRef}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy Tripay Ref
-          </DropdownMenuItem>
-          
-          {transaction.paymentStatus === PaymentStatus.PENDING && transaction.checkoutUrl && (
-            <DropdownMenuItem 
-              onClick={() => window.open(transaction.checkoutUrl!, '_blank')}
-            >
-              <CheckCircle className="mr-2 h-4 w-4" />
+          {transaction.status === TransactionStatus.PENDING && hasPaymentUrl && (
+            <DropdownMenuItem onClick={handleOpenPaymentUrl}>
+              <ExternalLink className="mr-2 h-4 w-4" />
               Open Payment Link
             </DropdownMenuItem>
           )}
 
           <DropdownMenuSeparator />
-          
-          <DropdownMenuItem 
+
+          <DropdownMenuItem
             onClick={() => setShowDeleteDialog(true)}
             className="text-red-600 focus:text-red-600"
-            disabled={transaction.paymentStatus === PaymentStatus.PAID}
+            disabled={transaction.status === TransactionStatus.PAID}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete Transaction
@@ -94,7 +96,7 @@ export function TransactionsTableRowActions({ row }: TransactionsTableRowActions
         open={showDetailsDialog}
         onOpenChange={setShowDetailsDialog}
       />
-      
+
       <DeleteTransactionDialog
         transaction={transaction}
         open={showDeleteDialog}

@@ -17,10 +17,10 @@ export class UserStatsService {
 
     // Get events attended (paid transactions with completed events)
     const now = new Date();
-    const eventsAttended = await this.prisma.legacyTransaction.count({
+    const eventsAttended = await this.prisma.transaction.count({
       where: {
         userId,
-        paymentStatus: PaymentStatus.PAID,
+        status: PaymentStatus.PAID,
         transactionType: TransactionType.EVENT,
         event: {
           eventDate: {
@@ -31,10 +31,10 @@ export class UserStatsService {
     });
 
     // Get upcoming events (paid transactions with future events)
-    const upcomingEvents = await this.prisma.legacyTransaction.count({
+    const upcomingEvents = await this.prisma.transaction.count({
       where: {
         userId,
-        paymentStatus: PaymentStatus.PAID,
+        status: PaymentStatus.PAID,
         transactionType: TransactionType.EVENT,
         event: {
           eventDate: {
@@ -45,10 +45,10 @@ export class UserStatsService {
     });
 
     // Get total events (all paid event transactions)
-    const totalEvents = await this.prisma.legacyTransaction.count({
+    const totalEvents = await this.prisma.transaction.count({
       where: {
         userId,
-        paymentStatus: PaymentStatus.PAID,
+        status: PaymentStatus.PAID,
         transactionType: TransactionType.EVENT,
       },
     });
@@ -95,10 +95,10 @@ export class UserStatsService {
   }
 
   async getRecentActivity(userId: string, limit: number = 5) {
-    const recentTransactions = await this.prisma.legacyTransaction.findMany({
+    const recentTransactions = await this.prisma.transaction.findMany({
       where: {
         userId,
-        paymentStatus: PaymentStatus.PAID,
+        status: PaymentStatus.PAID,
         transactionType: TransactionType.EVENT,
       },
       include: {

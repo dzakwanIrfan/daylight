@@ -127,6 +127,7 @@ async function main() {
                     finalAmount: finalAmt,
                     paymentUrl: oldTx.checkoutUrl || oldTx.payUrl,
                     transactionType: oldTx.transactionType,
+                    paidAt: oldTx.paidAt ? oldTx.paidAt : null,
                     createdAt: oldTx.createdAt,
                     updatedAt: oldTx.updatedAt,
                 }

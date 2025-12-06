@@ -25,9 +25,7 @@ import type { CreateXenditPaymentResponse } from "@/types/xendit.types";
 class SubscriptionService {
   private readonly baseURL = "/subscriptions";
 
-  // ============================================
   // USER ENDPOINTS
-  // ============================================
 
   async getActivePlans(): Promise<{
     success: boolean;
@@ -88,9 +86,7 @@ class SubscriptionService {
     return response.data;
   }
 
-  // ============================================
   // XENDIT SUBSCRIPTION PAYMENT - NEW
-  // ============================================
   async createXenditSubscriptionPayment(
     dto: CreateXenditSubscriptionPaymentDto
   ): Promise<{
@@ -126,9 +122,7 @@ class SubscriptionService {
     }
   }
 
-  // ============================================
   // LEGACY - Tripay (deprecated, keep for backward compatibility)
-  // ============================================
   async createSubscriptionPayment(dto: CreateSubscriptionPaymentDto): Promise<{
     success: boolean;
     message: string;
@@ -141,9 +135,7 @@ class SubscriptionService {
     return response.data;
   }
 
-  // ============================================
   // ADMIN - SUBSCRIPTION PLANS CRUD
-  // ============================================
 
   async getAllPlans(isActive?: boolean): Promise<{
     success: boolean;
@@ -214,9 +206,7 @@ class SubscriptionService {
     return response.data;
   }
 
-  // ============================================
   // ADMIN - SUBSCRIPTION PLAN PRICES CRUD
-  // ============================================
 
   async getPlanPrices(planId: string): Promise<{
     success: boolean;
@@ -268,9 +258,7 @@ class SubscriptionService {
     return response.data;
   }
 
-  // ============================================
   // ADMIN - USER SUBSCRIPTIONS MANAGEMENT
-  // ============================================
 
   async getAdminSubscriptions(
     params: QuerySubscriptionsParams

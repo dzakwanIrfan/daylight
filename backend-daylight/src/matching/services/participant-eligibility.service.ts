@@ -18,11 +18,11 @@ export class ParticipantEligibilityService {
     async getEligibleParticipants(
         eventId: string,
     ): Promise<UserMatchingProfile[]> {
-        const transactions = await this.prisma.legacyTransaction.findMany({
+        const transactions = await this.prisma.transaction.findMany({
             where: {
                 eventId,
                 transactionType: TransactionType.EVENT,
-                paymentStatus: PaymentStatus.PAID,
+                status: PaymentStatus.PAID,
                 user: {
                     personalityResult: {
                         isNot: null,

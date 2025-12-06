@@ -11,7 +11,7 @@ export class EventReminderService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   /**
    * Send H-1 event reminders (24 hours before event)
@@ -82,10 +82,10 @@ export class EventReminderService {
         this.logger.log(`Processing event: ${event.title} (ID: ${event.id})`);
 
         // Get all paid participants for this event WHO HAVEN'T RECEIVED REMINDER YET
-        const transactions = await this.prisma.legacyTransaction.findMany({
+        const transactions = await this.prisma.transaction.findMany({
           where: {
             eventId: event.id,
-            paymentStatus: PaymentStatus.PAID,
+            status: PaymentStatus.PAID,
             transactionType: TransactionType.EVENT,
             reminderSentAt: null,
           },
@@ -94,6 +94,7 @@ export class EventReminderService {
               select: {
                 firstName: true,
                 lastName: true,
+                email: true,
               },
             },
           },
@@ -105,22 +106,19 @@ export class EventReminderService {
 
         // Process each transaction individually to ensure we track sent status
         for (const transaction of transactions) {
-          const participantName =
-            transaction.customerName ||
-            `${transaction.user?.firstName || ''} ${transaction.user?.lastName || ''}`.trim() ||
-            'Participant';
+          const participantName = transaction.user.firstName + ' ' + transaction.user.lastName;
 
           try {
             // Send the reminder email
             await this.emailService.sendEventReminderEmail(
-              transaction.customerEmail,
+              transaction.user.email,
               participantName,
               event,
               transaction,
             );
 
             // Mark reminder as sent 
-            await this.prisma.legacyTransaction.update({
+            await this.prisma.transaction.update({
               where: { id: transaction.id },
               data: { reminderSentAt: new Date() },
             });
@@ -129,7 +127,7 @@ export class EventReminderService {
           } catch (error) {
             totalEmailsFailed++;
             this.logger.error(
-              `Failed to send reminder to ${transaction.customerEmail}: ${error.message}`,
+              `Failed to send reminder to ${transaction.user.email}: ${error.message}`,
             );
           }
         }

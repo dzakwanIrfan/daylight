@@ -62,8 +62,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Check for session expired signal
+  const isSessionExpired = request.nextUrl.searchParams.get('session') === 'expired';
+
   // If authenticated and trying to access auth pages (except callback)
   if (hasAuth && isAuthRoute) {
+    if (isSessionExpired) {
+      const response = NextResponse.next();
+      response.cookies.delete('accessToken');
+      response.cookies.delete('refreshToken');
+      response.cookies.delete('sessionId');
+      return response;
+    }
+
     return NextResponse.redirect(new URL('/events', request.url));
   }
 

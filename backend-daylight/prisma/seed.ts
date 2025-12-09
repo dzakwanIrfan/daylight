@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedQuestions() {
   console.log('🌱 Starting ENHANCED seed with bias-free scoring...');
 
   // Clear existing data
@@ -388,7 +388,7 @@ async function main() {
   console.log(`⚖️  Improved scoring to prevent bias`);
 }
 
-main()
+seedQuestions()
   .catch((e) => {
     console.error('❌ Seed failed:', e);
     process.exit(1);

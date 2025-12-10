@@ -657,7 +657,6 @@ export class EventsService {
       orderBy: {
         eventDate: 'asc',
       },
-      take: 10,
       include: {
         partner: true,
         cityRelation: true,
@@ -696,12 +695,12 @@ export class EventsService {
     }
 
     return {
-      data: filteredEvents,
+      data: filteredEvents.slice(0, 10),
       dateRange: {
         from: now.toISOString(),
         to: nextWeek.toISOString(),
       },
-      total: filteredEvents.length,
+      total: filteredEvents.slice(0, 10).length,
     };
   }
 

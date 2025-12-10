@@ -195,9 +195,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const userId = client.data.user. userId;
       const { groupId, content } = sendMessageDto;
 
-      console.log(`📤 Sending message from user ${userId} to group ${groupId}`);
-      console.log(`📝 Content: ${content. substring(0, 50)}...`);
-
       // Rate limiting
       if (! this.checkRateLimit(userId)) {
         throw new WsException('Rate limit exceeded.  Please slow down.');
@@ -206,11 +203,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       // Save message to database
       const message = await this.chatService.sendMessage(userId, sendMessageDto);
 
-      console.log(`✅ Message saved with ID: ${message.id}`);
-
       // Emit to other group members
       client.to(`group:${groupId}`).emit('message:new', message);
-      console.log(`📢 Message broadcasted to group:${groupId}`);
 
       // Create notifications for other members
       const group = await this.chatService['prisma'].matchingGroup. findUnique({

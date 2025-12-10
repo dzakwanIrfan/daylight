@@ -306,13 +306,13 @@ export async function seedEvents() {
     const currency = city.country?.currency || 'IDR';
     const isIDR = currency === 'IDR';
 
-    // Generate events untuk 60 hari ke depan
-    for (let dayOffset = 1; dayOffset <= 60; dayOffset++) {
+    // Generate events untuk 14 hari ke depan (reduced from 60)
+    for (let dayOffset = 1; dayOffset <= 14; dayOffset++) {
       const eventDate = getEventDate(dayOffset);
       const dayOfWeek = eventDate.getDay();
 
-      // Weekend = lebih banyak events
-      const eventsPerDay = dayOfWeek === 0 || dayOfWeek === 6 ? 4 : 2;
+      // Weekend = lebih banyak events (reduced from 4/2)
+      const eventsPerDay = dayOfWeek === 0 || dayOfWeek === 6 ? 2 : 1;
 
       // Pilih random events untuk hari ini
       for (let i = 0; i < eventsPerDay; i++) {

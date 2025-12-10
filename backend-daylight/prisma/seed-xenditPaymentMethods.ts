@@ -70,6 +70,7 @@ const xenditPaymentMethods = [
 ];
 
 export async function seedXenditPaymentMethods() {
+  await prisma.paymentMethod.deleteMany();
   console.log('Seeding Xendit Payment Methods...');
   for (const paymentMethod of xenditPaymentMethods) {
     await prisma.paymentMethod.upsert({

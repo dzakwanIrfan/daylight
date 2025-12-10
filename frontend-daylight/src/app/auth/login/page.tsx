@@ -12,7 +12,7 @@ function LoginContent() {
   useEffect(() => {
     if (searchParams.get('session') === 'expired') {
       setTimeout(() => {
-        toast.error('Sesi Anda telah kedaluwarsa. Silakan masuk kembali.');
+        toast.error('Your session has expired. Please log in again.');
       }, 0);
     }
   }, [searchParams]);

@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
-  constructor(private chatService: ChatService) {}
+  constructor(private chatService: ChatService) { }
 
   /**
    * Get user's groups
@@ -26,10 +26,10 @@ export class ChatController {
     @Query('limit') limit?: string,
     @Query('before') before?: string,
   ) {
-    const messages = await this.chatService. getGroupMessages(
-      user. id,
+    const messages = await this.chatService.getGroupMessages(
+      user.id,
       groupId,
-      limit ?  parseInt(limit, 10) : 50,
+      limit ? parseInt(limit, 10) : 50,
       before,
     );
 
@@ -64,7 +64,7 @@ export class ChatController {
     @CurrentUser() user: any,
     @Body() body: { messageIds: string[] },
   ) {
-    const count = await this.chatService. markAsRead(body.messageIds, user.id);
+    const count = await this.chatService.markAsRead(body.messageIds, user.id);
     return {
       success: true,
       count,

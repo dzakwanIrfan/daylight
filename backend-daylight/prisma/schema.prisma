@@ -687,10 +687,8 @@ model MatchingMember {
   transactionId String?      @unique
   transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
-  // Individual match scores with other members
-  matchScores Json // { "userId": score }
+  matchScores Json
 
-  // Personality snapshot at time of matching
   personalitySnapshot Json
 
   isConfirmed Boolean @default(false)

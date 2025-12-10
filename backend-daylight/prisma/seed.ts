@@ -10,7 +10,7 @@ export async function seedQuestions() {
   await prisma.question.deleteMany();
 
   // Section 1: Core Personality & Social Energy (Q1-Q5)
-  
+
   // Q1: Energy - Meeting new people (E trait)
   await prisma.question.create({
     data: {
@@ -142,7 +142,7 @@ export async function seedQuestions() {
   });
 
   // Section 2: Lifestyle & Social Comfort (Q6-Q9)
-  
+
   // Q6: Lifestyle tier (L trait) - FIXED: Direct value assignment
   await prisma.question.create({
     data: {
@@ -283,7 +283,7 @@ export async function seedQuestions() {
   });
 
   // Section 3: Openness & Social Behavior (Q10-Q12)
-  
+
   // Q10: Comfort with strangers (C trait)
   await prisma.question.create({
     data: {
@@ -388,11 +388,13 @@ export async function seedQuestions() {
   console.log(`⚖️  Improved scoring to prevent bias`);
 }
 
-seedQuestions()
-  .catch((e) => {
-    console.error('❌ Seed failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  seedQuestions()
+    .catch((e) => {
+      console.error('❌ Seed failed:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

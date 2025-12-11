@@ -88,6 +88,7 @@ export class EventReminderService {
             transactionType: TransactionType.EVENT,
             reminderSentAt: null,
           },
+          distinct: ['userId'],
           include: {
             user: true,
             paymentMethod: {

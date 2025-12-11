@@ -182,7 +182,7 @@ export function SubscriptionDetailsDialog({
                       Payment Status
                     </p>
                     <p className="text-sm text-gray-900 mt-1">
-                      <Badge variant="outline">{transaction.paymentStatus}</Badge>
+                      <Badge variant="outline">{transaction.status}</Badge>
                     </p>
                   </div>
                   {transaction.paidAt && (

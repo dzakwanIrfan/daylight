@@ -6,14 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { EventParticipant } from '@/types/participant.types';
-import { PaymentStatus } from '@/types/event.types';
+import { TransactionStatus } from '@/types/event.types';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { ParticipantTableRowActions } from './participant-table-row-actions';
 import { CheckCircle2, XCircle, Clock, Ban } from 'lucide-react';
 
 const statusConfig: Record<
-  PaymentStatus,
+  TransactionStatus,
   { color: string; icon: React.ComponentType<any> }
 > = {
   PAID: { color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle2 },
@@ -64,8 +64,8 @@ export const participantsColumns: ColumnDef<EventParticipant>[] = [
         <div className="flex items-center gap-3 min-w-0">
           <Avatar className="h-9 w-9 shrink-0">
             {profilePicture ? (
-              <AvatarImage 
-                src={profilePicture} 
+              <AvatarImage
+                src={profilePicture}
                 alt={user.email}
                 crossOrigin='anonymous'
                 referrerPolicy='no-referrer'
@@ -106,17 +106,6 @@ export const participantsColumns: ColumnDef<EventParticipant>[] = [
     },
   },
   {
-    accessorKey: 'quantity',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Qty" />
-    ),
-    cell: ({ row }) => {
-      return (
-        <span className="font-medium text-gray-900">{row.original.quantity}</span>
-      );
-    },
-  },
-  {
     accessorKey: 'amount',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Amount" />
@@ -125,10 +114,10 @@ export const participantsColumns: ColumnDef<EventParticipant>[] = [
       return (
         <div className="flex flex-col">
           <span className="font-medium text-gray-900">
-            IDR {row.original.amountReceived.toLocaleString('id-ID')}
+            IDR {row.original.finalAmount}
           </span>
           <span className="text-xs text-gray-500">
-            Base: IDR {row.original.amount.toLocaleString('id-ID')}
+            Base: IDR {row.original.amount}
           </span>
         </div>
       );
@@ -142,22 +131,19 @@ export const participantsColumns: ColumnDef<EventParticipant>[] = [
     ),
     cell: ({ row }) => {
       return (
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-gray-900">
-            {row.original.paymentName}
-          </span>
-          <span className="text-xs text-gray-500">{row.original.paymentMethod}</span>
-        </div>
+        <span className="text-sm font-medium text-gray-900">
+          {row.original.paymentMethodName}
+        </span>
       );
     },
   },
   {
-    accessorKey: 'paymentStatus',
+    accessorKey: 'status',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => {
-      const status = row.getValue('paymentStatus') as PaymentStatus;
+      const status = row.getValue('status') as TransactionStatus;
       const config = statusConfig[status];
       const Icon = config.icon;
 

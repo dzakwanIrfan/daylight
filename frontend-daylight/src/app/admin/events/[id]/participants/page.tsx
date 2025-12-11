@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { useEventParticipants } from '@/hooks/use-event-participants';
 import { useAdminEvent } from '@/hooks/use-admin-events';
 import { useRouter } from 'next/navigation';
-import { PaymentStatus } from '@/types/event.types';
+import { TransactionStatus } from '@/types/event.types';
 import { participantService } from '@/services/participant.service';
 import { format } from 'date-fns';
 import { MatchingTab } from '@/components/admin/matching/matching-tab';
@@ -63,11 +63,10 @@ export default function EventParticipantsPage({ params }: PageProps) {
           `"${p.customerName}"`,
           p.customerEmail,
           p.customerPhone || '',
-          p.quantity,
           p.amount,
-          p.amountReceived,
-          `"${p.paymentName}"`,
-          p.paymentStatus,
+          p.finalAmount,
+          `"${p.paymentMethodName}"`,
+          p.status,
           p.paidAt
             ? format(new Date(p.paidAt), 'dd/MM/yyyy HH:mm')
             : '',
@@ -210,11 +209,11 @@ export default function EventParticipantsPage({ params }: PageProps) {
                 ]}
                 filterableColumns={[
                   {
-                    id: 'paymentStatus',
+                    id: 'status',
                     title: 'Status',
-                    options: Object.values(PaymentStatus).map((status) => ({
-                      label: status,
-                      value: status,
+                    options: Object.values(status).map((s) => ({
+                      label: s,
+                      value: s,
                     })),
                   },
                 ]}

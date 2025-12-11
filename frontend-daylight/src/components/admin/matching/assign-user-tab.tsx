@@ -40,7 +40,7 @@ export function AssignUserTab({ eventId, groups }: AssignUserTabProps) {
 
   const filteredUnassigned = unassigned.filter(
     (p) =>
-      p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -63,7 +63,7 @@ export function AssignUserTab({ eventId, groups }: AssignUserTabProps) {
       setTargetGroupNumber('');
       setNote('');
     } catch (error) {
-      // Error handled by mutation
+      console.error('Error assigning user to group:', error);
     }
   };
 

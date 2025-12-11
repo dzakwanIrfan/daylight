@@ -3,7 +3,8 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PaymentStatus } from '@prisma/client';
+import { PaymentStatus, Prisma } from '@prisma/client';
+import type { User } from '@prisma/client';
 
 /**
  * Validation Helpers
@@ -37,12 +38,12 @@ export async function validateUserEligibility(
     transactionId?: string,
 ): Promise<{
     transaction: any;
-    user: any;
+    user: User;
 }> {
-    const where: any = {
+    const where: Prisma.TransactionWhereInput = {
         userId,
         eventId,
-        paymentStatus: PaymentStatus.PAID,
+        status: PaymentStatus.PAID,
     };
 
     if (transactionId) {

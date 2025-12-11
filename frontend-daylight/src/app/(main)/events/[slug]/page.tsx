@@ -21,8 +21,7 @@ import {
 } from 'lucide-react';
 import { FaCircleCheck } from "react-icons/fa6";
 import { format } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
-import { PaymentStatus } from '@/types/event.types';
+import { TransactionStatus } from '@/types/event.types';
 import { toast } from 'sonner';
 import { SubscriptionUpsellModal } from '@/components/subscriptions/subscription-upsell-modal';
 import Image from 'next/image';
@@ -133,10 +132,10 @@ export default function EventDetailPage() {
     if (isPurchaseStatusLoading) return 'Checking...';
     
     if (hasPurchased) {
-      if (purchaseStatusValue === PaymentStatus.PAID) {
+      if (purchaseStatusValue === TransactionStatus.PAID) {
         return 'Already Registered';
       }
-      if (purchaseStatusValue === PaymentStatus.PENDING) {
+      if (purchaseStatusValue === TransactionStatus.PENDING) {
         return 'Payment Pending';
       }
       if (canPurchase) {
@@ -168,10 +167,10 @@ export default function EventDetailPage() {
 
     // If already purchased and can't purchase again
     if (hasPurchased && !canPurchase) {
-      if (purchaseStatusValue === PaymentStatus.PAID) {
+      if (purchaseStatusValue === TransactionStatus.PAID) {
         toast.info('You have already joined this event');
         router.push('/my-events');
-      } else if (purchaseStatusValue === PaymentStatus.PENDING) {
+      } else if (purchaseStatusValue === TransactionStatus.PENDING) {
         toast.info('Your payment is still pending. Please check your transactions.');
         router.push('/my-events?tab=transactions');
       }
@@ -210,7 +209,7 @@ export default function EventDetailPage() {
           <span className="text-sm font-medium">Back</span>
         </button>
 
-        {!subscriptionAccess && hasPurchased && purchaseStatusValue === PaymentStatus.PENDING && (
+        {!subscriptionAccess && hasPurchased && purchaseStatusValue === TransactionStatus.PENDING && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
@@ -483,7 +482,7 @@ export default function EventDetailPage() {
                 Premium members can join for free
               </p>
             )}
-            {hasPurchased && purchaseStatusValue === PaymentStatus.PAID && (
+            {hasPurchased && purchaseStatusValue === TransactionStatus.PAID && (
               <p className="text-xs text-center text-gray-600 mt-2">
                 View your ticket in <Link href="/my-events" className="text-brand">My Events</Link>
               </p>

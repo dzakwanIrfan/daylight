@@ -23,7 +23,7 @@ export interface AdminSubscription {
     id: string;
     merchantRef: string;
     amount: number;
-    paymentStatus: string;
+    status: string;
     paidAt: string | null;
   } | null;
   startDate: string | null;

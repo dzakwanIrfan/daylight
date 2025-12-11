@@ -39,7 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PaymentStatus } from "@/types/event.types";
+import { TransactionStatus } from "@/types/event.types";
 
 export default function CreateXenditPaymentPage() {
   const params = useParams();
@@ -52,13 +52,13 @@ export default function CreateXenditPaymentPage() {
   } = useEventPurchaseStatus(slug);
 
   useEffect(() => {
-    if (purchaseStatus?.hasPurchased && purchaseStatus?.status === PaymentStatus.PAID) {
+    if (purchaseStatus?.hasPurchased && purchaseStatus?.status === TransactionStatus.PAID) {
       toast.success("You have purchased this event!");
       router.replace(`/events/${slug}`);
     }
   }, [purchaseStatus, router, slug]);
 
-  const isPurchased = purchaseStatus?.hasPurchased && purchaseStatus?.status === PaymentStatus.PAID;
+  const isPurchased = purchaseStatus?.hasPurchased && purchaseStatus?.status === TransactionStatus.PAID;
 
   // Queries
   const { data: event, isLoading: isLoadingEvent } = usePublicEvent(slug);

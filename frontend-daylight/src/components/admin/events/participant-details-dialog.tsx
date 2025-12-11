@@ -88,10 +88,10 @@ export function ParticipantDetailsDialog({
               <div className="flex flex-wrap gap-2 mt-3">
                 <Badge
                   variant={
-                    participant.paymentStatus === 'PAID' ? 'default' : 'secondary'
+                    participant.status === 'PAID' ? 'default' : 'secondary'
                   }
                 >
-                  {participant.paymentStatus}
+                  {participant.status}
                 </Badge>
                 {user.isEmailVerified && (
                   <Badge variant="outline" className="bg-green-50 text-green-700">
@@ -133,37 +133,23 @@ export function ParticipantDetailsDialog({
               </div>
 
               <div>
-                <p className="text-sm font-medium text-gray-500">Quantity</p>
+                <p className="text-sm font-medium text-gray-500">Amount</p>
                 <p className="text-sm text-gray-900 mt-1">
-                  {participant.quantity} ticket{participant.quantity > 1 ? 's' : ''}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-gray-500">Base Amount</p>
-                <p className="text-sm text-gray-900 mt-1">
-                  IDR {participant.amount.toLocaleString('id-ID')}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Paid</p>
-                <p className="text-sm font-semibold text-gray-900 mt-1">
-                  IDR {participant.amountReceived.toLocaleString('id-ID')}
+                  IDR {participant.amount}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-gray-500">Payment Method</p>
                 <p className="text-sm text-gray-900 mt-1">
-                  {participant.paymentName}
+                  {participant.paymentMethodName}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-gray-500">Payment Fee</p>
                 <p className="text-sm text-gray-900 mt-1">
-                  IDR {participant.totalFee.toLocaleString('id-ID')}
+                  IDR {participant.totalFee}
                 </p>
               </div>
 

@@ -14,7 +14,7 @@ export enum EventStatus {
   COMPLETED = 'COMPLETED',
 }
 
-export enum PaymentStatus {
+export enum TransactionStatus {
   PENDING = 'PENDING',
   PAID = 'PAID',
   FAILED = 'FAILED',
@@ -60,7 +60,7 @@ export interface Event {
 export interface EventPurchaseStatus {
   hasPurchased: boolean;
   canPurchase: boolean;
-  status: PaymentStatus | null;
+  status: TransactionStatus | null;
   transaction: {
     id: string;
     merchantRef: string;

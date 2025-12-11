@@ -1,4 +1,4 @@
-import { PaymentStatus } from './event.types';
+import { TransactionStatus } from './event.types';
 
 export interface EventParticipant {
   id: string;
@@ -6,14 +6,14 @@ export interface EventParticipant {
   tripayReference: string;
   merchantRef: string;
   paymentMethodCode: string;
-  paymentMethod: string;
-  paymentName: string;
-  paymentStatus: PaymentStatus;
+  paymentMethodId: string;
+  paymentMethodName: string;
+  status: TransactionStatus;
   amount: number;
   feeMerchant: number;
   feeCustomer: number;
   totalFee: number;
-  amountReceived: number;
+  finalAmount: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string | null;
@@ -21,7 +21,6 @@ export interface EventParticipant {
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
-  quantity: number;
   user: {
     id: string;
     email: string;
@@ -87,7 +86,7 @@ export interface QueryParticipantsParams {
   search?: string;
   sortBy?: 'paidAt' | 'createdAt' | 'customerName' | 'amount';
   sortOrder?: 'asc' | 'desc';
-  paymentStatus?: PaymentStatus;
+  status?: TransactionStatus;
 }
 
 export interface QueryParticipantsResponse {

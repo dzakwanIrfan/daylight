@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Get,
-  Delete,
   Body,
   Param,
   UseGuards,
@@ -15,6 +14,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
 import {
   AssignUserToGroupDto,
   MoveUserBetweenGroupsDto,
@@ -36,7 +36,7 @@ export class MatchingController {
   @HttpCode(HttpStatus.OK)
   async matchEventParticipants(
     @Param('eventId') eventId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     const matchingResult = await this.matchingService.matchEventParticipants(
       eventId,
@@ -89,7 +89,7 @@ export class MatchingController {
   @Get('events/:eventId/my-group')
   async getMyMatchingGroup(
     @Param('eventId') eventId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     return this.matchingService.getUserMatchingGroup(eventId, user.id);
   }
@@ -103,7 +103,7 @@ export class MatchingController {
   @HttpCode(HttpStatus.OK)
   async previewMatching(
     @Param('eventId') eventId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     const matchingResult = await this.matchingService.matchEventParticipants(
       eventId,
@@ -138,8 +138,11 @@ export class MatchingController {
   async assignUserToGroup(
     @Param('eventId') eventId: string,
     @Body() dto: AssignUserToGroupDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
+    console.log('AssignUserToGroupDto:', dto);
+    console.log('Event ID:', eventId);
+    console.log('Admin User ID:', user.id);
     return this.matchingService.assignUserToGroup(eventId, dto, user.id);
   }
 
@@ -153,7 +156,7 @@ export class MatchingController {
   async moveUserBetweenGroups(
     @Param('eventId') eventId: string,
     @Body() dto: MoveUserBetweenGroupsDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     return this.matchingService.moveUserBetweenGroups(eventId, dto, user.id);
   }
@@ -168,7 +171,7 @@ export class MatchingController {
   async removeUserFromGroup(
     @Param('eventId') eventId: string,
     @Body() dto: RemoveUserFromGroupDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     return this.matchingService.removeUserFromGroup(eventId, dto, user.id);
   }
@@ -183,7 +186,7 @@ export class MatchingController {
   async createManualGroup(
     @Param('eventId') eventId: string,
     @Body() dto: CreateManualGroupDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     return this.matchingService.createManualGroup(eventId, dto, user.id);
   }
@@ -198,7 +201,7 @@ export class MatchingController {
   async bulkAssignUsers(
     @Param('eventId') eventId: string,
     @Body() dto: BulkAssignUsersDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: User,
   ) {
     return this.matchingService.bulkAssignUsers(eventId, dto, user.id);
   }

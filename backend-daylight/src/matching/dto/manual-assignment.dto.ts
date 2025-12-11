@@ -6,7 +6,6 @@ export class AssignUserToGroupDto {
   userId: string;
 
   @IsString()
-  @IsUUID()
   transactionId: string;
 
   @IsInt()
@@ -15,7 +14,7 @@ export class AssignUserToGroupDto {
 
   @IsOptional()
   @IsString()
-  note?: string;
+  note?: string | undefined;
 }
 
 export class MoveUserBetweenGroupsDto {

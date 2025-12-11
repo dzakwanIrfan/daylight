@@ -663,36 +663,9 @@ export class EventsService {
       },
     });
 
-    let filteredEvents = events;
-
-    if (user?.id) {
-      const userPurchasedEvents = await this.prisma.transaction.findMany({
-        where: {
-          userId: user.id,
-          status: PaymentStatus.PAID,
-        },
-        select: {
-          eventId: true,
-        },
-      });
-
-      const purchasedEventIds = new Set(
-        userPurchasedEvents
-          .map((t) => t.eventId)
-          .filter((id): id is string => id !== null)
-      );
-
-      filteredEvents = events.filter((event) => {
-        if (purchasedEventIds.has(event.id)) {
-          return true;
-        }
-        return !this.isEventWithin24Hours(event.eventDate, event.startTime);
-      });
-    } else {
-      filteredEvents = events.filter((event) => {
-        return !this.isEventWithin24Hours(event.eventDate, event.startTime);
-      });
-    }
+    const filteredEvents = events.filter((event) => {
+      return !this.isEventWithin24Hours(event.eventDate, event.startTime);
+    });
 
     return {
       data: filteredEvents.slice(0, 10),

@@ -111,7 +111,7 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
 
         {transaction.paymentMethodName !== "SUBSCRIPTION" && (
           <Link
-            href={`/payment/${transaction.id}`}
+            href={`/payment/${transaction.externalId}`}
             className="inline-flex items-center gap-1. 5 text-xs sm:text-sm font-medium text-brand hover:text-brand/80 transition-colors self-end sm:self-auto"
           >
             View Details

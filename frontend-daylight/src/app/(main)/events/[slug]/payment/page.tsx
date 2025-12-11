@@ -133,7 +133,7 @@ export default function CreateXenditPaymentPage() {
 
       if (result.success && result.data) {
         toast.success("Payment created successfully!");
-        router.push(`/payment/${result.data.transaction.id}`);
+        router.push(`/payment/${result.data.transaction.externalId}`);
       } else {
         toast.error(result.error || "Failed to create payment");
       }

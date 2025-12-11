@@ -10,10 +10,10 @@ export class XenditTransactionService {
     /**
      * Get transaction detail dengan actions
      */
-    async getTransactionDetail(transactionId: string, userId: string) {
+    async getTransactionDetail(externalId: string, userId: string) {
         const transaction = await this.prismaService.transaction.findFirst({
             where: {
-                id: transactionId,
+                externalId: externalId,
                 userId: userId,
             },
             include: {

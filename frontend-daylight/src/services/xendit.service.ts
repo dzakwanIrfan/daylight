@@ -162,14 +162,14 @@ class XenditService {
   /**
    * Get transaction detail
    */
-  async getTransactionDetail(transactionId: string): Promise<{
+  async getTransactionDetail(externalId: string): Promise<{
     success: boolean;
     data?: XenditTransaction;
     error?: string;
   }> {
     try {
       const response = await apiClient.get<XenditTransaction>(
-        `${this.baseURL}/transaction/${transactionId}`
+        `${this.baseURL}/transaction/${externalId}`
       );
 
       return {
@@ -201,13 +201,10 @@ class XenditService {
       console.error("Failed to fetch transactions:", error);
       return {
         data: [],
-        pagination: {
+        meta: {
           total: 0,
           page: 1,
-          limit: 10,
-          totalPages: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
+          lastPage: 0,
         },
       };
     }

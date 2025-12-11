@@ -38,8 +38,8 @@ export class XenditService {
     return this.paymentService.calculateFeePreview(amount, paymentMethodId);
   }
 
-  async getTransactionDetail(transactionId: string, userId: string) {
-    return this.transactionService.getTransactionDetail(transactionId, userId);
+  async getTransactionDetail(externalId: string, userId: string) {
+    return this.transactionService.getTransactionDetail(externalId, userId);
   }
 
   async getUserTransactions(userId: string, query: QueryXenditTransactionsDto) {

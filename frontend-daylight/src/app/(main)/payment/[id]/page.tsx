@@ -191,7 +191,7 @@ function SubscriptionConfirmedCard({
 export default function XenditPaymentDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const transactionId = params.id as string;
+  const externalId = params.id as string;
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
 
   // Query transaction with explicit type
@@ -199,7 +199,7 @@ export default function XenditPaymentDetailPage() {
     data: transactionResponse,
     isLoading,
     refetch,
-  } = useXenditTransaction(transactionId) as {
+  } = useXenditTransaction(externalId) as {
     data: TransactionResponse | undefined;
     isLoading: boolean;
     refetch: () => void;
@@ -269,7 +269,7 @@ export default function XenditPaymentDetailPage() {
 
   // WebSocket for real-time updates
   const { isConnected, isSubscribed } = useXenditSocket({
-    transactionId: isPending ? transactionId : undefined,
+    transactionId: isPending ? externalId : undefined,
     enabled: isPending,
     onPaymentUpdate: () => {
       console.log("🔄 Payment updated, refetching...");

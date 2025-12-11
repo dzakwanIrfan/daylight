@@ -51,32 +51,33 @@ export class XenditPayloadBuilderService {
     };
   }
 
-  private getReturnUrls() {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+  private getReturnUrls(externalId: string) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+
+    const paymentUrl = `${frontendUrl}/payment/${externalId}`;
 
     return {
-      success_return_url: `${frontendUrl}/payment/success`,
-      pending_return_url: `${frontendUrl}/payment/pending`,
-      failure_return_url: `${frontendUrl}/payment/failure`,
-      cancel_return_url: `${frontendUrl}/payment/cancel`,
+      success_return_url: paymentUrl,
+      pending_return_url: paymentUrl,
+      failure_return_url: paymentUrl,
+      cancel_return_url: paymentUrl,
     };
   }
 
   buildEwalletPayload(options: PaymentPayloadOptions): RequestEwalletDto {
-    const referenceId = this.generateReferenceId(options.user.id);
+    const externalId = this.generateReferenceId(options.user.id);
 
     return {
-      reference_id: referenceId,
+      reference_id: externalId,
       request_amount: options.amount,
       country: options.paymentMethod.countryCode,
       currency: options.paymentMethod.currency,
       channel_code: options.paymentMethod.code,
-      channel_properties: this.getReturnUrls(),
+      channel_properties: this.getReturnUrls(externalId),
       description: options.description,
       customer: {
         type: 'INDIVIDUAL',
-        reference_id: referenceId,
+        reference_id: externalId,
         email: options.customerEmail,
         individual_detail: {
           given_names: options.customerName,

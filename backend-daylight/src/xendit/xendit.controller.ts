@@ -79,13 +79,13 @@ export class XenditController {
    * Endpoint untuk get transaction detail dengan actions
    */
   @UseGuards(JwtAuthGuard)
-  @Get('transaction/:id')
+  @Get('transaction/:externalId')
   async getTransactionDetail(
     @CurrentUser() user: User,
-    @Param('id') transactionId: string,
+    @Param('externalId') externalId: string,
   ) {
     return await this.xenditService.getTransactionDetail(
-      transactionId,
+      externalId,
       user.id,
     );
   }

@@ -54,11 +54,11 @@ export function useXenditCreatePayment() {
 }
 
 // GET TRANSACTION DETAIL
-export function useXenditTransaction(transactionId: string) {
+export function useXenditTransaction(externalId: string) {
   return useQuery({
-    queryKey: xenditKeys.transaction(transactionId),
-    queryFn: () => xenditService.getTransactionDetail(transactionId),
-    enabled: !!transactionId,
+    queryKey: xenditKeys.transaction(externalId),
+    queryFn: () => xenditService.getTransactionDetail(externalId),
+    enabled: !!externalId,
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data?.success || !data?.data) return false;

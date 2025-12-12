@@ -32,7 +32,7 @@ export default function Navbar({ isHome = false }: NavbarProps) {
     const navLinks = [
         { href: "/", label: "Home" },
         { href: "/about-us", label: "About Us" },
-        { href: "#", label: "Blog" },
+        { href: "/blog", label: "Blog" },
         { href: "/contact-us", label: "Contact Us" },
     ];
 

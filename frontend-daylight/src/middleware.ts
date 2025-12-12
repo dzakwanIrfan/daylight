@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const publicRoutes = [
+   '/',
+  '/home',
+  '/about-us',
+  '/contact-us',
   '/auth/login',
   '/auth/register',
   '/auth/forgot-password',
@@ -62,14 +66,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Check for session expired signal
+  const isSessionExpired = request.nextUrl.searchParams.get('session') === 'expired';
+
   // If authenticated and trying to access auth pages (except callback)
   if (hasAuth && isAuthRoute) {
+    if (isSessionExpired) {
+      const response = NextResponse.next();
+      response.cookies.delete('accessToken');
+      response.cookies.delete('refreshToken');
+      response.cookies.delete('sessionId');
+      return response;
+    }
+
     return NextResponse.redirect(new URL('/events', request.url));
   }
 
   // If authenticated and trying to access personality-test/result, redirect to home
   if (hasAuth && pathname === '/personality-test/result') {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/events', request.url));
   }
 
   return NextResponse.next();

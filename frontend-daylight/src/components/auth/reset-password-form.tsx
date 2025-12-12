@@ -6,13 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Loader2, KeyRound, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authService } from '@/services/auth.service';
+import { MeshGradient } from "@blur-ui/mesh-gradient";
 
 const resetPasswordSchema = z.object({
   password: z
@@ -90,11 +91,21 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
   return (
     <div className="w-full max-w-md space-y-8">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand/10 mb-4">
-          <KeyRound className="w-8 h-8 text-brand" />
-        </div>
-        <h1 className="text-3xl font-heading font-bold mb-2">
+      <div className="fixed inset-0 -z-10 w-full h-full">
+        <MeshGradient
+          colors={{
+            color1: "#FFF0E6",
+            color2: "#FEECA7",
+            color3: "#FEECA7",
+            color4: "#e3cfff",
+          }}
+          opacity={0.8}
+          className="w-full h-full"
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
+      <div className="text-center md:text-left">
+        <h1 className="text-3xl font-bold mb-2">
           Set New Password
         </h1>
         <p className="text-muted-foreground">
@@ -102,7 +113,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-10 border-2 border-orange-400 rounded-2xl bg-white/20 backdrop-blur-lg inset-shadow-sm inset-shadow-white">
         <div className="space-y-2">
           <Label htmlFor="password">New Password</Label>
           <div className="relative">
@@ -112,7 +123,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               placeholder="••••••••"
               autoComplete="new-password"
               {...register('password')}
-              className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
+              className={`rounded-full px-6 py-4 bg-white! text-gray-800 placeholder:text-gray-500 shadow-[0_6px_12px_rgba(0,0,0,0.08)] border border-white focus:outline-none focus:ring-2 focus:ring-[#f2ac55] {errors.password ? 'border-destructive pr-10' : 'pr-10'}`}
               disabled={resetPasswordMutation.isPending}
             />
             <button
@@ -159,7 +170,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               placeholder="••••••••"
               autoComplete="new-password"
               {...register('confirmPassword')}
-              className={errors.confirmPassword ? 'border-destructive pr-10' : 'pr-10'}
+              className={`rounded-full px-6 py-4 bg-white! text-gray-800 placeholder:text-gray-500 shadow-[0_6px_12px_rgba(0,0,0,0.08)] border border-white focus:outline-none focus:ring-2 focus:ring-[#f2ac55] {errors.confirmPassword ? 'border-destructive pr-10' : 'pr-10'}`}
               disabled={resetPasswordMutation.isPending}
             />
             <button
@@ -180,7 +191,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
         <Button
           type="submit"
-          className="w-full bg-brand hover:bg-brand/90 border border-r-4 border-b-4 border-black rounded-full font-bold text-white"
+          className="w-fit font-bold bg-radial-[at_50%_50%] from-yellow-glow from-40% to-brand to-90% rounded-full text-black outline-2 outline-white"
           disabled={resetPasswordMutation.isPending}
         >
           {resetPasswordMutation.isPending ? (

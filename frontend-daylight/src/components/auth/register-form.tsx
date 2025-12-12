@@ -295,26 +295,6 @@ export function RegisterForm() {
             />
           </div>
         </div>
-        {/* Personality Test Completed Card */}
-        {sessionId && isTestCompleted && (
-          <Card className="border border-brand/20 bg-linear-to-r from-brand/5 to-brand/10">
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    Persona test complete
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Register to see your results and find your people
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {isLoadingResult && sessionId && isTestCompleted && (
           <Card className="border-2 border-brand/30 bg-brand/5">
@@ -339,6 +319,26 @@ export function RegisterForm() {
         <h1 className="text-4xl font-bold text-center w-full md:mt-6">
           Sign Up
         </h1>
+        {/* Personality Test Completed Card */}
+        {sessionId && isTestCompleted && (
+          <Card className="border border-brand/20 bg-linear-to-r from-brand/5 to-brand/10">
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    Persona test complete
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Register to see your results and find your people
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -557,7 +557,6 @@ export function RegisterForm() {
           </div>
         </div>
       </div>
-      {/* ======================================================== */}
     </div>
   );
 }

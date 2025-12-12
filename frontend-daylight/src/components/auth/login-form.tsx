@@ -248,8 +248,8 @@ export function LoginForm() {
         </div>
         <div className="flex flex-col gap-2 justify-center w-full items-center">
           <h3 className="font-bold">New user?</h3>
-          <ButtonDaylight href="/personality-test" className="w-fit px-4 text-sm md:text-base">
-            Take Persona Quiz
+          <ButtonDaylight href="/personality-test" className="w-fit text-sm md:text-base" padding="px-8 py-1">
+            Sign Up
           </ButtonDaylight>
         </div>
       </div>

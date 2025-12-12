@@ -10,6 +10,7 @@ import {
   UserSubscription,
   SubscriptionPlan,
 } from '@prisma/client';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 // Type definitions for email service
 export interface TransactionWithRelations extends Transaction {
@@ -38,7 +39,10 @@ export interface EventEmailData {
 export class EmailService {
   private transporter: nodemailer.Transporter;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get('SMTP_HOST'),
       port: this.configService.get('SMTP_PORT'),
@@ -486,11 +490,17 @@ export class EmailService {
     event: EventEmailData,
   ) {
     const user = transaction.user;
-    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+      'Valued Customer';
     const currency = transaction.paymentMethod?.currency || 'IDR';
-    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
+    const paymentMethodName =
+      transaction.paymentMethodName ||
+      transaction.paymentMethod?.name ||
+      'Payment Gateway';
     const paymentCode = this.extractPaymentCode(transaction.actions);
-    const paymentUrl = this.extractPaymentUrl(transaction.actions) || transaction.paymentUrl;
+    const paymentUrl =
+      this.extractPaymentUrl(transaction.actions) || transaction.paymentUrl;
 
     const content = `
       <div class="email-body">
@@ -537,22 +547,30 @@ export class EmailService {
           </div>
         </div>
 
-        ${paymentCode ? `
+        ${
+          paymentCode
+            ? `
         <div class="payment-code-box">
           <p class="payment-code-label">Payment Code</p>
           <div class="payment-code">${paymentCode}</div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="alert-box alert-warning">
           <strong>Action Required:</strong> Please complete your payment as soon as possible to secure your spot at this event.
         </div>
 
-        ${paymentUrl ? `
+        ${
+          paymentUrl
+            ? `
         <div class="button-container">
           <a href="${paymentUrl}" class="button">Complete Payment</a>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
 
@@ -572,9 +590,14 @@ export class EmailService {
     event: EventEmailData,
   ) {
     const user = transaction.user;
-    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+      'Valued Customer';
     const currency = transaction.paymentMethod?.currency || 'IDR';
-    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
+    const paymentMethodName =
+      transaction.paymentMethodName ||
+      transaction.paymentMethod?.name ||
+      'Payment Gateway';
 
     const content = `
       <div class="email-body">
@@ -652,7 +675,9 @@ export class EmailService {
     event: EventEmailData,
   ) {
     const user = transaction.user;
-    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+      'Valued Customer';
 
     const content = `
       <div class="email-body">
@@ -691,7 +716,9 @@ export class EmailService {
     event: EventEmailData,
   ) {
     const user = transaction.user;
-    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+      'Valued Customer';
 
     const content = `
       <div class="email-body">
@@ -738,12 +765,19 @@ export class EmailService {
     const subscription = transaction.userSubscription;
 
     if (!subscription) {
-      throw new Error('Subscription data is required for subscription payment email');
+      throw new Error(
+        'Subscription data is required for subscription payment email',
+      );
     }
 
-    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+      'Valued Customer';
     const currency = transaction.paymentMethod?.currency || 'IDR';
-    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
+    const paymentMethodName =
+      transaction.paymentMethodName ||
+      transaction.paymentMethod?.name ||
+      'Payment Gateway';
 
     const content = `
       <div class="email-body">
@@ -814,14 +848,26 @@ export class EmailService {
   async sendTransactionNotificationToAdmin(
     transaction: TransactionWithRelations,
   ) {
-    const adminEmail = this.configService.get('ADMIN_EMAIL') || 'contact@himgroup.asia';
+    const adminEmail =
+      this.configService.get('ADMIN_EMAIL') || 'contact@himgroup.asia';
     const currency = transaction.paymentMethod?.currency || 'IDR';
-    const paymentMethodName = transaction.paymentMethodName || transaction.paymentMethod?.name || 'Payment Gateway';
+    const paymentMethodName =
+      transaction.paymentMethodName ||
+      transaction.paymentMethod?.name ||
+      'Payment Gateway';
 
-    const transactionType = transaction.transactionType === 'EVENT' ? 'Event Registration' : 'Subscription';
-    const itemName = transaction.event?.title || transaction.userSubscription?.plan?.name || 'N/A';
+    const transactionType =
+      transaction.transactionType === 'EVENT'
+        ? 'Event Registration'
+        : 'Subscription';
+    const itemName =
+      transaction.event?.title ||
+      transaction.userSubscription?.plan?.name ||
+      'N/A';
 
-    const userName = `${transaction.user.firstName || ''} ${transaction.user.lastName || ''}`.trim() || 'N/A';
+    const userName =
+      `${transaction.user.firstName || ''} ${transaction.user.lastName || ''}`.trim() ||
+      'N/A';
 
     const content = `
       <div class="email-body">
@@ -888,7 +934,9 @@ export class EmailService {
           </div>
         </div>
 
-        ${transaction.event ? `
+        ${
+          transaction.event
+            ? `
         <div class="info-box">
           <h3 class="info-box-title">Event Details</h3>
           <div class="info-row">
@@ -904,9 +952,13 @@ export class EmailService {
             <span class="info-value">${transaction.event.venue}, ${transaction.event.city}</span>
           </div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${transaction.userSubscription ? `
+        ${
+          transaction.userSubscription
+            ? `
         <div class="info-box">
           <h3 class="info-box-title">Subscription Details</h3>
           <div class="info-row">
@@ -918,7 +970,9 @@ export class EmailService {
             <span class="info-value">${transaction.userSubscription.plan?.durationInMonths} Month(s)</span>
           </div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="divider"></div>
 
@@ -944,7 +998,9 @@ export class EmailService {
     event: EventEmailData,
   ) {
     const user = transaction.user;
-    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Valued Customer';
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+      'Valued Customer';
 
     const content = `
       <div class="email-body">
@@ -979,11 +1035,15 @@ export class EmailService {
           </div>
         </div>
 
-        ${event.googleMapsUrl ? `
+        ${
+          event.googleMapsUrl
+            ? `
         <div class="button-container">
           <a href="${event.googleMapsUrl}" class="button">Get Directions</a>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="info-box">
           <h3 class="info-box-title">What to Bring</h3>
@@ -994,14 +1054,18 @@ export class EmailService {
           </ul>
         </div>
 
-        ${event.requirements && event.requirements.length > 0 ? `
+        ${
+          event.requirements && event.requirements.length > 0
+            ? `
         <div class="info-box">
           <h3 class="info-box-title">Event Requirements</h3>
           <ul class="list">
             ${event.requirements.map((req: string) => `<li class="list-item">${req}</li>`).join('')}
           </ul>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="alert-box alert-warning">
           <strong>Important:</strong> Please arrive 15 minutes before the event starts. 
@@ -1022,6 +1086,290 @@ export class EmailService {
       from: this.configService.get('EMAIL_FROM'),
       to: user.email,
       subject: `Reminder: ${event.title} is Tomorrow!`,
+      html: this.getEmailTemplate(content),
+    });
+  }
+
+  /**
+   * Get timezone for country
+   */
+  private getTimezoneForCountry(countryCode: string): string {
+    const timezoneMap: Record<string, string> = {
+      ID: 'Asia/Jakarta',
+      SG: 'Asia/Singapore',
+      MY: 'Asia/Kuala_Lumpur',
+      PH: 'Asia/Manila',
+      TH: 'Asia/Bangkok',
+      VN: 'Asia/Ho_Chi_Minh',
+      US: 'America/New_York',
+      GB: 'Europe/London',
+      AU: 'Australia/Sydney',
+      JP: 'Asia/Tokyo',
+      KR: 'Asia/Seoul',
+    };
+
+    return timezoneMap[countryCode] || 'Asia/Jakarta';
+  }
+
+  /**
+   * Format date with event's country timezone
+   */
+  private formatDateWithEventTimezone(date: Date, event: any): string {
+    const timezone = event.cityRelation?.country?.code
+      ? this.getTimezoneForCountry(event.cityRelation.country.code)
+      : 'Asia/Jakarta';
+
+    return new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: timezone,
+    }).format(new Date(date));
+  }
+
+  /**
+   * Format time with event's country timezone
+   */
+  private formatTimeWithEventTimezone(date: Date, event: any): string {
+    const timezone = event.cityRelation?.country?.code
+      ? this.getTimezoneForCountry(event.cityRelation.country.code)
+      : 'Asia/Jakarta';
+
+    return new Intl.DateTimeFormat('en-US', {
+      timeStyle: 'short',
+      timeZone: timezone,
+    }).format(new Date(date));
+  }
+
+  /**
+   * Send group matched notification to participant
+   */
+  async sendGroupMatchedEmail(user: any, event: Event, group: any, member: any) {
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Participant';
+
+    // Find group number
+    const allGroups = await this.prisma.matchingGroup.findMany({
+      where: { eventId: event.id },
+      orderBy: { groupNumber: 'asc' },
+    });
+
+    const currentGroup = allGroups.find((g: any) =>
+      group.members.some((m: any) => m.userId === user.id),
+    );
+
+    const groupNumber = currentGroup?.groupNumber || 1;
+
+    // Get other group members
+    const otherMembers = group.members
+      .filter((m: any) => m.userId !== user.id)
+      .slice(0, 3); // Show max 3 other members
+
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">Exciting news! We've matched you with a group for <strong>${event.title}</strong>.</p>
+        
+        <div class="alert-box alert-success">
+          <strong>🎉 You're in Group ${groupNumber}!</strong> Get ready to meet amazing new people.
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Event Details</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name:</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date & Time:</span>
+            <span class="info-value">${this.formatDateWithEventTimezone(event.eventDate, event)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Time:</span>
+            <span class="info-value">${this.formatTimeWithEventTimezone(event.startTime, event)} - ${this.formatTimeWithEventTimezone(event.endTime, event)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location:</span>
+            <span class="info-value">${event.venue}, ${event.city}</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Your Group - Group ${groupNumber}</h3>
+          <div class="info-row">
+            <span class="info-label">Total Members:</span>
+            <span class="info-value">${group.size} people</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Match Score:</span>
+            <span class="info-value">${group.averageMatchScore}%</span>
+          </div>
+        </div>
+
+        ${
+          otherMembers.length > 0
+            ? `
+        <div class="info-box">
+          <h3 class="info-box-title">Your Group Members</h3>
+          <p class="text" style="font-size: 14px; margin-bottom: 12px;">You'll be meeting these wonderful people:</p>
+          <ul class="list">
+            ${otherMembers.map((m: any) => `<li class="list-item">${m.name || 'Participant'}</li>`).join('')}
+            ${group.size > 4 ? `<li class="list-item">+ ${group.size - 4} more member(s)</li>` : ''}
+          </ul>
+        </div>
+        `
+            : ''
+        }
+
+        <div class="alert-box alert-info">
+          <strong>What's Next?</strong> Come to the event and look for Group ${groupNumber}. Our team will help guide you to your group.
+        </div>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/events/${event.slug}" class="button">View Event Details</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text"><strong>Tips for a Great Experience:</strong></p>
+        <ul class="list">
+          <li class="list-item">Arrive on time to meet your group</li>
+          <li class="list-item">Be open and friendly - everyone is excited to meet you!</li>
+          <li class="list-item">Bring your positive energy and curiosity</li>
+          <li class="list-item">Don't worry if you're nervous - it's totally normal!</li>
+        </ul>
+
+        <p class="text">We can't wait to see you there!</p>
+      </div>
+    `;
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: user.email,
+      subject: `You've Been Matched! - ${event.title}`,
+      html: this.getEmailTemplate(content),
+    });
+  }
+
+  /**
+   * Send matching completion notification to admin
+   */
+  async sendMatchingCompleteToAdmin(event: any, matchingResult: any) {
+    const adminEmail =
+      this.configService.get('ADMIN_EMAIL') || 'contact@himgroup.asia';
+
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Auto-Matching Completed</h2>
+        <p class="text">Automatic group matching has been completed for the upcoming event.</p>
+        
+        <div class="alert-box alert-success">
+          <strong>Status:</strong> Matching completed successfully
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Event Information</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name:</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Event Date:</span>
+            <span class="info-value">${this.formatDateWithEventTimezone(event.eventDate, event)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location:</span>
+            <span class="info-value">${event.venue}, ${event.city}</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Matching Statistics</h3>
+          <div class="info-row">
+            <span class="info-label">Total Participants:</span>
+            <span class="info-value">${matchingResult.totalParticipants}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Groups Formed:</span>
+            <span class="info-value">${matchingResult.statistics.totalGroups}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Matched:</span>
+            <span class="info-value">${matchingResult.statistics.matchedCount} participants</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Unmatched:</span>
+            <span class="info-value">${matchingResult.statistics.unmatchedCount} participants</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Average Match Score:</span>
+            <span class="info-value">${matchingResult.statistics.averageMatchScore}%</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Average Group Size:</span>
+            <span class="info-value">${matchingResult.statistics.averageGroupSize}</span>
+          </div>
+        </div>
+
+        ${
+          matchingResult.thresholdBreakdown &&
+          matchingResult.thresholdBreakdown.length > 0
+            ? `
+        <div class="info-box">
+          <h3 class="info-box-title">Threshold Breakdown</h3>
+          ${matchingResult.thresholdBreakdown
+            .map(
+              (t: any) => `
+            <div class="info-row">
+              <span class="info-label">Threshold ${t.threshold}%:</span>
+              <span class="info-value">${t.groupsFormed} group(s), ${t.participantsMatched} participants</span>
+            </div>
+          `,
+            )
+            .join('')}
+        </div>
+        `
+            : ''
+        }
+
+        ${
+          matchingResult.warnings && matchingResult.warnings.length > 0
+            ? `
+        <div class="info-box">
+          <h3 class="info-box-title">Notes</h3>
+          <ul class="list">
+            ${matchingResult.warnings.map((w: string) => `<li class="list-item">${w}</li>`).join('')}
+          </ul>
+        </div>
+        `
+            : ''
+        }
+
+        ${
+          matchingResult.statistics.unmatchedCount > 0
+            ? `
+        <div class="alert-box alert-warning">
+          <strong>Action Required:</strong> ${matchingResult.statistics.unmatchedCount} participant(s) could not be automatically matched. You may need to manually assign them to groups.
+        </div>
+        `
+            : ''
+        }
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/admin/events/${event.id}/matching" class="button">View Matching Results</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text" style="font-size: 13px; color: #999;">
+          This is an automated notification from DayLight auto-matching system.
+        </p>
+      </div>
+    `;
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: adminEmail,
+      subject: `[DayLight] Auto-Matching Complete - ${event.title}`,
       html: this.getEmailTemplate(content),
     });
   }

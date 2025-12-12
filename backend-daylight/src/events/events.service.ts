@@ -6,7 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, EventStatus, PaymentStatus, TransactionType, EventCategory } from '@prisma/client';
+import { Prisma, EventStatus, TransactionType, EventCategory, TransactionStatus } from '@prisma/client';
 import type { User } from '@prisma/client';
 import { QueryEventsDto, SortOrder } from './dto/query-events.dto';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -101,7 +101,7 @@ export class EventsService {
       where: {
         userId,
         eventId,
-        status: PaymentStatus.PAID,
+        status: TransactionStatus.PAID,
       },
     });
 
@@ -169,10 +169,10 @@ export class EventsService {
       };
     }
 
-    const canPurchaseAgain = new Set<PaymentStatus>([
-      PaymentStatus.FAILED,
-      PaymentStatus.EXPIRED,
-      PaymentStatus.REFUNDED,
+    const canPurchaseAgain = new Set<TransactionStatus>([
+      TransactionStatus.FAILED,
+      TransactionStatus.EXPIRED,
+      TransactionStatus.REFUNDED,
     ]).has(transaction.status);
 
     return {
@@ -563,7 +563,7 @@ export class EventsService {
       const userPurchasedEvents = await this.prisma.transaction.findMany({
         where: {
           userId: user.id,
-          status: PaymentStatus.PAID,
+          status: TransactionStatus.PAID,
         },
         select: {
           eventId: true,
@@ -1010,13 +1010,13 @@ export class EventsService {
       this.prisma.transaction.count({
         where: {
           ...where,
-          status: PaymentStatus.PAID,
+          status: TransactionStatus.PAID,
         },
       }),
       this.prisma.transaction.aggregate({
         where: {
           ...where,
-          status: PaymentStatus.PAID,
+          status: TransactionStatus.PAID,
         },
         _sum: {
           finalAmount: true,

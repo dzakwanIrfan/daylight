@@ -16,7 +16,6 @@ import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import type { User } from '@prisma/client';
@@ -57,7 +56,7 @@ export class EventsController {
   /**
    * Get event by slug (with 24h restriction for non-purchasers)
    */
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Get('public/:slug')
   async getPublicEventBySlug(
     @Param('slug') slug: string,

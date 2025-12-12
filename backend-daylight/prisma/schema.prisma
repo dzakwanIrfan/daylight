@@ -304,6 +304,10 @@ model Event {
   organizerName    String?
   organizerContact String?
 
+  // AUTO-MATCHING FLAGS
+  autoMatchingCompleted Boolean   @default(false)
+  autoMatchingAt        DateTime?
+
   legacyTransactions LegacyTransaction[]
   transactions       Transaction[]
   matchingGroups     MatchingGroup[]
@@ -321,6 +325,7 @@ model Event {
   @@index([slug])
   @@index([isActive])
   @@index([cityId])
+  @@index([autoMatchingCompleted])
 }
 
 enum PaymentChannelType {

@@ -81,8 +81,8 @@ export const participantsColumns: ColumnDef<EventParticipant>[] = [
           </Avatar>
           <div className="flex flex-col min-w-0 flex-1">
             <span className="font-medium text-gray-900 truncate">
-              {user.firstName && user.lastName
-                ? `${user.firstName} ${user.lastName}`
+              {user.firstName || user.lastName
+                ? `${user.firstName} ${user.lastName ? user.lastName : ''}`
                 : row.original.customerName}
             </span>
             <span className="text-xs text-gray-500 truncate">{user.email}</span>

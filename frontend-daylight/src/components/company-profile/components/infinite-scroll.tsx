@@ -49,8 +49,8 @@ const InfiniteScroll = () => {
                         className="h-16 w-auto grayscale"
                     />
                     <Image
-                        src="/images/landing-page/running-text/ssas.png"
-                        alt="ssas"
+                        src="/images/landing-page/running-text/sekuya.png"
+                        alt="sekuya"
                         width={150}
                         height={50}
                         className="h-16 w-auto grayscale"

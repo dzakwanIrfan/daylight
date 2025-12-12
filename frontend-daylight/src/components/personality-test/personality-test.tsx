@@ -122,7 +122,7 @@ export function PersonalityTest() {
             size="sm"
             onClick={() => {
               if (confirm('Are you sure you want to exit? Your progress will be saved.')) {
-                router.push('/');
+                router.push('/auth/login');
               }
             }}
             className="font-bold"

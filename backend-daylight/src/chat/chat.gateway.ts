@@ -36,8 +36,7 @@ interface RateLimitData {
   transports: ['websocket', 'polling'],
 })
 export class ChatGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -50,7 +49,7 @@ export class ChatGateway
     private chatService: ChatService,
     private notificationsService: NotificationsService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   afterInit(server: Server) {
     const frontendUrl = this.configService.get('FRONTEND_URL');
@@ -58,10 +57,20 @@ export class ChatGateway
     this.logger.log(`Accepting connections from: ${frontendUrl}`);
   }
 
+  /**
+   * Verify group is active
+   */
+  private async verifyGroupIsActive(groupId: string): Promise<boolean> {
+    const group = await this.chatService['prisma'].matchingGroup.findUnique({
+      where: { id: groupId },
+      select: { isActive: true },
+    });
+
+    return group?.isActive || false;
+  }
+
   @UseGuards(WsJwtAuthGuard)
   async handleConnection(@ConnectedSocket() client: Socket) {
-    const userId = client.data.user?.userId;
-    console.log(`Client attempting to connect: ${client.id} (User: ${userId || 'unknown'})`);
     try {
       this.logger.log(`Client attempting to connect: ${client.id}`);
 
@@ -124,6 +133,12 @@ export class ChatGateway
     try {
       const userId = client.data.user.userId;
       const { groupId } = data;
+
+      // Verify group is active
+      const isActive = await this.verifyGroupIsActive(groupId);
+      if (!isActive) {
+        throw new WsException('This chat has been closed');
+      }
 
       // Verify membership
       const isMember = await this.chatService.verifyGroupMembership(
@@ -205,9 +220,19 @@ export class ChatGateway
       const userId = client.data.user.userId;
       const { groupId, content } = sendMessageDto;
 
+      // Verify group is active
+      const isActive = await this.verifyGroupIsActive(groupId);
+      if (!isActive) {
+        return {
+          success: false,
+          error: 'This chat has been closed',
+          timestamp: new Date(),
+        };
+      }
+
       // Rate limiting
       if (!this.checkRateLimit(userId)) {
-        throw new WsException('Rate limit exceeded.  Please slow down.');
+        throw new WsException('Rate limit exceeded. Please slow down.');
       }
 
       // Save message to database

@@ -8,7 +8,7 @@ import sanitizeHtml from 'sanitize-html';
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Sanitize message content to prevent XSS
@@ -18,7 +18,7 @@ export class ChatService {
       allowedTags: [], // No HTML tags allowed (text-only)
       allowedAttributes: {},
       disallowedTagsMode: 'escape',
-    }). trim();
+    }).trim();
   }
 
   /**
@@ -42,7 +42,7 @@ export class ChatService {
     const { content, groupId } = sendMessageDto;
 
     // Verify group exists
-    const group = await this. prisma.matchingGroup.findUnique({
+    const group = await this.prisma.matchingGroup.findUnique({
       where: { id: groupId },
       include: {
         members: {
@@ -74,17 +74,17 @@ export class ChatService {
     // Sanitize content
     const sanitizedContent = this.sanitizeContent(content);
 
-    if (! sanitizedContent) {
+    if (!sanitizedContent) {
       throw new ForbiddenException('Message content cannot be empty');
     }
 
     // Create message
-    const message = await this.prisma.message. create({
+    const message = await this.prisma.message.create({
       data: {
         content: sanitizedContent,
         senderId: userId,
         groupId,
-        status: MessageStatus. SENT,
+        status: MessageStatus.SENT,
       },
       include: {
         sender: {
@@ -113,7 +113,17 @@ export class ChatService {
       throw new ForbiddenException('You are not a member of this group');
     }
 
-    const messages = await this.prisma. message.findMany({
+    // Verify group is active
+    const group = await this.prisma.matchingGroup.findUnique({
+      where: { id: groupId },
+      select: { isActive: true },
+    });
+
+    if (!group?.isActive) {
+      throw new ForbiddenException('This chat has been closed');
+    }
+
+    const messages = await this.prisma.message.findMany({
       where: {
         groupId,
         ...(before && {
@@ -139,7 +149,7 @@ export class ChatService {
       take: limit,
     });
 
-    return messages. reverse(); // Oldest first
+    return messages.reverse(); // Oldest first
   }
 
   /**
@@ -157,19 +167,19 @@ export class ChatService {
         status: MessageStatus.SENT,
       },
       data: {
-        status: MessageStatus. DELIVERED,
+        status: MessageStatus.DELIVERED,
       },
     });
 
     this.logger.log(`Marked ${updated.count} messages as delivered for user ${userId}`);
-    return updated. count;
+    return updated.count;
   }
 
   /**
    * Mark messages as read
    */
   async markAsRead(messageIds: string[], userId: string) {
-    const updated = await this.prisma.message. updateMany({
+    const updated = await this.prisma.message.updateMany({
       where: {
         id: {
           in: messageIds,
@@ -182,7 +192,7 @@ export class ChatService {
         },
       },
       data: {
-        status: MessageStatus. READ,
+        status: MessageStatus.READ,
       },
     });
 
@@ -194,7 +204,7 @@ export class ChatService {
    * Get unread message count for a user
    */
   async getUnreadCount(userId: string, groupId?: string) {
-    const count = await this.prisma.message. count({
+    const count = await this.prisma.message.count({
       where: {
         group: {
           members: {
@@ -207,7 +217,7 @@ export class ChatService {
           not: userId,
         },
         status: {
-          not: MessageStatus. READ,
+          not: MessageStatus.READ,
         },
         ...(groupId && { groupId }),
       },

@@ -547,30 +547,28 @@ export class EmailService {
           </div>
         </div>
 
-        ${
-          paymentCode
-            ? `
+        ${paymentCode
+        ? `
         <div class="payment-code-box">
           <p class="payment-code-label">Payment Code</p>
           <div class="payment-code">${paymentCode}</div>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
         <div class="alert-box alert-warning">
           <strong>Action Required:</strong> Please complete your payment as soon as possible to secure your spot at this event.
         </div>
 
-        ${
-          paymentUrl
-            ? `
+        ${paymentUrl
+        ? `
         <div class="button-container">
           <a href="${paymentUrl}" class="button">Complete Payment</a>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
       </div>
     `;
 
@@ -934,9 +932,8 @@ export class EmailService {
           </div>
         </div>
 
-        ${
-          transaction.event
-            ? `
+        ${transaction.event
+        ? `
         <div class="info-box">
           <h3 class="info-box-title">Event Details</h3>
           <div class="info-row">
@@ -953,12 +950,11 @@ export class EmailService {
           </div>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
-        ${
-          transaction.userSubscription
-            ? `
+        ${transaction.userSubscription
+        ? `
         <div class="info-box">
           <h3 class="info-box-title">Subscription Details</h3>
           <div class="info-row">
@@ -971,8 +967,8 @@ export class EmailService {
           </div>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
         <div class="divider"></div>
 
@@ -1035,15 +1031,14 @@ export class EmailService {
           </div>
         </div>
 
-        ${
-          event.googleMapsUrl
-            ? `
+        ${event.googleMapsUrl
+        ? `
         <div class="button-container">
           <a href="${event.googleMapsUrl}" class="button">Get Directions</a>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
         <div class="info-box">
           <h3 class="info-box-title">What to Bring</h3>
@@ -1054,9 +1049,8 @@ export class EmailService {
           </ul>
         </div>
 
-        ${
-          event.requirements && event.requirements.length > 0
-            ? `
+        ${event.requirements && event.requirements.length > 0
+        ? `
         <div class="info-box">
           <h3 class="info-box-title">Event Requirements</h3>
           <ul class="list">
@@ -1064,8 +1058,8 @@ export class EmailService {
           </ul>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
         <div class="alert-box alert-warning">
           <strong>Important:</strong> Please arrive 15 minutes before the event starts. 
@@ -1205,9 +1199,8 @@ export class EmailService {
           </div>
         </div>
 
-        ${
-          otherMembers.length > 0
-            ? `
+        ${otherMembers.length > 0
+        ? `
         <div class="info-box">
           <h3 class="info-box-title">Your Group Members</h3>
           <p class="text" style="font-size: 14px; margin-bottom: 12px;">You'll be meeting these wonderful people:</p>
@@ -1217,8 +1210,8 @@ export class EmailService {
           </ul>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
         <div class="alert-box alert-info">
           <strong>What's Next?</strong> Come to the event and look for Group ${groupNumber}. Our team will help guide you to your group.
@@ -1310,30 +1303,28 @@ export class EmailService {
           </div>
         </div>
 
-        ${
-          matchingResult.thresholdBreakdown &&
-          matchingResult.thresholdBreakdown.length > 0
-            ? `
+        ${matchingResult.thresholdBreakdown &&
+        matchingResult.thresholdBreakdown.length > 0
+        ? `
         <div class="info-box">
           <h3 class="info-box-title">Threshold Breakdown</h3>
           ${matchingResult.thresholdBreakdown
-            .map(
-              (t: any) => `
+          .map(
+            (t: any) => `
             <div class="info-row">
               <span class="info-label">Threshold ${t.threshold}%:</span>
               <span class="info-value">${t.groupsFormed} group(s), ${t.participantsMatched} participants</span>
             </div>
           `,
-            )
-            .join('')}
+          )
+          .join('')}
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
-        ${
-          matchingResult.warnings && matchingResult.warnings.length > 0
-            ? `
+        ${matchingResult.warnings && matchingResult.warnings.length > 0
+        ? `
         <div class="info-box">
           <h3 class="info-box-title">Notes</h3>
           <ul class="list">
@@ -1341,18 +1332,17 @@ export class EmailService {
           </ul>
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
-        ${
-          matchingResult.statistics.unmatchedCount > 0
-            ? `
+        ${matchingResult.statistics.unmatchedCount > 0
+        ? `
         <div class="alert-box alert-warning">
           <strong>Action Required:</strong> ${matchingResult.statistics.unmatchedCount} participant(s) could not be automatically matched. You may need to manually assign them to groups.
         </div>
         `
-            : ''
-        }
+        : ''
+      }
 
         <div class="button-container">
           <a href="${this.configService.get('FRONTEND_URL')}/admin/events/${event.id}/matching" class="button">View Matching Results</a>
@@ -1370,6 +1360,144 @@ export class EmailService {
       from: this.configService.get('EMAIL_FROM'),
       to: adminEmail,
       subject: `[DayLight] Auto-Matching Complete - ${event.title}`,
+      html: this.getEmailTemplate(content),
+    });
+  }
+
+  /**
+   * Send chat closed notification to participant
+   */
+  async sendChatClosedEmail(user: any, event: any, group: any) {
+    const name =
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Participant';
+
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Hello ${name},</h2>
+        <p class="text">The event <strong>${event.title}</strong> has concluded, and the group chat has been closed.</p>
+        
+        <div class="alert-box alert-info">
+          <strong>Chat Closed:</strong> You can no longer send messages in Group ${group.groupNumber}.
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Event Summary</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name:</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Your Group:</span>
+            <span class="info-value">Group ${group.groupNumber}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Event Date:</span>
+            <span class="info-value">${this.formatDateWithEventTimezone(event.eventDate, event)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location:</span>
+            <span class="info-value">${event.venue}, ${event.city}</span>
+          </div>
+        </div>
+
+        <p class="text">Thank you for being part of this DayLight event! We hope you made meaningful connections and had a great experience.</p>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Stay Connected</h3>
+          <p class="text" style="font-size: 14px; margin-bottom: 12px;">Want to keep the connections going?</p>
+          <ul class="list">
+            <li class="list-item">Exchange contact information with your group members</li>
+            <li class="list-item">Join our upcoming events to meet more people</li>
+            <li class="list-item">Follow us on social media for updates</li>
+          </ul>
+        </div>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/events" class="button">Explore More Events</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text">We would love to hear about your experience! Feel free to share your feedback with us.</p>
+      </div>
+    `;
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: user.email,
+      subject: `Chat Closed - ${event.title}`,
+      html: this.getEmailTemplate(content),
+    });
+  }
+
+  /**
+   * Send chat deactivation notification to admin
+   */
+  async sendChatDeactivationAdminEmail(event: any, groupsDeactivated: number) {
+    const adminEmail =
+      this.configService.get('ADMIN_EMAIL') || 'contact@himgroup.asia';
+
+    const content = `
+      <div class="email-body">
+        <h2 class="greeting">Chat Deactivation Completed</h2>
+        <p class="text">Automatic chat deactivation has been completed for an ended event.</p>
+        
+        <div class="alert-box alert-success">
+          <strong>Status:</strong> Chat deactivation completed successfully
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Event Information</h3>
+          <div class="info-row">
+            <span class="info-label">Event Name:</span>
+            <span class="info-value">${event.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Event Date:</span>
+            <span class="info-value">${this.formatDateWithEventTimezone(event.eventDate, event)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">End Time:</span>
+            <span class="info-value">${this.formatDateWithEventTimezone(event.endTime, event)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Location:</span>
+            <span class="info-value">${event.venue}, ${event.city}</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3 class="info-box-title">Deactivation Summary</h3>
+          <div class="info-row">
+            <span class="info-label">Groups Deactivated:</span>
+            <span class="info-value">${groupsDeactivated}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Deactivation Time:</span>
+            <span class="info-value">${this.formatDate(new Date())}</span>
+          </div>
+        </div>
+
+        <div class="alert-box alert-info">
+          <strong>Note:</strong> All participants have been notified that the chat has been closed.
+        </div>
+
+        <div class="button-container">
+          <a href="${this.configService.get('FRONTEND_URL')}/admin/events/${event.id}" class="button">View Event Details</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p class="text" style="font-size: 13px; color: #999;">
+          This is an automated notification from DayLight chat deactivation system.
+        </p>
+      </div>
+    `;
+
+    await this.transporter.sendMail({
+      from: this.configService.get('EMAIL_FROM'),
+      to: adminEmail,
+      subject: `[DayLight] Chat Deactivated - ${event.title}`,
       html: this.getEmailTemplate(content),
     });
   }

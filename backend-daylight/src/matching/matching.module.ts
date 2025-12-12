@@ -11,6 +11,7 @@ import { MatchingPersistenceService } from './services/matching-persistence.serv
 import { AutoMatchingService } from './services/auto-matching.service'; 
 import { EmailModule } from '../email/email.module'; 
 import { NotificationsModule } from '../notifications/notifications.module'; 
+import { AutoDeactivateChatService } from './services/auto-deactivate-chat.service';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     ManualAssignmentService,
     MatchingPersistenceService,
     AutoMatchingService, 
+    AutoDeactivateChatService,
   ],
   exports: [MatchingService],
 })

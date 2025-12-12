@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useCallback, useRef } from 'react';
-import { useSocket } from './use-socket';
-import { useChatStore, Message } from '@/store/chat-store';
-import { useAuthStore } from '@/store/auth-store';
-import { chatService } from '@/services/chat.service';
-import { toast } from 'sonner';
+import { useEffect, useCallback, useRef } from "react";
+import { useSocket } from "./use-socket";
+import { useChatStore, Message } from "@/store/chat-store";
+import { useAuthStore } from "@/store/auth-store";
+import { chatService } from "@/services/chat.service";
+import { toast } from "sonner";
 
 export function useChat() {
   const { user } = useAuthStore();
@@ -28,7 +28,7 @@ export function useChat() {
   } = useChatStore();
 
   const { socket, isConnected, emit, on, off } = useSocket({
-    namespace: '/chat',
+    namespace: "/chat",
     autoConnect: true,
   });
 
@@ -43,22 +43,22 @@ export function useChat() {
    * Load user groups
    */
   const loadGroups = useCallback(async () => {
-    if (hasLoadedGroups. current || isLoadingGroups.current) {
+    if (hasLoadedGroups.current || isLoadingGroups.current) {
       return groups;
     }
 
     isLoadingGroups.current = true;
 
     try {
-      console.log('📡 Loading user groups.. .');
+      console.log("📡 Loading user groups.. .");
       const userGroups = await chatService.getUserGroups();
       setGroups(userGroups);
-      hasLoadedGroups. current = true;
+      hasLoadedGroups.current = true;
       console.log(`✅ Loaded ${userGroups.length} groups`);
       return userGroups;
     } catch (error) {
-      console.error('❌ Failed to load groups:', error);
-      toast.error('Failed to load chat groups');
+      console.error("❌ Failed to load groups:", error);
+      toast.error("Failed to load chat groups");
       return [];
     } finally {
       isLoadingGroups.current = false;
@@ -71,11 +71,14 @@ export function useChat() {
   const loadMessages = useCallback(
     async (groupId: string, before?: string) => {
       try {
-        console. log(`📡 Loading messages for group: ${groupId}`);
-        const { messages: groupMessages } = await chatService. getGroupMessages(groupId, {
-          limit: 50,
-          before,
-        });
+        console.log(`📡 Loading messages for group: ${groupId}`);
+        const { messages: groupMessages } = await chatService.getGroupMessages(
+          groupId,
+          {
+            limit: 50,
+            before,
+          }
+        );
 
         if (before) {
           prependMessages(groupId, groupMessages);
@@ -83,10 +86,12 @@ export function useChat() {
           setMessages(groupId, groupMessages);
         }
 
-        console.log(`✅ Loaded ${groupMessages.length} messages for group ${groupId}`);
+        console.log(
+          `✅ Loaded ${groupMessages.length} messages for group ${groupId}`
+        );
         return groupMessages;
       } catch (error) {
-        console. error('❌ Failed to load messages:', error);
+        console.error("❌ Failed to load messages:", error);
         return [];
       }
     },
@@ -99,7 +104,7 @@ export function useChat() {
   const joinGroup = useCallback(
     (groupId: string) => {
       if (!isConnected) {
-        console.warn('⚠️ Cannot join group: Socket not connected');
+        console.warn("⚠️ Cannot join group: Socket not connected");
         return;
       }
 
@@ -107,14 +112,14 @@ export function useChat() {
         return;
       }
 
-      console.log('🔗 Joining group:', groupId);
+      console.log("🔗 Joining group:", groupId);
 
-      emit('join:group', { groupId }, (response: any) => {
-        if (response?. success) {
-          console.log('✅ Joined group:', groupId);
-          joinedGroups.current. add(groupId);
+      emit("join:group", { groupId }, (response: any) => {
+        if (response?.success) {
+          console.log("✅ Joined group:", groupId);
+          joinedGroups.current.add(groupId);
         } else {
-          console.error('❌ Failed to join group:', response);
+          console.error("❌ Failed to join group:", response);
         }
       });
     },
@@ -130,7 +135,7 @@ export function useChat() {
         return;
       }
 
-      emit('leave:group', { groupId });
+      emit("leave:group", { groupId });
       joinedGroups.current.delete(groupId);
     },
     [isConnected, emit]
@@ -142,25 +147,25 @@ export function useChat() {
   const sendMessage = useCallback(
     async (groupId: string, content: string): Promise<Message | null> => {
       if (!isConnected) {
-        toast.error('Not connected to chat server');
+        toast.error("Not connected to chat server");
         return null;
       }
 
-      const trimmedContent = content. trim();
-      if (! trimmedContent) {
+      const trimmedContent = content.trim();
+      if (!trimmedContent) {
         return null;
       }
 
       return new Promise<Message | null>((resolve) => {
         emit(
-          'message:send',
+          "message:send",
           { content: trimmedContent, groupId },
           (ack: { success: boolean; message?: Message; error?: string }) => {
-            if (ack?. success && ack.message) {
-              addMessage(groupId, ack. message);
+            if (ack?.success && ack.message) {
+              addMessage(groupId, ack.message);
               resolve(ack.message);
             } else {
-              toast.error(ack?.error || 'Failed to send message');
+              toast.error(ack?.error || "Failed to send message");
               resolve(null);
             }
           }
@@ -176,7 +181,7 @@ export function useChat() {
   const sendTyping = useCallback(
     (groupId: string, isTyping: boolean) => {
       if (!isConnected) return;
-      emit('typing', { groupId, isTyping });
+      emit("typing", { groupId, isTyping });
     },
     [isConnected, emit]
   );
@@ -188,7 +193,7 @@ export function useChat() {
     (groupId: string, messageIds: string[]) => {
       if (!isConnected || messageIds.length === 0) return;
 
-      emit('messages:read', { messageIds, groupId });
+      emit("messages:read", { messageIds, groupId });
       clearUnread(groupId);
     },
     [isConnected, emit, clearUnread]
@@ -198,8 +203,8 @@ export function useChat() {
    * Setup socket event listeners
    */
   useEffect(() => {
-    if (! isConnected) {
-      listenersSetup. current = false;
+    if (!isConnected) {
+      listenersSetup.current = false;
       return;
     }
 
@@ -207,17 +212,17 @@ export function useChat() {
       return;
     }
 
-    console.log('🎧 Setting up chat event listeners');
-    listenersSetup. current = true;
+    console.log("🎧 Setting up chat event listeners");
+    listenersSetup.current = true;
 
     const handleNewMessage = (message: Message) => {
-      console.log('📨 New message received:', message);
-      addMessage(message. groupId, message);
+      console.log("📨 New message received:", message);
+      addMessage(message.groupId, message);
 
       if (message.senderId !== user?.id) {
         const currentActiveGroup = useChatStore.getState().activeGroupId;
         if (currentActiveGroup !== message.groupId) {
-          incrementUnread(message. groupId);
+          incrementUnread(message.groupId);
         }
       }
     };
@@ -233,42 +238,45 @@ export function useChat() {
       if (data.isTyping) {
         addTypingUser({
           userId: data.userId,
-          groupId: data. groupId,
+          groupId: data.groupId,
           timestamp: new Date(data.timestamp),
         });
 
-        const key = `${data. groupId}-${data.userId}`;
+        const key = `${data.groupId}-${data.userId}`;
         if (typingTimeouts.current[key]) {
           clearTimeout(typingTimeouts.current[key]);
         }
-        typingTimeouts. current[key] = setTimeout(() => {
+        typingTimeouts.current[key] = setTimeout(() => {
           removeTypingUser(data.userId, data.groupId);
         }, 3000);
       } else {
-        removeTypingUser(data.userId, data. groupId);
+        removeTypingUser(data.userId, data.groupId);
       }
     };
 
-    const handleMessagesReadUpdate = (data: { messageIds: string[]; readBy: string }) => {
+    const handleMessagesReadUpdate = (data: {
+      messageIds: string[];
+      readBy: string;
+    }) => {
       if (data.readBy !== user?.id) {
-        updateMessageStatus(data. messageIds, 'READ');
+        updateMessageStatus(data.messageIds, "READ");
       }
     };
 
-    on('message:new', handleNewMessage);
-    on('typing:update', handleTypingUpdate);
-    on('messages:read:update', handleMessagesReadUpdate);
+    on("message:new", handleNewMessage);
+    on("typing:update", handleTypingUpdate);
+    on("messages:read:update", handleMessagesReadUpdate);
 
     return () => {
-      console.log('🔇 Removing chat event listeners');
-      off('message:new', handleNewMessage);
-      off('typing:update', handleTypingUpdate);
-      off('messages:read:update', handleMessagesReadUpdate);
+      console.log("🔇 Removing chat event listeners");
+      off("message:new", handleNewMessage);
+      off("typing:update", handleTypingUpdate);
+      off("messages:read:update", handleMessagesReadUpdate);
       listenersSetup.current = false;
     };
   }, [
     isConnected,
-    user?. id,
+    user?.id,
     on,
     off,
     addMessage,
@@ -282,20 +290,22 @@ export function useChat() {
    * Auto-join groups when connected
    */
   useEffect(() => {
-    if (! isConnected || groups.length === 0) {
+    if (!isConnected || groups.length === 0) {
       return;
     }
 
-    const wasDisconnected = ! lastConnectionState.current;
+    const wasDisconnected = !lastConnectionState.current;
     lastConnectionState.current = isConnected;
 
     if (wasDisconnected) {
-      joinedGroups.current. clear();
+      joinedGroups.current.clear();
     }
 
-    const unjoinedGroups = groups.filter((group) => !joinedGroups.current.has(group. id));
+    const unjoinedGroups = groups.filter(
+      (group) => !joinedGroups.current.has(group.id)
+    );
 
-    if (unjoinedGroups. length === 0) {
+    if (unjoinedGroups.length === 0) {
       return;
     }
 
@@ -318,8 +328,8 @@ export function useChat() {
    */
   useEffect(() => {
     return () => {
-      Object.values(typingTimeouts.current). forEach(clearTimeout);
-      typingTimeouts. current = {};
+      Object.values(typingTimeouts.current).forEach(clearTimeout);
+      typingTimeouts.current = {};
     };
   }, []);
 

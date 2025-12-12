@@ -35,11 +35,13 @@ interface RateLimitData {
   },
   transports: ['websocket', 'polling'],
 })
-export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
-  private readonly logger = new Logger(ChatGateway. name);
+  private readonly logger = new Logger(ChatGateway.name);
   private readonly rateLimitMap = new Map<string, RateLimitData>();
   private readonly RATE_LIMIT_MAX = 10; // messages
   private readonly RATE_LIMIT_WINDOW = 10000; // 10 seconds
@@ -51,15 +53,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   ) {}
 
   afterInit(server: Server) {
-    const frontendUrl = this.configService. get('FRONTEND_URL');
+    const frontendUrl = this.configService.get('FRONTEND_URL');
     this.logger.log(`WebSocket Gateway initialized`);
     this.logger.log(`Accepting connections from: ${frontendUrl}`);
   }
 
+  @UseGuards(WsJwtAuthGuard)
   async handleConnection(@ConnectedSocket() client: Socket) {
+    const userId = client.data.user?.userId;
+    console.log(`Client attempting to connect: ${client.id} (User: ${userId || 'unknown'})`);
     try {
       this.logger.log(`Client attempting to connect: ${client.id}`);
-      
+
       // Auth will be handled by guard on message events
       client.emit('connected', {
         message: 'Connected to chat server',
@@ -73,8 +78,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
     const userId = client.data.user?.userId;
-    this.logger.log(`Client disconnected: ${client.id} (User: ${userId || 'unknown'})`);
-    
+    this.logger.log(
+      `Client disconnected: ${client.id} (User: ${userId || 'unknown'})`,
+    );
+
     // Clean up rate limit data
     if (userId) {
       this.rateLimitMap.delete(userId);
@@ -85,19 +92,19 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
    * Rate limiting check
    */
   private checkRateLimit(userId: string): boolean {
-    const now = Date. now();
-    const userData = this.rateLimitMap. get(userId);
+    const now = Date.now();
+    const userData = this.rateLimitMap.get(userId);
 
     if (!userData || now > userData.resetTime) {
       // Reset rate limit
-      this.rateLimitMap. set(userId, {
+      this.rateLimitMap.set(userId, {
         count: 1,
         resetTime: now + this.RATE_LIMIT_WINDOW,
       });
       return true;
     }
 
-    if (userData.count >= this. RATE_LIMIT_MAX) {
+    if (userData.count >= this.RATE_LIMIT_MAX) {
       return false;
     }
 
@@ -115,20 +122,23 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     @MessageBody() data: { groupId: string },
   ) {
     try {
-      const userId = client.data.user. userId;
+      const userId = client.data.user.userId;
       const { groupId } = data;
 
       // Verify membership
-      const isMember = await this.chatService.verifyGroupMembership(userId, groupId);
+      const isMember = await this.chatService.verifyGroupMembership(
+        userId,
+        groupId,
+      );
       if (!isMember) {
         throw new WsException('Not a member of this group');
       }
 
       // Join socket room
       await client.join(`group:${groupId}`);
-      
+
       this.logger.log(`User ${userId} joined group ${groupId}`);
-      
+
       // Notify others in the group
       client.to(`group:${groupId}`).emit('user:joined', {
         userId,
@@ -161,9 +171,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const { groupId } = data;
 
       await client.leave(`group:${groupId}`);
-      
+
       this.logger.log(`User ${userId} left group ${groupId}`);
-      
+
       client.to(`group:${groupId}`).emit('user:left', {
         userId,
         groupId,
@@ -192,22 +202,25 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     @MessageBody() sendMessageDto: SendMessageDto,
   ): Promise<MessageAckDto> {
     try {
-      const userId = client.data.user. userId;
+      const userId = client.data.user.userId;
       const { groupId, content } = sendMessageDto;
 
       // Rate limiting
-      if (! this.checkRateLimit(userId)) {
+      if (!this.checkRateLimit(userId)) {
         throw new WsException('Rate limit exceeded.  Please slow down.');
       }
 
       // Save message to database
-      const message = await this.chatService.sendMessage(userId, sendMessageDto);
+      const message = await this.chatService.sendMessage(
+        userId,
+        sendMessageDto,
+      );
 
       // Emit to other group members
       client.to(`group:${groupId}`).emit('message:new', message);
 
       // Create notifications for other members
-      const group = await this.chatService['prisma'].matchingGroup. findUnique({
+      const group = await this.chatService['prisma'].matchingGroup.findUnique({
         where: { id: groupId },
         include: {
           members: {
@@ -221,7 +234,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
       if (group) {
         const otherUserIds = group.members.map((m) => m.userId);
-        
+
         await this.notificationsService.createBulkNotifications(otherUserIds, {
           type: NotificationType.NEW_MESSAGE,
           title: 'New Message',
@@ -248,7 +261,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         timestamp: new Date(),
       };
     } catch (error) {
-      this.logger.error(`❌ Send message error: ${error. message}`);
+      this.logger.error(`❌ Send message error: ${error.message}`);
       return {
         success: false,
         error: error.message,
@@ -268,11 +281,14 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     @MessageBody() typingDto: TypingDto,
   ) {
     try {
-      const userId = client.data.user. userId;
+      const userId = client.data.user.userId;
       const { groupId, isTyping } = typingDto;
 
       // Verify membership
-      const isMember = await this.chatService.verifyGroupMembership(userId, groupId);
+      const isMember = await this.chatService.verifyGroupMembership(
+        userId,
+        groupId,
+      );
       if (!isMember) {
         throw new WsException('Not a member of this group');
       }
@@ -303,7 +319,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   ) {
     try {
       const userId = client.data.user.userId;
-      const count = await this.chatService.markAsDelivered(data.messageIds, userId);
+      const count = await this.chatService.markAsDelivered(
+        data.messageIds,
+        userId,
+      );
 
       return { success: true, count };
     } catch (error) {
@@ -323,7 +342,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   ) {
     try {
       const userId = client.data.user.userId;
-      const count = await this.chatService.markAsRead(data. messageIds, userId);
+      const count = await this.chatService.markAsRead(data.messageIds, userId);
 
       // Notify sender that messages were read
       client.to(`group:${data.groupId}`).emit('messages:read:update', {

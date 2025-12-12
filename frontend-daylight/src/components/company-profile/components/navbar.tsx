@@ -30,7 +30,7 @@ export default function Navbar({ isHome = false }: NavbarProps) {
 
     const showWhiteNav = !isHome || isScrolled;
     const navLinks = [
-        { href: "/landing", label: "Home" },
+        { href: "/", label: "Home" },
         { href: "/about-us", label: "About Us" },
         { href: "#", label: "Blog" },
         { href: "/contact-us", label: "Contact Us" },

@@ -124,7 +124,7 @@ export function ContextQuestions() {
       
       setTestCompleted();
       
-      toast.success('Test completed!', {
+      toast.success('Quiz completed!', {
         description: 'Create an account to see your full results and join events!',
       });
       

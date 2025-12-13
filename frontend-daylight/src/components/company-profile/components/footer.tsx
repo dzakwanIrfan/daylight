@@ -109,21 +109,21 @@ export default function Footer() {
                                 DayLight Category
                             </p>
                             <hr className="border border-b-white mt-2 mb-4" />
-                            <div className="space-y-2 text-white/90 font-medium text-base">
-                                <p>DayBreak</p>
-                                <p>DayTrip</p>
-                                <p>DayCare</p>
+                            <div className="space-y-2 text-white/90 font-medium text-base flex flex-col">
+                                <a href="">DayBreak</a>
+                                <a href="">DayTrip</a>
+                                <a href="">DayCare</a>
                             </div>
                         </div>
 
                         <div>
                             <p className="text-white inline-block text-lg">Menu</p>
                             <hr className="border border-b-white mt-2 mb-4" />
-                            <div className="space-y-2 text-white/90 font-medium text-base">
-                                <p>Home</p>
-                                <p>Blogs</p>
-                                <p>About Us</p>
-                                <p>Contact Us</p>
+                            <div className="space-y-2 text-white/90 font-medium text-base flex flex-col">
+                                <a href="/">Home</a>
+                                <a href="/blogs">Blogs</a>
+                                <a href="/about-us">About Us</a>
+                                <a href="/contact-us">Contact Us</a>
                             </div>
                         </div>
 
@@ -132,11 +132,10 @@ export default function Footer() {
                                 DayLight Category
                             </p>
                             <hr className="border border-b-white mt-2 mb-4" />
-                            <div className="space-y-2 text-white/90 font-medium text-base">
-                                <p>Term &amp; Conditions</p>
-                                <p>Privacy Policy</p>
-                                <p>Community</p>
-                                <p>Guidelines</p>
+                            <div className="space-y-2 text-white/90 font-medium text-base flex flex-col">
+                                <a href="/terms">Term &amp; Conditions</a>
+                                <a href="/privacy">Privacy Policy</a>
+                                <a href="/community-guidelines">Community Guidelines</a>
                             </div>
                         </div>
 

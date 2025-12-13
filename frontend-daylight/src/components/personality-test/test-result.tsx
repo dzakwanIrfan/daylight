@@ -126,7 +126,7 @@ export function TestResult() {
   const handleContinueToRegister = () => {
     if (!sessionId) {
       toast.error('Session expired', {
-        description: 'Please take the test again.',
+        description: 'Please take the quiz again.',
       });
       router.push('/personality-test');
       return;

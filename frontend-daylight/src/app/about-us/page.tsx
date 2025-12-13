@@ -15,19 +15,19 @@ const STORIES = [
         id: 1,
         title: "Chapter 1: The City of Lights",
         image: "/images/about-us/story-poster1.png",
-        url: "#",
+        url: "https://www.instagram.com/p/DRQy58_ktZW/?hl=en&img_index=1",
     },
     {
         id: 2,
         title: "Chapter 2: The Darkness",
         image: "/images/about-us/story-poster2.png",
-        url: "#",
+        url: "https://www.instagram.com/p/DRRPR_-EUGU/?hl=en&img_index=1",
     },
     {
         id: 3,
         title: "Chapter 3: The Walls",
         image: "/images/about-us/story-poster3.png",
-        url: "#",
+        url: "https://www.instagram.com/p/DRRwnb5EwC2/?hl=en&img_index=1",
     },
 ];
 
@@ -73,8 +73,7 @@ export default function AboutUsPage() {
                             <div className="space-y-8 text-center md:text-left">
                                 <h1 className="logo-text text-brand text-6xl">DayLight</h1>
                                 <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
-                                    Daylight is the world’s first Belonging Platform. Focused on
-                                    identity, experience, and real life connection
+                                    Daylight is the world’s first Belonging Platform. Focused on Identity, Experience, and Connection 
                                 </h2>
                                 <div>
                                     <Button href="/personality-test"> Sign Up Now </Button>

@@ -476,8 +476,7 @@ export default function LandingPage() {
                     <div className="container max-w-7xl mx-auto">
                         <div className="max-w-2xl text-left">
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-8 leading-tight">
-                                Daylight is a community platform connecting people through
-                                real-life experiences.
+                            Daylight is the world’s first Belonging Platform. Focused on Identity, Experience, and Connection 
                                 <span className="hidden md:absolute bottom-64 ml-2">
                                     <Image
                                         src="/images/archetypes/default.png"
@@ -490,7 +489,7 @@ export default function LandingPage() {
                             </h1>
 
                             <div className="mb-12">
-                                <Button href="/personality-test">Take a Test</Button>
+                                <Button href="/personality-test">Take a Quiz</Button>
                             </div>
 
                             {/* Social Icons */}
@@ -551,8 +550,7 @@ export default function LandingPage() {
                             {/* Text Content */}
                             <div className="space-y-8 text-center md:text-left">
                                 <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                                    Take the test, select an event and just show up. We’ll handle
-                                    the rest.
+                                    Take the quiz, select an event, find your people!
                                 </h2>
                                 <div>
                                     <Button href="/personality-test"> Sign Up Now </Button>
@@ -613,7 +611,7 @@ export default function LandingPage() {
                             Persona quiz
                         </h2>
                         <p className="text-gray-600 text-lg md:text-xl leading-relaxed">
-                            Take the test and discover your{" "}
+                            Take the quiz and discover your{" "}
                             <span className="font-bold text-gray-900">light persona</span>. We
                             chose &quot;light&quot; because we believe everyone carries a glow
                             within them. And that inner light, no matter how small, can
@@ -709,7 +707,7 @@ export default function LandingPage() {
                             Find your light <span className="text-orange-500">archetype</span>{" "}
                             here:
                         </p>
-                        <Button href="/personality-test">Start the test</Button>
+                        <Button href="/personality-test">Start the quiz</Button>
                     </div>
                 </div>
             </section>

@@ -27,6 +27,7 @@ import { ChatModule } from './chat/chat.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { LocationModule } from './location/location.module';
 import { XenditModule } from './xendit/xendit.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -64,7 +65,8 @@ import { XenditModule } from './xendit/xendit.module';
     ChatModule,
     NotificationsModule,
     LocationModule,
-    XenditModule
+    XenditModule,
+    FeedbackModule
   ],
   providers: [
     {

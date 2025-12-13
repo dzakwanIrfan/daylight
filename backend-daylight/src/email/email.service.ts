@@ -266,7 +266,7 @@ export class EmailService {
 
   async sendVerificationEmail(email: string, token: string, name: string) {
     const verificationUrl = `${this.configService.get('FRONTEND_URL')}/auth/verify-email?token=${token}`;
-    
+
     const content = `
       <div class="email-body">
         <h2 class="greeting">Hello ${name},</h2>
@@ -302,7 +302,7 @@ export class EmailService {
 
   async sendResetPasswordEmail(email: string, token: string, name: string) {
     const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/reset-password?token=${token}`;
-    
+
     const content = `
       <div class="email-body">
         <h2 class="greeting">Hello ${name},</h2>

@@ -1,7 +1,7 @@
-import { 
-  Injectable, 
-  UnauthorizedException, 
-  BadRequestException, 
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
@@ -55,7 +55,7 @@ export class AuthService {
 
   private async getUserSubscriptionStatus(userId: string) {
     const now = new Date();
-    
+
     const activeSubscription = await this.prisma.userSubscription.findFirst({
       where: {
         userId,
@@ -113,7 +113,7 @@ export class AuthService {
       // Get currentCityId from personality result
       const currentCityId = personalityResult.context?.currentCityId;
 
-      const user = await this.usersService. createUser({
+      const user = await this.usersService.createUser({
         email,
         password,
         firstName,
@@ -148,8 +148,8 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
           isEmailVerified: false,
-          currentCityId: user.currentCityId, 
-          currentCity: user.currentCity, 
+          currentCityId: user.currentCityId,
+          currentCity: user.currentCity,
         },
       };
     } catch (error) {
@@ -165,7 +165,7 @@ export class AuthService {
     const user = await this.usersService.findByVerificationToken(tokenHash);
 
     if (!user) {
-      throw new BadRequestException(AuthErrorMessages. INVALID_TOKEN);
+      throw new BadRequestException(AuthErrorMessages.INVALID_TOKEN);
     }
 
     await this.usersService.verifyEmail(user.id);
@@ -176,28 +176,28 @@ export class AuthService {
       await this.emailService.sendWelcomeEmail(
         user.email,
         user.firstName || 'User',
-        personalityResult.archetype. name,
+        personalityResult.archetype.name,
       );
     }
 
-    const tokens = await this.generateTokens(user. id, user.email, user.refreshTokenVersion);
+    const tokens = await this.generateTokens(user.id, user.email, user.refreshTokenVersion);
     const subscriptionStatus = await this.getUserSubscriptionStatus(user.id);
 
     return {
       success: true,
       message: 'Email verified successfully! ',
       user: {
-        id: user. id,
-        email: user. email,
-        firstName: user. firstName,
-        lastName: user. lastName,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         isEmailVerified: true,
         role: user.role,
-        currentCityId: user.currentCityId, 
-        currentCity: user.currentCity, 
-        ... subscriptionStatus,
+        currentCityId: user.currentCityId,
+        currentCity: user.currentCity,
+        ...subscriptionStatus,
       },
-      ... tokens,
+      ...tokens,
     };
   }
 
@@ -272,8 +272,8 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: user.isEmailVerified,
         role: user.role,
-        currentCityId: user.currentCityId, 
-        currentCity: user.currentCity, 
+        currentCityId: user.currentCityId,
+        currentCity: user.currentCity,
         ...subscriptionStatus,
       },
       ...tokens,
@@ -287,13 +287,8 @@ export class AuthService {
       user = await this.usersService.findByEmail(profile.email);
 
       if (user) {
-        if (user.provider === AuthProvider.LOCAL) {
-          throw new ConflictException(
-            'An account with this email already exists. Please login with your password.',
-          );
-        }
-        
-        if (user.provider === AuthProvider.GOOGLE && !user.googleId) {
+        // Automatically link account if email matches but Google ID is missing
+        if (!user.googleId) {
           await this.usersService.updateGoogleId(user.id, profile.id);
         }
       } else {
@@ -317,8 +312,8 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: user.isEmailVerified,
         role: user.role,
-        currentCityId: user.currentCityId, 
-        currentCity: user.currentCity, 
+        currentCityId: user.currentCityId,
+        currentCity: user.currentCity,
         ...subscriptionStatus,
       },
       ...tokens,
@@ -377,8 +372,8 @@ export class AuthService {
         lastName: user.lastName,
         isEmailVerified: true,
         role: UserRole.USER,
-        currentCityId: user.currentCityId, 
-        currentCity: user.currentCity, 
+        currentCityId: user.currentCityId,
+        currentCity: user.currentCity,
         ...subscriptionStatus,
       },
       ...tokens,
@@ -491,9 +486,9 @@ export class AuthService {
   async logout(userId: string, refreshToken?: string) {
     if (refreshToken) {
       const tokenHash = this.hashToken(refreshToken);
-      
+
       await this.prisma.refreshToken.updateMany({
-        where: { 
+        where: {
           userId,
           tokenHash,
         },
@@ -501,9 +496,9 @@ export class AuthService {
       });
     }
 
-    return { 
+    return {
       success: true,
-      message: 'Logged out successfully' 
+      message: 'Logged out successfully'
     };
   }
 
